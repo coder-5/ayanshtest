@@ -27,7 +27,9 @@
       "Bash(npx --package=dotenv-cli dotenv -e .env.local -- node parse-kangaroo.js)",
       "Bash(npx --package=dotenv-cli dotenv -e .env.local -- node parse-kangaroo-improved.js)",
       "Bash(start http://localhost:3000/practice/kangaroo)",
-      "Bash(start http://localhost:3000/practice)"
+      "Bash(start http://localhost:3000/practice)",
+      "Bash(npx playwright:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -13,6 +13,7 @@ interface Question {
   competition: string;
   topic: string;
   difficulty: string;
+  subtopic?: string;
   hasImage?: boolean;
   imageUrl?: string;
   options?: Array<{
