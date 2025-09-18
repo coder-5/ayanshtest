@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(rm:*)",
+      "Bash(npm run dev:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm install:*)",
+      "Bash(npx dotenv -e .env.local -- npx prisma db push:*)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- npx prisma db push)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- npx prisma studio --port 5555)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- node check-database.js)",
+      "Bash(grep:*)",
+      "Bash(curl:*)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- node test-exam-api.js)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- node test-custom-exam.js)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- npx prisma generate)",
+      "Bash(if exist \"node_modules\\.prisma\" rmdir /s /q \"node_modules\\.prisma\")",
+      "Bash(start http://localhost:3000)",
+      "Bash(start http://localhost:3000/exams)",
+      "Bash(copy:*)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- node parse-kangaroo.js)",
+      "Bash(npx --package=dotenv-cli dotenv -e .env.local -- node parse-kangaroo-improved.js)",
+      "Bash(start http://localhost:3000/practice/kangaroo)",
+      "Bash(start http://localhost:3000/practice)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,292 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  questionText String  // Mathematical content in MathJax/LaTeX format
+  examName    String   // AMC 8, Math Kangaroo, MOEMS
+  examYear    Int      // Year of the exam (2020, 2021, etc.)
+  questionNumber String?  // Original question number in exam (1-25 for AMC, 2A-2E for MOEMS)
+  difficulty  String   // Beginner, Intermediate, Advanced
+  topic       String   // Algebra, Geometry, Number Theory, etc.
+  subtopic    String?  // More specific categorization
+  hasImage    Boolean  @default(false)
+  imageUrl    String?  // URL to question diagram/image
+  timeLimit   Int?     // Time limit in minutes (for MOEMS)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  options     Option[]
+  solution    Solution?
+  attempts    UserAttempt[]
+  tags        QuestionTag[]
+
+  @@unique([examName, examYear, questionNumber])
+  @@index([examName, examYear])
+  @@index([topic, difficulty])
+}
+
+model Option {
+  id         String  @id @default(cuid())
+  questionId String
+  optionLetter String // A, B, C, D, E
+  optionText String  // Mathematical content
+  isCorrect  Boolean @default(false)
+
+  // Relations
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, optionLetter])
+}
+
+model Solution {
+  id            String   @id @default(cuid())
+  questionId    String   @unique
+  solutionText  String   // Step-by-step solution in MathJax/LaTeX
+  approach      String?  // Solution method (algebraic, geometric, etc.)
+  difficulty    String   // How hard the solution is to understand
+  timeEstimate  Int?     // Estimated solve time in minutes
+  keyInsights   String? // Important concepts or tricks used (comma-separated)
+  commonMistakes String? // Typical errors students make (comma-separated)
+  alternativeApproaches String? // Other ways to solve (comma-separated)
+  successRate   Float?   // Percentage success rate (for MOEMS)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Exam {
+  id          String   @id @default(cuid())
+  name        String   // AMC 8, Math Kangaroo, MOEMS
+  year        Int
+  fullName    String   // "American Mathematics Competitions 8"
+  description String?
+  timeLimit   Int?     // Time limit in minutes
+  totalQuestions Int?  // Number of questions in exam
+  passingScore Int?    // Qualifying score if applicable
+  createdAt   DateTime @default(now())
+
+  @@unique([name, year])
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String   // Ayansh
+  email       String?  @unique
+  grade       Int?     // School grade level (5th grade)
+  targetScore Int?     // Goal score for competitions
+  createdAt   DateTime @default(now())
+
+  // Relations
+  attempts    UserAttempt[]
+  sessions    PracticeSession[]
+  achievements Achievement[]
+  dailyStats  DailyProgress[]
+  weeklyStats WeeklyAnalysis[]
+  topicPerformance TopicPerformance[]
+}
+
+model UserAttempt {
+  id           String   @id @default(cuid())
+  userId       String
+  questionId   String
+  selectedAnswer String? // User's selected option (A, B, C, D, E) or numerical answer
+  isCorrect    Boolean
+  timeSpent    Int      // Time in seconds
+  hintsUsed    Int      @default(0)
+  attemptedAt  DateTime @default(now())
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id])
+  question     Question @relation(fields: [questionId], references: [id])
+  session      PracticeSession? @relation(fields: [sessionId], references: [id])
+  sessionId    String?
+
+  @@index([userId, questionId])
+  @@index([userId, attemptedAt])
+}
+
+model PracticeSession {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionType String   // timed, topic-focused, exam-simulation, etc.
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  totalQuestions Int
+  correctAnswers Int    @default(0)
+  totalTime   Int?     // Total time in seconds
+  averageTimePerQuestion Float? // Average time per question
+  focusTopics String? // Topics focused on in this session (comma-separated)
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  attempts    UserAttempt[]
+}
+
+model DailyProgress {
+  id               String   @id @default(cuid())
+  userId           String
+  date             DateTime // Date of practice (date only, no time)
+  questionsAttempted Int    @default(0)
+  correctAnswers   Int      @default(0)
+  totalTimeSpent   Int      @default(0) // Total minutes spent
+  averageAccuracy  Float    @default(0) // Percentage accuracy
+  topicsStudied    String? // Topics practiced today (comma-separated)
+  difficultiesStudied String? // Difficulty levels attempted (comma-separated)
+  streakDays       Int      @default(0) // Consecutive days of practice
+  isStreakDay      Boolean  @default(false) // Did practice today
+  createdAt        DateTime @default(now())
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model WeeklyAnalysis {
+  id                    String   @id @default(cuid())
+  userId                String
+  weekStartDate         DateTime // Monday of the week
+  weekEndDate           DateTime // Sunday of the week
+  totalQuestions        Int      @default(0)
+  totalCorrect          Int      @default(0)
+  totalTimeSpent        Int      @default(0) // Total minutes
+  averageAccuracy       Float    @default(0)
+  improvementRate       Float    @default(0) // % improvement from last week
+
+  // Weak Areas Analysis
+  weakestTopics         String?     // Topics with low accuracy (comma-separated)
+  strongestTopics       String?     // Topics with high accuracy (comma-separated)
+  slowestTopics         String?     // Topics taking most time (comma-separated)
+  recommendedFocus      String? // Topics to focus on next week (comma-separated)
+
+  // Daily Consistency
+  practicedays          Int      @default(0) // Days practiced this week
+  longestStreak         Int      @default(0) // Longest consecutive days
+  averageDailyQuestions Float    @default(0)
+
+  // Difficulty Analysis
+  beginnerAccuracy      Float?   // Accuracy on beginner questions
+  intermediateAccuracy  Float?   // Accuracy on intermediate questions
+  advancedAccuracy      Float?   // Accuracy on advanced questions
+
+  createdAt             DateTime @default(now())
+
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, weekStartDate])
+  @@index([userId, weekStartDate])
+}
+
+model TopicPerformance {
+  id              String   @id @default(cuid())
+  userId          String
+  topicName       String
+  totalAttempts   Int      @default(0)
+  correctAttempts Int      @default(0)
+  accuracy        Float    @default(0)
+  averageTime     Float    @default(0) // Average seconds per question
+  lastPracticed   DateTime?
+  improvementTrend String  @default("stable") // improving, declining, stable
+  strengthLevel   String   @default("moderate") // weak, moderate, strong
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, topicName])
+  @@index([userId, strengthLevel])
+}
+
+model Topic {
+  id          String @id @default(cuid())
+  name        String @unique // Algebra, Geometry, etc.
+  description String?
+  parentId    String? // For subtopics
+
+  // Relations
+  parent      Topic?  @relation("TopicHierarchy", fields: [parentId], references: [id])
+  children    Topic[] @relation("TopicHierarchy")
+}
+
+model Tag {
+  id          String @id @default(cuid())
+  name        String @unique // "quadratic-formula", "pythagorean-theorem"
+  description String?
+
+  // Relations
+  questions   QuestionTag[]
+}
+
+model ExamSchedule {
+  id          String   @id @default(cuid())
+  examName    String   // AMC 8, Math Kangaroo, MOEMS, etc.
+  examDate    DateTime // Date and time of the exam
+  location    String   // School, Online, Competition Center, etc.
+  duration    Int?     // Exam duration in minutes
+  status      String   @default("upcoming") // upcoming, completed, missed, cancelled
+  notes       String?  // Additional notes about the exam
+
+  // Date range for when the exam can be taken
+  availableFromDate DateTime? // When the exam becomes available
+  availableToDate   DateTime? // When the exam is no longer available
+
+  // Online exam access details
+  examUrl       String? // URL for online exams
+  loginId       String? // Login ID/username for the exam
+  loginPassword String? // Password for the exam (consider encryption in production)
+
+  // Registration details
+  registeredAt DateTime? // When registered for the exam
+  registrationId String? // Registration confirmation number
+
+  // Results (if exam is completed)
+  score       Int?     // Score achieved
+  maxScore    Int?     // Maximum possible score
+  percentile  Float?   // Percentile ranking
+
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([examDate])
+  @@index([status])
+  @@index([availableFromDate])
+}
+
+model QuestionTag {
+  questionId  String
+  tagId       String
+
+  // Relations
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, tagId])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String   // "First 100 Questions", "Perfect Week"
+  description String
+  badgeIcon   String   // Icon identifier
+  unlockedAt  DateTime @default(now())
+  category    String   // streak, accuracy, volume, speed
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, category])
+}
