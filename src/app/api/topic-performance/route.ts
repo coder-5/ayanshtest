@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandling } from '@/middleware/apiWrapper';
+import { safeUserIdFromParams } from '@/utils/nullSafety';
 
 async function getTopicPerformanceHandler(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId') || 'default-user';
+  const userId = safeUserIdFromParams(searchParams);
   const strengthLevel = searchParams.get('strengthLevel'); // weak, moderate, strong
 
   const where: any = { userId };

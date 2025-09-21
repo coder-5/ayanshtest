@@ -37,6 +37,7 @@ export const createQuestionSchema = z.object({
   solution: z.object({
     solutionText: z.string().min(1, 'Solution is required').max(10000),
     approach: z.string().optional(),
+    difficulty: z.string().min(1, 'Solution difficulty is required'),
     timeEstimate: z.number().positive().optional(),
     keyInsights: z.string().optional(),
     commonMistakes: z.string().optional(),

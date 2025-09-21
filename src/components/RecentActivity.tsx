@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BookOpen, RotateCcw } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useUser } from "@/lib/user"
 
 interface UserAttempt {
   id: string
@@ -23,7 +23,7 @@ interface RecentActivityProps {
 
 export default function RecentActivity({ recentAttempts, totalQuestions }: RecentActivityProps) {
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const { getCurrentUserId } = useUser()
 
   const clearActivity = async () => {
     if (!confirm('Are you sure you want to clear all recent activity? This action cannot be undone.')) {
@@ -32,14 +32,26 @@ export default function RecentActivity({ recentAttempts, totalQuestions }: Recen
 
     setLoading(true)
     try {
-      const response = await fetch('/api/user-attempts', {
+      const userId = getCurrentUserId() || 'ayansh' // Fallback to default user
+
+      if (!userId || userId === 'all' || userId === '*') {
+        alert('Unable to identify user. Please refresh the page and try again.')
+        return
+      }
+
+      const requestUrl = `/api/user-attempts?userId=${encodeURIComponent(userId)}`
+
+      const response = await fetch(requestUrl, {
         method: 'DELETE'
       })
 
       if (response.ok) {
-        router.refresh() // Refresh the page to show updated data
+        // Force a hard refresh to show updated data
+        window.location.reload()
       } else {
-        alert('Failed to clear activity. Please try again.')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Clear activity failed:', response.status, errorData)
+        alert(`Failed to clear activity: ${errorData.error || 'Unknown error'}. Please try again.`)
       }
     } catch (error) {
       console.error('Error clearing activity:', error)

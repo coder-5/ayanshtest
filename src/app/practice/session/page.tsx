@@ -87,7 +87,6 @@ export default function TopicSessionPage() {
   };
 
   const handleSessionComplete = (results: SessionResult[]) => {
-    console.log('Topic session completed with results:', results);
 
     // Update local progress tracking
     const correctAnswers = results.filter(r => r.isCorrect).length;
@@ -188,10 +187,10 @@ export default function TopicSessionPage() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl flex items-center justify-center gap-2">
               <BookOpen className="h-8 w-8 text-blue-600" />
-              {topic} Practice Session
+              {topic.replace(' Practice', '')} Practice Session
             </CardTitle>
             <CardDescription className="text-lg">
-              Ready to practice {topic} problems{difficulty && difficulty !== 'all' ? ` at ${difficulty} difficulty` : ''}?
+              Ready to practice {topic.replace(' Practice', '')} problems{difficulty && difficulty !== 'all' ? ` at ${difficulty} difficulty` : ''}?
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

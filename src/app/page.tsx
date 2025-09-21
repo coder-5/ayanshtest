@@ -38,12 +38,15 @@ async function calculateStreak(userId: string = 'default-user'): Promise<number>
   return streak;
 }
 
-async function getStats() {
+async function getStats(userId: string = 'ayansh') {
   try {
     const [totalQuestions, totalAttempts, recentAttempts, upcomingExams, streak] = await Promise.all([
       prisma.question.count(),
-      prisma.userAttempt.count(),
+      prisma.userAttempt.count({
+        where: { userId }
+      }),
       prisma.userAttempt.findMany({
+        where: { userId },
         orderBy: { attemptedAt: 'desc' },
         take: 3,
         include: {
@@ -64,7 +67,7 @@ async function getStats() {
     ]);
 
     const correctAttempts = await prisma.userAttempt.count({
-      where: { isCorrect: true }
+      where: { userId, isCorrect: true }
     });
 
     const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
@@ -92,6 +95,8 @@ async function getStats() {
     };
   }
 }
+
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const stats = await getStats();

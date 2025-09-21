@@ -62,7 +62,7 @@ A comprehensive web application for personal family use to help Ayansh (5th grad
    ```
 
 4. **Access Application**
-   - Open [http://localhost:3000](http://localhost:3000)
+   - Open [http://192.168.1.197:3000](http://192.168.1.197:3000)
    - Upload your first math competition documents
    - Start practicing!
 
@@ -85,7 +85,7 @@ Create a `.env.local` file with:
 ```env
 DATABASE_URL="postgresql://username:password@localhost:5432/ayansh_math_prep?schema=public"
 NEXTAUTH_SECRET="your-secret-key-here"
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://192.168.1.197:3000"
 UPLOAD_DIR="./public/uploads"
 ```
 

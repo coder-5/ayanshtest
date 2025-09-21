@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Advanced Math Diagram Styles */
+@import '../styles/advanced-diagrams.css';
+
 @layer base {
   :root {
     --background: 0 0% 100%;

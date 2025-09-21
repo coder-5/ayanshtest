@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { ERROR_MESSAGES, HTTP_STATUS } from '@/constants';
-import { ApiResponse } from '@/types';
+import { ApiResponse } from '@/lib/api-response';
 
 export class AppError extends Error {
   public statusCode: number;
   public isOperational: boolean;
 
-  constructor(message: string, statusCode: number = HTTP_STATUS.INTERNAL_SERVER_ERROR) {
+  constructor(message: string, statusCode: number = 500) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
@@ -16,7 +15,7 @@ export class AppError extends Error {
   }
 }
 
-export function handleApiError(error: unknown): NextResponse<ApiResponse> {
+export function handleApiError(error: unknown): NextResponse {
   console.error('API Error:', error);
 
   // Zod validation errors
@@ -26,20 +25,13 @@ export function handleApiError(error: unknown): NextResponse<ApiResponse> {
       message: err.message,
     }));
 
-    return NextResponse.json<ApiResponse>({
-      success: false,
-      error: ERROR_MESSAGES.VALIDATION,
-      message: 'Validation failed',
-      data: validationErrors,
-    }, { status: HTTP_STATUS.BAD_REQUEST });
+    const validationMessage = `Validation failed: ${validationErrors.map(e => `${e.field}: ${e.message}`).join(', ')}`;
+    return ApiResponse.validationError(validationMessage);
   }
 
   // Custom application errors
   if (error instanceof AppError) {
-    return NextResponse.json<ApiResponse>({
-      success: false,
-      error: error.message,
-    }, { status: error.statusCode });
+    return ApiResponse.error(error.message, error.statusCode);
   }
 
   // Prisma errors
@@ -48,37 +40,23 @@ export function handleApiError(error: unknown): NextResponse<ApiResponse> {
   }
 
   // Generic server error
-  return NextResponse.json<ApiResponse>({
-    success: false,
-    error: ERROR_MESSAGES.SERVER_ERROR,
-  }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+  const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+  return ApiResponse.serverError(errorMessage);
 }
 
-function handlePrismaError(error: any): NextResponse<ApiResponse> {
+function handlePrismaError(error: any): NextResponse {
   switch (error.code) {
     case 'P2002':
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'A record with this information already exists.',
-      }, { status: HTTP_STATUS.BAD_REQUEST });
+      return ApiResponse.validationError('A record with this information already exists.');
 
     case 'P2025':
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: ERROR_MESSAGES.NOT_FOUND,
-      }, { status: HTTP_STATUS.NOT_FOUND });
+      return ApiResponse.notFound('Record not found.');
 
     case 'P2003':
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Related record not found.',
-      }, { status: HTTP_STATUS.BAD_REQUEST });
+      return ApiResponse.validationError('Related record not found.');
 
     default:
       console.error('Unhandled Prisma error:', error);
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: ERROR_MESSAGES.SERVER_ERROR,
-      }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
+      return ApiResponse.serverError('Database operation failed.');
   }
 }

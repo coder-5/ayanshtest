@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { processDocxFile } from "@/lib/document-processor";
+import { ApiResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,91 +12,107 @@ export async function POST(request: NextRequest) {
     const description = formData.get('description') as string;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return ApiResponse.validationError('No file provided');
     }
 
     if (!examName?.trim()) {
-      return NextResponse.json(
-        { error: 'Exam name is required' },
-        { status: 400 }
-      );
+      return ApiResponse.validationError('Exam name is required');
     }
 
     // Check file size (10MB limit)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File size exceeds 10MB limit' },
-        { status: 400 }
-      );
+      return ApiResponse.validationError('File size exceeds 10MB limit');
     }
 
-    // Get file content
-    const buffer = await file.arrayBuffer();
+    // Additional memory protection - limit to 5MB for processing
+    const processingLimit = 5 * 1024 * 1024; // 5MB
+    if (file.size > processingLimit) {
+      return ApiResponse.validationError('File too large for processing. Please use files smaller than 5MB.');
+    }
+
+    // Get file content with error handling
+    let buffer: ArrayBuffer;
+    try {
+      buffer = await file.arrayBuffer();
+    } catch (error) {
+      console.error('Error reading file:', error);
+      return ApiResponse.serverError('Failed to read file. File may be corrupted.');
+    }
 
     let questions;
 
-    // Process based on file type
-    if (file.name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // Use the improved DOCX processor
-      questions = await processDocxFile(buffer, examName, examYear, description);
-    } else {
-      // Fallback to basic text processing for other file types
-      const content = Buffer.from(buffer).toString('utf-8');
-      questions = await parseQuestions(content, examName, examYear, description);
-    }
-
-    if (questions.length === 0) {
-      return NextResponse.json(
-        { error: 'No questions found in the document. Please ensure the document contains numbered questions.' },
-        { status: 400 }
+    // Process based on file type with error boundaries
+    try {
+      if (file.name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        // Use the improved DOCX processor
+        questions = await processDocxFile(buffer, examName, examYear, description);
+      } else {
+        // Fallback to basic text processing for other file types
+        const content = Buffer.from(buffer).toString('utf-8');
+        questions = await parseQuestions(content, examName, examYear, description);
+      }
+    } catch (processingError) {
+      console.error('File processing error:', processingError);
+      return ApiResponse.serverError(
+        `Failed to process ${file.type} file. Please ensure the file is not corrupted and contains valid question data.`
       );
     }
 
-    // Save questions to database using upsert to handle duplicates
-    const savedQuestions = await Promise.all(
-      questions.map(question =>
-        prisma.question.upsert({
-          where: {
-            examName_examYear_questionNumber: {
-              examName: question.examName,
-              examYear: question.examYear,
-              questionNumber: question.questionNumber || '1'
-            }
-          },
-          update: {
-            questionText: question.questionText,
-            topic: question.topic,
-            subtopic: (question as any).subtopic || null,
-            difficulty: question.difficulty,
-            hasImage: (question as any).hasImage || false,
-            imageUrl: (question as any).imageUrl || null,
-            timeLimit: (question as any).timeLimit || null,
-            updatedAt: new Date()
-          },
-          create: question
-        })
-      )
-    );
+    if (questions.length === 0) {
+      return ApiResponse.validationError('No questions found in the document. Please ensure the document contains numbered questions.');
+    }
 
-    return NextResponse.json({
-      success: true,
+    // Save questions to database using upsert to handle duplicates
+    let savedQuestions;
+    try {
+      savedQuestions = await Promise.all(
+        questions.map(question =>
+          prisma.question.upsert({
+            where: {
+              examName_examYear_questionNumber: {
+                examName: question.examName,
+                examYear: question.examYear,
+                questionNumber: question.questionNumber || '1'
+              }
+            },
+            update: {
+              questionText: question.questionText,
+              topic: question.topic,
+              subtopic: (question as any).subtopic || null,
+              difficulty: question.difficulty,
+              hasImage: (question as any).hasImage || false,
+              imageUrl: (question as any).imageUrl || null,
+              timeLimit: (question as any).timeLimit || null,
+              updatedAt: new Date()
+            },
+            create: question
+          })
+        )
+      );
+    } catch (dbError) {
+      console.error('Database error while saving questions:', dbError);
+      return ApiResponse.serverError(
+        'Failed to save questions to database. Please try again or contact support if the issue persists.'
+      );
+    }
+
+    const uploadData = {
       questionsAdded: savedQuestions.length,
-      message: `Successfully processed ${savedQuestions.length} questions from ${file.name}`,
       topics: Array.from(new Set(questions.map(q => q.topic))),
       difficulties: Array.from(new Set(questions.map(q => q.difficulty)))
-    });
+    };
+
+    return ApiResponse.successWithStatus(
+      uploadData,
+      201,
+      `Successfully processed ${savedQuestions.length} questions from ${file.name}`
+    );
 
   } catch (error) {
     console.error('Upload error:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'Unknown error');
-    return NextResponse.json(
-      { error: 'Failed to process document. Please try again.', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return ApiResponse.serverError('Failed to process document. Please try again.');
   }
 }
 

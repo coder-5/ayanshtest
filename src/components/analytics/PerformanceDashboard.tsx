@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { deduplicatedFetch } from '@/lib/request-deduplication';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,27 +69,25 @@ export function PerformanceDashboard({ userId = 'default-user' }: PerformanceDas
       setLoading(true);
       setError(null);
 
-      // Fetch multiple endpoints for comprehensive data
-      const [progressResponse, topicResponse, dailyResponse] = await Promise.all([
-        fetch(`/api/progress?userId=${userId}&timeRange=${timeRange}`),
-        fetch(`/api/topic-performance?userId=${userId}`),
-        fetch(`/api/daily-progress?userId=${userId}&days=${timeRange}`)
-      ]);
-
-      if (!progressResponse.ok || !topicResponse.ok || !dailyResponse.ok) {
-        throw new Error('Failed to fetch performance data');
-      }
-
+      // Fetch multiple endpoints for comprehensive data with deduplication
       const [progressData, topicData, dailyData] = await Promise.all([
-        progressResponse.json(),
-        topicResponse.json(),
-        dailyResponse.json()
+        deduplicatedFetch(`/api/progress?userId=${userId}&timeRange=${timeRange}`),
+        deduplicatedFetch(`/api/topic-performance?userId=${userId}`),
+        deduplicatedFetch(`/api/daily-progress?userId=${userId}&days=${timeRange}`)
       ]);
 
       // Process and combine the data
       const combined: PerformanceData = {
         daily: dailyData.daily || [],
-        topicBreakdown: topicData.topics || [],
+        topicBreakdown: (topicData.topics || topicData || []).map((topic: any) => ({
+          ...topic,
+          topic: topic.topicName || topic.topic,
+          attempted: topic.totalAttempts || topic.attempted,
+          correct: topic.correctAttempts || topic.correct,
+          accuracy: topic.accuracy || 0,
+          avgTime: topic.averageTime || topic.avgTime || 0,
+          trend: topic.improvementTrend || topic.trend || 'stable'
+        })),
         difficultyBreakdown: progressData.difficultyBreakdown || [],
         overallStats: {
           totalQuestions: progressData.totalAttempts || 0,

@@ -7,7 +7,7 @@ import { RetrySessionManager } from "@/components/practice/RetrySessionManager";
 
 async function getFailedQuestionsData() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/failed-questions?limit=50`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://192.168.1.197:3000/'}/api/failed-questions?limit=50`, {
       cache: 'no-store'
     });
 

@@ -4,8 +4,12 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PerformanceDashboard } from "@/components/analytics/PerformanceDashboard";
 import { AchievementDisplay } from "@/components/achievements/AchievementDisplay";
+import { useUser } from "@/lib/user";
 
 export default function ProgressPage() {
+  const { getCurrentUserId } = useUser();
+  const userId = getCurrentUserId();
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -20,12 +24,12 @@ export default function ProgressPage() {
 
       {/* Performance Dashboard */}
       <div className="mb-12">
-        <PerformanceDashboard />
+        <PerformanceDashboard userId={userId} />
       </div>
 
       {/* Achievements Section */}
       <div className="mb-12">
-        <AchievementDisplay />
+        <AchievementDisplay userId={userId} />
       </div>
 
       {/* Action Buttons */}

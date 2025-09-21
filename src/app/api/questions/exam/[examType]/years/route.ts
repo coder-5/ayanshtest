@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { QuestionService } from '@/services/questionService';
 import { isValidExamType } from '@/constants/examTypes';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(
   _request: Request,
@@ -11,14 +11,14 @@ export async function GET(
 
     // Validate exam type
     if (!isValidExamType(examType)) {
-      return NextResponse.json({ error: 'Invalid exam type' }, { status: 400 });
+      return ApiResponse.validationError('Invalid exam type');
     }
 
     const availableYears = await QuestionService.getAvailableYears(examType);
 
-    return NextResponse.json(availableYears);
+    return ApiResponse.success(availableYears);
   } catch (error) {
     console.error(`Error fetching ${params.examType} years:`, error);
-    return NextResponse.json({ error: 'Failed to fetch years' }, { status: 500 });
+    return ApiResponse.serverError('Failed to fetch years');
   }
 }

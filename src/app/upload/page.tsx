@@ -27,7 +27,10 @@ export default function UploadPage() {
     const fetchExamTypes = async () => {
       try {
         const response = await fetch('/api/competitions');
-        const competitions = await response.json();
+        const result = await response.json();
+
+        // Handle both old and new API response formats
+        const competitions = result.success ? result.data : result;
         setDynamicExamTypes([...competitions, 'Other']);
       } catch (error) {
         console.error('Failed to fetch exam types:', error);
@@ -83,8 +86,9 @@ export default function UploadPage() {
       const result = await response.json();
 
       if (response.ok) {
+        const data = result.success ? result.data : result;
         setUploadStatus('success');
-        setUploadMessage(`Successfully processed ${result.questionsAdded || 0} questions from your document!`);
+        setUploadMessage(result.message || `Successfully processed ${data.questionsAdded || 0} questions from your document!`);
         // Reset form
         setFile(null);
         setExamName('');

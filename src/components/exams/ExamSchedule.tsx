@@ -60,13 +60,16 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
       if (response.ok) {
         // Refresh the exams list
         fetchExams()
+        alert('Exam deleted successfully!')
       } else {
-        console.error('Failed to delete exam')
-        alert('Failed to delete exam. Please try again.')
+        // Get specific error message from response
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Failed to delete exam:', errorData)
+        alert(`Failed to delete exam: ${errorData.error || 'Please try again.'}`)
       }
     } catch (error) {
       console.error('Error deleting exam:', error)
-      alert('Error deleting exam. Please try again.')
+      alert(`Error deleting exam: ${error instanceof Error ? error.message : 'Please try again.'}`)
     }
   }
 

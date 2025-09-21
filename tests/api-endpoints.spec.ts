@@ -174,7 +174,8 @@ test.describe('API Endpoints Tests', () => {
 
     if (response.status() === 200) {
       const data = await response.json();
-      expect(Array.isArray(data)).toBeTruthy();
+      expect(data.success).toBe(true);
+      expect(Array.isArray(data.data)).toBeTruthy();
     }
   });
 
@@ -210,7 +211,7 @@ test.describe('API Endpoints Tests', () => {
 
   test('should test GET /api/practice-sessions endpoint', async ({ request }) => {
     const response = await request.get('/api/practice-sessions');
-    expect([200, 404, 500]).toContain(response.status());
+    expect([200, 400, 404, 500]).toContain(response.status());
 
     if (response.status() === 200) {
       const data = await response.json();

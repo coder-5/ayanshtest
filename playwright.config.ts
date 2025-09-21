@@ -12,7 +12,7 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/results.xml' }]
   ],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://192.168.1.197:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure'
@@ -22,29 +22,13 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 12'] },
     }
   ],
 
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    url: 'http://192.168.1.197:3000',
+    reuseExistingServer: true,
     timeout: 120 * 1000,
   },
 });

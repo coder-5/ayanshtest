@@ -102,9 +102,27 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
         : `/api/questions/exam/${config.examType}?limit=${config.questionCount}&random=true`;
 
       const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch questions: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
 
-      const processedQuestions = data.map((q: any) => ({
+      // Handle different response formats
+      let questionsArray;
+      if (Array.isArray(data)) {
+        questionsArray = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        questionsArray = data.data;
+      } else if (data.questions && Array.isArray(data.questions)) {
+        questionsArray = data.questions;
+      } else {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format: expected array of questions');
+      }
+
+      const processedQuestions = questionsArray.map((q: any) => ({
         ...q,
         type: q.options && q.options.length > 0 ? 'multiple-choice' : 'open-ended',
         text: q.questionText
@@ -124,7 +142,7 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
     questionStartTime.current = Date.now();
   };
 
-  const handleAnswer = async (answer: string, excludeFromScoring: boolean = false) => {
+  const handleAnswer = async (answer: string) => {
     const currentQuestion = questions[currentQuestionIndex];
     const questionTime = Math.floor((Date.now() - questionStartTime.current) / 1000);
 
@@ -140,7 +158,7 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
       isCorrect,
       timeSpent: questionTime,
       userAnswer: answer,
-      excludeFromScoring
+      excludeFromScoring: false
     };
 
     setChallengeResults(prev => [...prev, result]);
@@ -155,7 +173,7 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
           isCorrect,
           timeSpent: questionTime,
           userAnswer: answer,
-          excludeFromScoring
+          excludeFromScoring: false
         })
       });
     } catch (error) {

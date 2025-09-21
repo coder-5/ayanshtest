@@ -63,10 +63,7 @@ export default function QuickPracticePage() {
       setQuestions(mappedQuestions);
       setRoundInfo(data.roundInfo);
 
-      // Log round information for user awareness
-      if (data.message) {
-        console.log('Round Status:', data.message);
-      }
+      // Round information available in data.message if needed
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load questions');
     } finally {
@@ -75,7 +72,6 @@ export default function QuickPracticePage() {
   };
 
   const handleSessionComplete = (results: SessionResult[]) => {
-    console.log('Session completed with results:', results);
 
     // Update local progress tracking
     const correctAnswers = results.filter(r => r.isCorrect).length;

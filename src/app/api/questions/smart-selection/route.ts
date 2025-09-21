@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { QuestionSelectionService } from '@/services/questionSelectionService';
+import { safeUserIdFromParams } from '@/utils/nullSafety';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const options: any = {
-      userId: searchParams.get('userId') || 'default-user',
+      userId: safeUserIdFromParams(searchParams),
       examType,
       limit: parseInt(searchParams.get('limit') || '10'),
       sessionType: (searchParams.get('sessionType') as any) || 'practice',

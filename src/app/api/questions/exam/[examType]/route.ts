@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getExamName } from '@/constants/examTypes';
 import { transformQuestion, transformQuestions } from '@/utils/questionTransforms';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function GET(
 
     // Validate exam type
     if (!examType?.trim()) {
-      return NextResponse.json({ error: 'Invalid exam type' }, { status: 400 });
+      return ApiResponse.validationError('Invalid exam type');
     }
 
     let whereClause: any = {};
@@ -49,10 +50,10 @@ export async function GET(
     // Transform data to ensure no nulls and consistent format
     const transformedQuestions = transformQuestions(questions);
 
-    return NextResponse.json(transformedQuestions);
+    return ApiResponse.success(transformedQuestions);
   } catch (error) {
     console.error(`Error fetching ${params.examType} questions:`, error);
-    return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 });
+    return ApiResponse.serverError('Failed to fetch questions');
   }
 }
 
@@ -65,17 +66,17 @@ export async function DELETE(
     const questionId = searchParams.get('id');
 
     if (!questionId) {
-      return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
+      return ApiResponse.validationError('Question ID is required');
     }
 
     await prisma.question.delete({
       where: { id: questionId }
     });
 
-    return NextResponse.json({ message: 'Question deleted successfully' });
+    return ApiResponse.success({ message: 'Question deleted successfully' });
   } catch (error) {
     console.error('Error deleting question:', error);
-    return NextResponse.json({ error: 'Failed to delete question' }, { status: 500 });
+    return ApiResponse.serverError('Failed to delete question');
   }
 }
 
@@ -88,7 +89,7 @@ export async function PUT(
     const { id, questionText, difficulty, topic, subtopic, hasImage, imageUrl } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
+      return ApiResponse.validationError('Question ID is required');
     }
 
     const updatedQuestion = await prisma.question.update({
@@ -110,9 +111,9 @@ export async function PUT(
     // Transform the result to match expected format
     const transformedQuestion = transformQuestion(updatedQuestion);
 
-    return NextResponse.json(transformedQuestion);
+    return ApiResponse.success(transformedQuestion);
   } catch (error) {
     console.error('Error updating question:', error);
-    return NextResponse.json({ error: 'Failed to update question' }, { status: 500 });
+    return ApiResponse.serverError('Failed to update question');
   }
 }

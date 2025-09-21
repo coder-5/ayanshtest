@@ -36,7 +36,10 @@ export default function TopicPracticePage() {
         throw new Error('Failed to fetch topics');
       }
 
-      const data = await response.json();
+      const result = await response.json();
+
+      // Handle both old and new API response formats
+      const data = result.success ? result.data : result;
       setTopics(data);
     } catch (error) {
       console.error('Failed to fetch topics:', error);

@@ -133,6 +133,18 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // First check if the exam exists
+    const existingExam = await prisma.examSchedule.findUnique({
+      where: { id: params.id }
+    })
+
+    if (!existingExam) {
+      return NextResponse.json(
+        { error: 'Exam not found' },
+        { status: 404 }
+      )
+    }
+
     await prisma.examSchedule.delete({
       where: { id: params.id }
     })
@@ -140,6 +152,15 @@ export async function DELETE(
     return NextResponse.json({ message: 'Exam deleted successfully' })
   } catch (error) {
     console.error('Error deleting exam:', error)
+
+    // More specific error handling
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Failed to delete exam: ${error.message}` },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
       { error: 'Failed to delete exam' },
       { status: 500 }

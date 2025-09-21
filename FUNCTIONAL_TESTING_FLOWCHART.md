@@ -8,7 +8,7 @@ Let's test every feature by actually using it!
 
 ```mermaid
 graph TD
-    A[Visit http://localhost:3000] --> B[Homepage Loads]
+    A[Visit http://192.168.1.197:3000] --> B[Homepage Loads]
     B --> C[Check Stats Cards Display]
     C --> D1[Total Questions Card]
     C --> D2[Progress Card]

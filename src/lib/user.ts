@@ -73,7 +73,8 @@ class UserManager {
   }
 
   getCurrentUserId(): string {
-    return this.currentUser?.id || 'ayansh';
+    const userId = this.currentUser?.id || 'ayansh';
+    return userId;
   }
 
   setCurrentUser(user: User) {

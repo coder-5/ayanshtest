@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AchievementService } from '@/services/achievementService';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandling } from '@/middleware/apiWrapper';
+import { safeUserIdFromParams } from '@/utils/nullSafety';
 
 async function getAchievementsHandler(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId') || 'default-user';
+  const userId = safeUserIdFromParams(searchParams);
   const category = searchParams.get('category'); // streak, accuracy, volume, speed
   const withStats = searchParams.get('withStats') === 'true';
 

@@ -62,7 +62,7 @@ async function createPracticeSessionHandler(request: NextRequest) {
 
   // Require userId to be provided in request body or query params
   const { searchParams } = new URL(request.url);
-  const userId = body.userId || safeUrlParam(searchParams, 'userId');
+  const userId: string = body.userId || safeUrlParam(searchParams, 'userId');
 
   if (!userId) {
     return NextResponse.json(
@@ -84,7 +84,7 @@ async function createPracticeSessionHandler(request: NextRequest) {
       userId,
       sessionType,
       totalQuestions,
-      focusTopics,
+      focusTopics: focusTopics || null,
       startedAt: new Date(),
     }
   });

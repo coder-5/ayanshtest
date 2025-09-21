@@ -25,7 +25,7 @@ interface PracticeSessionProps {
   competitionType?: 'kangaroo' | 'moems' | 'amc8';
 }
 
-export function PracticeSession({ questions, sessionType, onComplete, onBack, competitionType = 'kangaroo' }: PracticeSessionProps) {
+export function PracticeSession({ questions, sessionType, onComplete, onBack }: PracticeSessionProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [sessionResults, setSessionResults] = useState<SessionResult[]>([]);
   const [showSolution, setShowSolution] = useState(false);
@@ -78,8 +78,9 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
     return () => {}; // Always return a cleanup function
   }, [questionStartTime, showSolution, isSessionComplete]);
 
-  const handleAnswer = async (answer: string, excludeFromScoring: boolean = false) => {
+  const handleAnswer = async (answer: string) => {
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+
 
     // Determine if answer is correct
     let isCorrect = false;
@@ -94,11 +95,6 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
       isCorrect,
       timeSpent
     };
-
-    // Log for competition-specific analysis
-    if (competitionType) {
-      console.log(`${competitionType} question answered:`, result);
-    }
 
     setSessionResults(prev => [...prev, result]);
 
@@ -123,7 +119,7 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
           isCorrect,
           timeSpent,
           userAnswer: answer,
-          excludeFromScoring
+          excludeFromScoring: false
         })
       });
     } catch (error) {
@@ -338,6 +334,18 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Question Tracker - Always visible on top for mobile/tablet */}
+      <div className="lg:hidden mb-6">
+        <QuestionTracker
+          questions={questions}
+          currentQuestionIndex={currentQuestionIndex}
+          questionStatuses={questionStatuses}
+          onQuestionSelect={handleQuestionSelect}
+          onToggleFlag={handleToggleFlag}
+          className="mb-4"
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Content Area */}
         <div className="lg:col-span-3">
@@ -471,11 +479,12 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
             isEditMode={isEditMode}
             editedQuestion={editedQuestion}
             onQuestionEdit={setEditedQuestion}
+            isQuestionSubmitted={questionStatuses[currentQuestionIndex]?.status !== 'unanswered'}
           />
         </div>
 
-        {/* Question Tracker Sidebar */}
-        <div className="lg:col-span-1">
+        {/* Question Tracker Sidebar - Hidden on mobile, visible on large screens */}
+        <div className="hidden lg:block lg:col-span-1">
           <QuestionTracker
             questions={questions}
             currentQuestionIndex={currentQuestionIndex}

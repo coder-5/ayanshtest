@@ -3,22 +3,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, CheckCircle, XCircle, Image as ImageIcon, AlertTriangle } from "lucide-react";
-import { useState, memo } from "react";
-import { useImageGenerator } from "@/hooks/useImageGenerator";
+import { Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { useState, memo, useEffect } from "react";
 import { cleanupQuestionText, cleanupOptionText } from "@/utils/textCleanup";
 import { formatTime } from "@/utils/timeUtils";
 import { PracticeQuestion, Question } from "@/types";
 import DiagramDisplay from "./DiagramDisplay";
 import SolutionVisualizer from "./SolutionVisualizer";
-import ErrorReport from "@/components/ErrorReport";
+import QuickIssueReport from "@/components/QuickIssueReport";
+import MissingDiagramAlert from "@/components/MissingDiagramAlert";
+import { MathRenderer } from "@/components/math/MathRenderer";
 
 interface QuestionCardProps {
   question: PracticeQuestion;
   questionNumber: number;
   totalQuestions: number;
   timeElapsed: number;
-  onAnswer: (answer: string, excludeFromScoring?: boolean) => void;
+  onAnswer: (answer: string) => void;
   onNext?: () => void;
   showSolution?: boolean;
   userAnswer?: string;
@@ -26,6 +27,7 @@ interface QuestionCardProps {
   editedQuestion?: Question | null;
   onQuestionEdit?: (question: Question) => void;
   hideNextButton?: boolean;
+  isQuestionSubmitted?: boolean;
 }
 
 const QuestionCard = memo(function QuestionCard({
@@ -40,19 +42,32 @@ const QuestionCard = memo(function QuestionCard({
   isEditMode = false,
   editedQuestion,
   onQuestionEdit,
-  hideNextButton = false
+  hideNextButton = false,
+  isQuestionSubmitted = false
 }: QuestionCardProps) {
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [openEndedAnswer, setOpenEndedAnswer] = useState<string>('');
   const [showErrorReport, setShowErrorReport] = useState(false);
-  const [excludeFromScoring, setExcludeFromScoring] = useState<boolean>(false);
-  const { generateImageUrl } = useImageGenerator();
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+
+  // Determine if this question has been submitted (either internally or externally tracked)
+  const questionSubmitted = isSubmitted || isQuestionSubmitted;
+
+  // Reset submission state when question changes
+  useEffect(() => {
+    setIsSubmitted(false);
+    setSelectedOption(userAnswer || '');
+    setOpenEndedAnswer(userAnswer || '');
+  }, [question.id, userAnswer]);
 
   // Using centralized formatTime utility
 
   const handleSubmit = () => {
+    if (questionSubmitted) return; // Prevent multiple submissions
+
     const answer = selectedOption || openEndedAnswer;
-    onAnswer(answer, excludeFromScoring);
+    setIsSubmitted(true);
+    onAnswer(answer);
   };
 
   const getCorrectAnswer = () => {
@@ -221,131 +236,124 @@ const QuestionCard = memo(function QuestionCard({
           ) : (
             <div className="space-y-4">
               <div className="text-xl font-medium leading-relaxed text-gray-900">
-{cleanupQuestionText(question.questionText || question.text || '')}
+                <MathRenderer content={cleanupQuestionText(question.questionText || question.text || '')} />
               </div>
 
-              {/* Question Image/Diagram */}
-              {question.hasImage && (
+              {/* Question Image/Diagram - Improved Logic */}
+              {question.hasImage && question.imageUrl ? (
                 <div className="flex justify-center">
                   <div className="max-w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                    {question.imageUrl ? (
-                      <img
-                        src={question.imageUrl}
-                        alt="Question diagram"
-                        className="max-w-full h-auto max-h-96 object-contain"
-                        onError={(e) => {
-                          // Fallback to generated image if original fails
-                          const fallbackUrl = generateImageUrl(
-                            `${question.examName} Question ${questionNumber}`,
-                            'diagram',
-                            500,
-                            300
-                          );
-                          e.currentTarget.src = fallbackUrl;
-                        }}
-                      />
-                    ) : (
-                      <div className="relative">
-                        <img
-                          src={generateImageUrl(
-                            `${question.examName} Question ${questionNumber}`,
-                            'diagram',
-                            500,
-                            300
-                          )}
-                          alt="Generated question diagram"
-                          className="max-w-full h-auto max-h-96 object-contain"
-                        />
-                        <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                          <ImageIcon className="h-3 w-3" />
-                          Auto-generated
-                        </div>
-                      </div>
-                    )}
+                    <img
+                      src={question.imageUrl}
+                      alt="Question diagram"
+                      className="max-w-full h-auto max-h-96 object-contain"
+                      onError={(e) => {
+                        // Hide the broken image and show auto-generated diagram instead
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement?.parentElement;
+                        if (parent) {
+                          parent.style.display = 'none';
+                        }
+                      }}
+                    />
                   </div>
                 </div>
+              ) : (
+                /* Only show auto-generated diagram if no original image exists or it failed to load */
+                <DiagramDisplay
+                  questionText={question.questionText || question.text || ''}
+                  className="mt-4"
+                />
               )}
 
-              {/* Auto-generated Diagram */}
-              <DiagramDisplay
-                questionText={question.questionText || question.text || ''}
-                className="mt-4"
-              />
+              {/* Smart Missing Diagram Detection */}
+              {!question.hasImage && !question.imageUrl && (
+                <MissingDiagramAlert
+                  questionId={question.id}
+                  questionText={question.questionText || question.text || ''}
+                />
+              )}
             </div>
           )}
         </div>
 
-        {/* Answer Section - Clear separation from question */}
-        <div className="border-t-4 border-blue-200 bg-blue-50 p-6 rounded-lg mt-8">
-          <h2 className="text-2xl font-bold text-blue-900 mb-6 text-center">Answer Section</h2>
+        {/* Answer Section - More compact */}
+        <div className={`border-t-2 p-4 rounded-lg mt-6 ${
+          questionSubmitted
+            ? 'border-green-200 bg-green-50'
+            : 'border-blue-200 bg-blue-50'
+        }`}>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <h3 className={`text-lg font-semibold ${
+              questionSubmitted ? 'text-green-900' : 'text-blue-900'
+            }`}>
+              Your Answer
+            </h3>
+            {questionSubmitted && (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            )}
+          </div>
         {!showSolution ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {question.options && question.options.length > 0 ? (
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Choose your answer:</h3>
-                <div className="space-y-3">
+              <div className="space-y-3">
+                <h4 className="text-base font-medium text-gray-800 mb-3">Choose your answer:</h4>
+                <div className="space-y-2">
                   {question.options.map((option) => (
                     <div
                       key={option.id}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      className={`p-3 border-2 rounded-lg transition-all duration-200 ${
+                        questionSubmitted
+                          ? 'cursor-not-allowed opacity-60'
+                          : 'cursor-pointer hover:border-gray-400 hover:shadow-sm'
+                      } ${
                         selectedOption === option.label
                           ? 'border-blue-500 bg-blue-50 shadow-md'
-                          : 'border-gray-300 hover:border-gray-400 hover:shadow-sm'
+                          : 'border-gray-300'
                       }`}
-                      onClick={() => setSelectedOption(option.label)}
+                      onClick={() => !questionSubmitted && setSelectedOption(option.label)}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-base font-bold flex-shrink-0 ${
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold flex-shrink-0 ${
                           selectedOption === option.label
                             ? 'border-blue-500 bg-blue-500 text-white'
                             : 'border-gray-400 text-gray-600 bg-white'
                         }`}>
                           {option.label}
                         </div>
-                        <span className="text-lg leading-relaxed pt-1">{cleanupOptionText(option.text)}</span>
+                        <span className="text-base leading-relaxed pt-1">
+                          <MathRenderer content={cleanupOptionText(option.text)} />
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-gray-900">Enter your answer:</h3>
+              <div className="space-y-3">
+                <h4 className="text-base font-medium text-gray-800">Enter your answer:</h4>
                 <Input
                   value={openEndedAnswer}
-                  onChange={(e) => setOpenEndedAnswer(e.target.value)}
+                  onChange={(e) => !questionSubmitted && setOpenEndedAnswer(e.target.value)}
                   placeholder="Enter your numerical answer..."
-                  className="text-lg p-4"
+                  className="text-base p-3"
+                  disabled={questionSubmitted}
                 />
               </div>
             )}
 
-            <div className="pt-6 border-t border-gray-200">
-              {/* Exclude from scoring option */}
-              <div className="mb-4 flex items-center space-x-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="excludeFromScoring"
-                  checked={excludeFromScoring}
-                  onChange={(e) => setExcludeFromScoring(e.target.checked)}
-                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                />
-                <label htmlFor="excludeFromScoring" className="text-sm text-gray-700">
-                  <span className="font-medium">Exclude from scoring</span>
-                  <div className="text-xs text-gray-600 mt-1">
-                    Check this if the question has issues or is incomplete. This won't count against your score.
-                  </div>
-                </label>
-              </div>
+            <div className="pt-4 border-t border-gray-200">
+              <div className="space-y-2">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={questionSubmitted || (question.options && question.options.length > 0 ? !selectedOption : !openEndedAnswer)}
+                  className="w-full py-3 text-lg font-semibold"
+                  size="lg"
+                >
+                  {questionSubmitted ? 'Answer Submitted' : 'Submit Answer'}
+                </Button>
 
-              <Button
-                onClick={handleSubmit}
-                disabled={question.options && question.options.length > 0 ? !selectedOption : !openEndedAnswer}
-                className="w-full py-4 text-xl font-semibold"
-                size="lg"
-              >
-                Submit Answer
-              </Button>
+              </div>
             </div>
           </div>
         ) : (
@@ -375,7 +383,7 @@ const QuestionCard = memo(function QuestionCard({
               )}
             </div>
 
-            {/* Error Reporting Button */}
+            {/* Error Reporting Button - Kid-friendly */}
             <div className="flex justify-center">
               <Button
                 variant="outline"
@@ -384,7 +392,7 @@ const QuestionCard = memo(function QuestionCard({
                 className="text-orange-600 border-orange-300 hover:bg-orange-50"
               >
                 <AlertTriangle className="h-4 w-4 mr-2" />
-                Report Issue
+                Something Wrong? 🤔
               </Button>
             </div>
 
@@ -412,14 +420,17 @@ const QuestionCard = memo(function QuestionCard({
         </div>
       </CardContent>
 
-      {/* Error Report Modal */}
+      {/* Quick Issue Report Modal - Kid-friendly */}
       {showErrorReport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <ErrorReport
+          <div className="bg-white rounded-lg">
+            <QuickIssueReport
               questionId={question.id}
-              userId="user123" // TODO: Get from auth context
+              userId="ayansh"
               onClose={() => setShowErrorReport(false)}
+              onReported={() => {
+                // Optional: Show a brief confirmation or refresh quality data
+              }}
             />
           </div>
         </div>

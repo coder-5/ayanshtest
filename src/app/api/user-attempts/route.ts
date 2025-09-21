@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withErrorHandling } from '@/middleware/apiWrapper'
-import { safeUrlParam } from '@/utils/nullSafety'
 
-// DELETE /api/user-attempts - Clear user attempts for specific user only
+// DELETE /api/user-attempts - Clear user attempts for specific user only (updated)
 async function deleteUserAttemptsHandler(request: NextRequest) {
   const { searchParams } = new URL(request.url)
 
   // Require userId parameter - no default fallback for destructive operations
-  const userId = safeUrlParam(searchParams, 'userId')
+  const rawUserId = searchParams.get('userId')
+  const userId = rawUserId?.trim() || null
 
+
+  // Check for missing or invalid userId
   if (!userId || userId === 'all' || userId === '*') {
     return NextResponse.json(
-      { error: 'Invalid or missing userId parameter. Cannot delete all user data.' },
+      { error: `Invalid or missing userId parameter. Received: "${userId}". Cannot delete all user data.` },
       { status: 400 }
     )
   }
@@ -31,7 +33,6 @@ async function deleteUserAttemptsHandler(request: NextRequest) {
       userId: userId
     }
   })
-
   return NextResponse.json({
     message: `${deleteResult.count} user attempts cleared for user: ${userId}`,
     deletedCount: deleteResult.count,

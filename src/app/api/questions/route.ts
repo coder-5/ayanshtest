@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandling } from '@/middleware/apiWrapper';
 import { createQuestionSchema } from '@/schemas/validation';
-import { safeUrlParam, safeUrlParamNumber, safeUrlParamPositiveNumber, createSafeWhere } from '@/utils/nullSafety';
+import { safeUrlParam, safeUrlParamPositiveNumber, createSafeWhere } from '@/utils/nullSafety';
 import { safeJsonParse } from '@/middleware/apiWrapper';
 
 async function getQuestionsHandler(request: NextRequest) {
@@ -32,7 +32,11 @@ async function getQuestionsHandler(request: NextRequest) {
         options: true,
         solution: true
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        // Prioritize questions that have options
+        { options: { _count: 'desc' } },
+        { createdAt: 'desc' }
+      ],
       skip,
       take: limit
     }),

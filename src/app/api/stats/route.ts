@@ -1,18 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ProgressService } from '@/services/progressService';
+import { ApiResponse } from '@/lib/api-response';
+import { safeUserIdFromParams } from '@/utils/nullSafety';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || 'default-user';
+    const userId = safeUserIdFromParams(searchParams);
 
     const [
       totalQuestions,
       progressStats,
       recentProgress,
-      topicStats,
-      competitionStats
+      attemptStats
     ] = await Promise.all([
       prisma.question.count(),
       ProgressService.getProgressStats(userId),
@@ -27,17 +28,12 @@ export async function GET(request: NextRequest) {
         where: { userId, excludeFromScoring: false },
         _count: { _all: true },
         _sum: { timeSpent: true }
-      }),
-      prisma.userAttempt.groupBy({
-        by: ['questionId'],
-        where: { userId, excludeFromScoring: false },
-        _count: { _all: true }
       })
     ]);
 
     const weeklyProgress = await getWeeklyProgress(userId);
 
-    return NextResponse.json({
+    const statsData = {
       totalQuestions,
       totalProgress: progressStats.totalAttempts,
       correctAnswers: progressStats.correctAnswers,
@@ -45,50 +41,17 @@ export async function GET(request: NextRequest) {
       streak: progressStats.streakData.currentStreak,
       recentProgress,
       weeklyProgress,
-      topicStats: await enrichTopicStats(topicStats),
-      competitionStats: await enrichCompetitionStats(competitionStats)
-    });
+      topicStats: await enrichTopicStats(attemptStats),
+      competitionStats: await enrichCompetitionStats(attemptStats)
+    };
+
+    return ApiResponse.success(statsData);
   } catch (error) {
     console.error('Error fetching stats:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch stats' },
-      { status: 500 }
-    );
+    return ApiResponse.serverError('Failed to fetch stats');
   }
 }
 
-async function calculateStreak(userId: string): Promise<number> {
-  const progress = await prisma.userAttempt.findMany({
-    where: { userId, excludeFromScoring: false },
-    orderBy: { attemptedAt: 'desc' },
-    select: { attemptedAt: true }
-  });
-
-  if (progress.length === 0) return 0;
-
-  let streak = 0;
-  let currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
-
-  const progressDates = progress.map(p => {
-    const date = new Date(p.attemptedAt);
-    date.setHours(0, 0, 0, 0);
-    return date.getTime();
-  });
-
-  const uniqueDates = Array.from(new Set(progressDates)).sort((a, b) => b - a);
-
-  for (const dateTime of uniqueDates) {
-    if (dateTime === currentDate.getTime()) {
-      streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-}
 
 async function getWeeklyProgress(userId: string) {
   const weekAgo = new Date();

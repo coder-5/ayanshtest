@@ -121,13 +121,13 @@ mkdir public\\uploads\\questions public\\uploads\\solutions public\\uploads\\ima
 npm run dev
 ```
 
-The application will be available at: **http://localhost:3000**
+The application will be available at: **http://192.168.1.197:3000**
 
 ## First Time Usage
 
 ### 1. Upload Your First Documents
 
-1. Go to **http://localhost:3000/upload**
+1. Go to **http://192.168.1.197:3000/upload**
 2. Upload the AMC 8 2011 PDF you shared earlier
 3. Upload the MOEMS 2000 question and answer PDFs
 4. Review the extracted questions and add them to the database

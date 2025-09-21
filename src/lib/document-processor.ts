@@ -20,17 +20,12 @@ export async function processDocxFile(
   description?: string
 ): Promise<ProcessedQuestion[]> {
   try {
-    console.log('Processing DOCX file with mammoth...');
     // Convert DOCX to text using mammoth
     const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
     const text = result.value;
 
-    console.log('Extracted text length:', text.length);
-    console.log('First 500 characters:', text.substring(0, 500));
-
     // Parse questions from the extracted text
     const questions = parseQuestionsFromText(text, examName, examYear, description);
-    console.log('Parsed questions count:', questions.length);
 
     return questions;
   } catch (error) {

@@ -1,0 +1,414 @@
+/* Advanced Math Diagram Styling */
+
+/* Interactive Diagram Container */
+.interactive-diagram-container {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.interactive-diagram-container:hover {
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15);
+}
+
+/* Diagram Canvas */
+.diagram-canvas {
+  cursor: grab;
+  user-select: none;
+}
+
+.diagram-canvas:active {
+  cursor: grabbing;
+}
+
+/* 3D Geometry Canvas */
+.geometry-3d-canvas {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 8px;
+  cursor: grab;
+}
+
+.geometry-3d-canvas:active {
+  cursor: grabbing;
+}
+
+/* Shape Styling */
+.shape-3d {
+  transition: opacity 0.2s ease;
+}
+
+.shape-3d:hover {
+  opacity: 0.9;
+  filter: brightness(1.1);
+}
+
+.wireframe {
+  pointer-events: none;
+}
+
+/* Advanced Math Renderer */
+.advanced-math-renderer {
+  position: relative;
+}
+
+.math-container {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+}
+
+.math-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.math-container .katex {
+  font-size: 1.1em;
+  line-height: 1.4;
+}
+
+.math-container .katex .mord {
+  color: var(--math-primary, #1e293b);
+  transition: color 0.2s ease;
+}
+
+.math-container .katex .mord:hover {
+  color: var(--math-accent, #3b82f6);
+  cursor: pointer;
+}
+
+.math-container .katex .mop {
+  color: var(--math-functions, #7c3aed);
+  font-weight: 600;
+}
+
+.math-container .katex .mbin,
+.math-container .katex .mrel {
+  color: var(--math-operators, #059669);
+  font-weight: 500;
+}
+
+.math-container .katex .mfrac {
+  margin: 0 2px;
+}
+
+.math-container .katex .sqrt {
+  color: var(--math-functions, #7c3aed);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .math-container {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-color: #475569;
+    color: #f1f5f9;
+  }
+
+  .math-container .katex .mord {
+    color: #f1f5f9;
+  }
+
+  .math-container .katex .mord:hover {
+    color: #60a5fa;
+  }
+
+  .geometry-3d-canvas {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .math-container {
+    background: #ffffff;
+    border: 2px solid #000000;
+    color: #000000;
+  }
+
+  .math-container .katex .mord {
+    color: #000000;
+    font-weight: bold;
+  }
+
+  .math-container .katex .mop,
+  .math-container .katex .mbin,
+  .math-container .katex .mrel {
+    color: #000000;
+    font-weight: bold;
+  }
+}
+
+/* Math Error Display */
+.math-error {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Diagram Toolbar */
+.diagram-toolbar {
+  backdrop-filter: blur(10px);
+  background: rgba(248, 250, 252, 0.95);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.diagram-toolbar button {
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.diagram-toolbar button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.3s ease;
+}
+
+.diagram-toolbar button:hover::before {
+  left: 100%;
+}
+
+.diagram-toolbar button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.diagram-toolbar button:active {
+  transform: translateY(0);
+}
+
+/* Measurement Panel */
+.measurement-panel {
+  backdrop-filter: blur(10px);
+  background: rgba(248, 250, 252, 0.95);
+  border-left: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.measurement-item {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.measurement-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateX(2px);
+}
+
+/* Diagram Loading Animations */
+.diagram-loading {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.diagram-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  animation: loading-shimmer 2s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .interactive-diagram-container {
+    margin: 0 -1rem;
+    border-radius: 0;
+  }
+
+  .diagram-toolbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .diagram-toolbar button {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .measurement-panel {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    border-left: none;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  .diagram-canvas {
+    min-height: 300px;
+  }
+
+  .math-container {
+    padding: 12px;
+  }
+
+  .math-container .katex {
+    font-size: 1em;
+  }
+}
+
+@media (max-width: 480px) {
+  .diagram-canvas {
+    min-height: 250px;
+  }
+
+  .math-container {
+    padding: 8px;
+  }
+
+  .math-container .katex {
+    font-size: 0.9em;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .diagram-toolbar,
+  .measurement-panel {
+    display: none;
+  }
+
+  .interactive-diagram-container {
+    background: white;
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+
+  .diagram-canvas {
+    background: white;
+  }
+
+  .math-container {
+    background: white;
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+}
+
+/* Accessibility Enhancements */
+.diagram-canvas:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.math-container:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .interactive-diagram-container,
+  .math-container,
+  .diagram-toolbar button,
+  .measurement-item,
+  .shape-3d {
+    transition: none;
+  }
+
+  .diagram-loading::before {
+    animation: none;
+  }
+
+  @keyframes loading-shimmer {
+    0%, 100% { left: -100%; }
+  }
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Color Blind Friendly Palette */
+.colorblind-friendly {
+  --diagram-primary: #1f77b4;
+  --diagram-secondary: #ff7f0e;
+  --diagram-accent: #2ca02c;
+  --diagram-warning: #d62728;
+  --diagram-info: #9467bd;
+}
+
+/* Enhanced Focus Indicators */
+.diagram-toolbar button:focus-visible,
+.measurement-item:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Smooth scrolling for measurement panel */
+.measurement-panel {
+  scroll-behavior: smooth;
+}
+
+/* Loading skeleton specific styles */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Export dialog styles */
+.export-dialog {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Status indicator */
+.status-indicator {
+  position: relative;
+}
+
+.status-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  border: 2px solid white;
+}

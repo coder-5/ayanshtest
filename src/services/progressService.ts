@@ -1,43 +1,6 @@
 import { prisma } from '@/lib/prisma';
-import { UserAttempt } from '@/types';
-
-export interface ProgressData {
-  questionId: string;
-  isCorrect: boolean;
-  timeSpent: number;
-  userAnswer: string;
-  userId?: string;
-  isRetry?: boolean;
-  sessionType?: string;
-  excludeFromScoring?: boolean;
-}
-
-export interface ProgressStats {
-  totalAttempts: number;
-  correctAnswers: number;
-  accuracy: number;
-  averageTime: number;
-  streakData: {
-    currentStreak: number;
-    longestStreak: number;
-  };
-  topicBreakdown: Record<string, {
-    attempted: number;
-    correct: number;
-    accuracy: number;
-  }>;
-  difficultyBreakdown: Record<string, {
-    attempted: number;
-    correct: number;
-    accuracy: number;
-  }>;
-  recentSessions: Array<{
-    date: Date;
-    questionsAnswered: number;
-    correctAnswers: number;
-    averageTime: number;
-  }>;
-}
+import { UserAttempt, ProgressData, ProgressStats } from '@/types';
+import { QuestionQualityService } from './questionQualityService';
 
 export class ProgressService {
   /**
@@ -67,6 +30,7 @@ export class ProgressService {
         questionId: attempt.questionId,
         selectedAnswer: attempt.selectedAnswer || '',
         isCorrect: attempt.isCorrect,
+        excludeFromScoring: attempt.excludeFromScoring,
         timeSpent: attempt.timeSpent,
         hintsUsed: attempt.hintsUsed,
         attemptedAt: attempt.attemptedAt,
@@ -95,39 +59,67 @@ export class ProgressService {
       // Filter out attempts excluded from scoring for statistics
       const attempts = allAttempts.filter(a => !a.excludeFromScoring);
 
-      const totalAttempts = attempts.length;
-      const correctAnswers = attempts.filter(a => a.isCorrect).length;
-      const accuracy = totalAttempts > 0 ? (correctAnswers / totalAttempts) * 100 : 0;
-      const averageTime = totalAttempts > 0
-        ? attempts.reduce((sum, a) => sum + a.timeSpent, 0) / totalAttempts
-        : 0;
+      // Get quality scores for all questions
+      const questionIds = attempts.map(a => a.questionId);
+      const qualityMap = await QuestionQualityService.getBulkQuestionQuality(questionIds);
 
-      // Topic breakdown
-      const topicBreakdown: Record<string, { attempted: number; correct: number; accuracy: number }> = {};
+      // Calculate quality-weighted statistics
+      let totalWeightedScore = 0;
+      let totalWeight = 0;
+      let reliableAttempts = 0;
+      let reliableCorrect = 0;
+
       attempts.forEach(attempt => {
-        const topic = attempt.question?.topic || 'Unknown';
-        if (!topicBreakdown[topic]) {
-          topicBreakdown[topic] = { attempted: 0, correct: 0, accuracy: 0 };
+        const quality = qualityMap.get(attempt.questionId);
+        if (quality && quality.isReliable) {
+          const scoring = QuestionQualityService.calculateWeightedScore(attempt.isCorrect, quality);
+          totalWeightedScore += scoring.weightedScore;
+          totalWeight += scoring.weight;
+          reliableAttempts++;
+          if (attempt.isCorrect) reliableCorrect++;
         }
-        topicBreakdown[topic].attempted++;
-        if (attempt.isCorrect) {
-          topicBreakdown[topic].correct++;
-        }
-        topicBreakdown[topic].accuracy = (topicBreakdown[topic].correct / topicBreakdown[topic].attempted) * 100;
       });
 
-      // Difficulty breakdown
+      const totalAttempts = reliableAttempts;
+      const correctAnswers = reliableCorrect;
+      const accuracy = totalAttempts > 0 ? (correctAnswers / totalAttempts) * 100 : 0;
+      const averageTime = totalAttempts > 0
+        ? attempts.filter(a => qualityMap.get(a.questionId)?.isReliable)
+            .reduce((sum, a) => sum + a.timeSpent, 0) / totalAttempts
+        : 0;
+
+      // Topic breakdown (only include reliable questions)
+      const topicBreakdown: Record<string, { attempted: number; correct: number; accuracy: number }> = {};
+      attempts.forEach(attempt => {
+        const quality = qualityMap.get(attempt.questionId);
+        if (quality && quality.isReliable) {
+          const topic = attempt.question?.topic || 'Unknown';
+          if (!topicBreakdown[topic]) {
+            topicBreakdown[topic] = { attempted: 0, correct: 0, accuracy: 0 };
+          }
+          topicBreakdown[topic].attempted++;
+          if (attempt.isCorrect) {
+            topicBreakdown[topic].correct++;
+          }
+          topicBreakdown[topic].accuracy = (topicBreakdown[topic].correct / topicBreakdown[topic].attempted) * 100;
+        }
+      });
+
+      // Difficulty breakdown (only include reliable questions)
       const difficultyBreakdown: Record<string, { attempted: number; correct: number; accuracy: number }> = {};
       attempts.forEach(attempt => {
-        const difficulty = attempt.question?.difficulty || 'Unknown';
-        if (!difficultyBreakdown[difficulty]) {
-          difficultyBreakdown[difficulty] = { attempted: 0, correct: 0, accuracy: 0 };
+        const quality = qualityMap.get(attempt.questionId);
+        if (quality && quality.isReliable) {
+          const difficulty = attempt.question?.difficulty || 'Unknown';
+          if (!difficultyBreakdown[difficulty]) {
+            difficultyBreakdown[difficulty] = { attempted: 0, correct: 0, accuracy: 0 };
+          }
+          difficultyBreakdown[difficulty].attempted++;
+          if (attempt.isCorrect) {
+            difficultyBreakdown[difficulty].correct++;
+          }
+          difficultyBreakdown[difficulty].accuracy = (difficultyBreakdown[difficulty].correct / difficultyBreakdown[difficulty].attempted) * 100;
         }
-        difficultyBreakdown[difficulty].attempted++;
-        if (attempt.isCorrect) {
-          difficultyBreakdown[difficulty].correct++;
-        }
-        difficultyBreakdown[difficulty].accuracy = (difficultyBreakdown[difficulty].correct / difficultyBreakdown[difficulty].attempted) * 100;
       });
 
       // Recent sessions (group by day)
