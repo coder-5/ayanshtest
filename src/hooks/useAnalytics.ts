@@ -29,7 +29,7 @@ interface AnalyticsData {
   competitionStats: Record<string, number>;
 }
 
-export function useAnalytics(userId: string = 'default-user') {
+export function useAnalytics(userId: string = 'ayansh') {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

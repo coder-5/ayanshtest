@@ -78,7 +78,7 @@ graph TD
 
 ### 🔧 ISSUES FOUND IN HOMEPAGE:
 
-1. **Line 9**: Hard-coded userId 'default-user' instead of dynamic user
+1. **Line 9**: Hard-coded userId 'ayansh' instead of dynamic user
 2. **Line 43**: Multiple database queries could be optimized with transactions
 3. **Line 206**: Missing type for exam parameter
 4. **Line 83-93**: Silent error handling might hide database issues
@@ -208,7 +208,7 @@ erDiagram
 ### 🔧 CRITICAL ISSUES IDENTIFIED ACROSS CODEBASE:
 
 #### 🚨 **SECURITY ISSUES:**
-1. **Hard-coded User ID** (Homepage Line 9): Using 'default-user' instead of authenticated user
+1. **Hard-coded User ID** (Homepage Line 9): Using 'ayansh' instead of authenticated user
 2. **Missing Input Sanitization** (API Routes): No XSS protection for question text
 3. **No Rate Limiting** (API Routes): Vulnerable to abuse
 4. **Missing CORS Configuration**: API endpoints not properly secured

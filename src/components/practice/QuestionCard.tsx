@@ -49,6 +49,7 @@ const QuestionCard = memo(function QuestionCard({
   const [openEndedAnswer, setOpenEndedAnswer] = useState<string>('');
   const [showErrorReport, setShowErrorReport] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [imageLoadError, setImageLoadError] = useState<boolean>(false);
 
   // Determine if this question has been submitted (either internally or externally tracked)
   const questionSubmitted = isSubmitted || isQuestionSubmitted;
@@ -58,6 +59,7 @@ const QuestionCard = memo(function QuestionCard({
     setIsSubmitted(false);
     setSelectedOption(userAnswer || '');
     setOpenEndedAnswer(userAnswer || '');
+    setImageLoadError(false);
   }, [question.id, userAnswer]);
 
   // Using centralized formatTime utility
@@ -239,27 +241,23 @@ const QuestionCard = memo(function QuestionCard({
                 <MathRenderer content={cleanupQuestionText(question.questionText || question.text || '')} />
               </div>
 
-              {/* Question Image/Diagram - Improved Logic */}
-              {question.hasImage && question.imageUrl ? (
+              {/* Question Image/Diagram - Fixed Logic */}
+              {question.hasImage && question.imageUrl && !imageLoadError ? (
                 <div className="flex justify-center">
                   <div className="max-w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
                     <img
                       src={question.imageUrl}
                       alt="Question diagram"
                       className="max-w-full h-auto max-h-96 object-contain"
-                      onError={(e) => {
-                        // Hide the broken image and show auto-generated diagram instead
-                        e.currentTarget.style.display = 'none';
-                        const parent = e.currentTarget.parentElement?.parentElement;
-                        if (parent) {
-                          parent.style.display = 'none';
-                        }
+                      onError={() => {
+                        console.log(`Image failed to load for question ${question.id}: ${question.imageUrl}`);
+                        setImageLoadError(true);
                       }}
                     />
                   </div>
                 </div>
               ) : (
-                /* Only show auto-generated diagram if no original image exists or it failed to load */
+                /* Show auto-generated diagram if no original image exists or it failed to load */
                 <DiagramDisplay
                   questionText={question.questionText || question.text || ''}
                   className="mt-4"

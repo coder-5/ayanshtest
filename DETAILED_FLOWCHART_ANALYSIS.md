@@ -73,8 +73,8 @@ This analysis identified **47 critical issues** across authentication, data vali
 
 #### 2.3 Hardcoded User IDs **[CRITICAL]**
 - **Files**: Multiple API routes (practice-sessions, stats, progress)
-- **Issue**: Default user ID 'default-user' or 'ayansh' when no auth provided
-- **Evidence**: `const userId = searchParams.get('userId') || 'default-user';`
+- **Issue**: Default user ID 'ayansh' or 'ayansh' when no auth provided
+- **Evidence**: `const userId = searchParams.get('userId') || 'ayansh';`
 - **Risk**: Data leakage between users, cross-contamination
 
 ### 🔥 HIGH PRIORITY ISSUES

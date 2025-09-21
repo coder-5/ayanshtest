@@ -7,6 +7,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
+    // First, update any exams that should have their status changed
+    const now = new Date()
+    await prisma.examSchedule.updateMany({
+      where: {
+        examDate: { lt: now },
+        status: 'upcoming'
+      },
+      data: {
+        status: 'missed'
+      }
+    })
+
     const where = status ? { status } : {}
 
     const exams = await prisma.examSchedule.findMany({
@@ -72,24 +84,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Determine status based on exam date
+    const examDateObj = new Date(examDate)
+    const now = new Date()
+    const status = examDateObj < now ? 'missed' : 'upcoming'
+
     const exam = await prisma.examSchedule.create({
       data: {
         examName,
-        examDate: new Date(examDate),
+        examDate: examDateObj,
         location,
         duration: duration || 0,
         notes: notes || '',
         registeredAt: registeredAt ? new Date(registeredAt) : new Date(),
         registrationId: registrationId || '',
-        availableFromDate: availableFromDate ? new Date(availableFromDate) : new Date(examDate),
-        availableToDate: availableToDate ? new Date(availableToDate) : new Date(examDate),
+        availableFromDate: availableFromDate ? new Date(availableFromDate) : examDateObj,
+        availableToDate: availableToDate ? new Date(availableToDate) : examDateObj,
         examUrl: examUrl || '',
         loginId: loginId || '',
         loginPassword: loginPassword || '',
         score: 0,
         maxScore: 0,
         percentile: 0,
-        status: 'upcoming'
+        status
       }
     })
 

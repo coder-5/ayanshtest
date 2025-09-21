@@ -12,6 +12,7 @@ async function getQuestionsHandler(request: NextRequest) {
   const competition = safeUrlParam(searchParams, 'competition');
   const topic = safeUrlParam(searchParams, 'topic');
   const difficulty = safeUrlParam(searchParams, 'difficulty');
+  const random = searchParams.get('random') === 'true';
 
   // Use safe validation for page (min: 1, max: 10000) and limit (min: 1, max: 100)
   const page = safeUrlParamPositiveNumber(searchParams, 'page', 1, 1, 10000);
@@ -25,23 +26,51 @@ async function getQuestionsHandler(request: NextRequest) {
     difficulty: difficulty !== 'all' ? difficulty : undefined,
   });
 
-  const [questions, total] = await Promise.all([
-    prisma.question.findMany({
+  // Build orderBy clause based on random parameter
+  const orderBy = random
+    ? [{ id: 'asc' as const }] // Simple ordering for random shuffle
+    : [
+        // Prioritize questions that have options
+        { options: { _count: 'desc' as const } },
+        { createdAt: 'desc' as const }
+      ];
+
+  let questions;
+  const total = await prisma.question.count({ where });
+
+  if (random) {
+    // For random questions, get all matching questions first, then shuffle and slice
+    const allQuestions = await prisma.question.findMany({
       where,
       include: {
         options: true,
         solution: true
       },
-      orderBy: [
-        // Prioritize questions that have options
-        { options: { _count: 'desc' } },
-        { createdAt: 'desc' }
-      ],
+      orderBy: { id: 'asc' }
+    });
+
+    // Shuffle the questions using Fisher-Yates algorithm
+    const shuffled = [...allQuestions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Apply pagination to shuffled results
+    questions = shuffled.slice(skip, skip + limit);
+  } else {
+    // Regular paginated query
+    questions = await prisma.question.findMany({
+      where,
+      include: {
+        options: true,
+        solution: true
+      },
+      orderBy,
       skip,
       take: limit
-    }),
-    prisma.question.count({ where })
-  ]);
+    });
+  }
 
   return NextResponse.json({
     success: true,

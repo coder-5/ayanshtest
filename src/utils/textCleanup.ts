@@ -106,23 +106,71 @@ export function cleanupQuestionText(text: string): string {
 
   let cleaned = text.trim();
 
-  // Apply spelling corrections
+  // Identify and protect LaTeX expressions
+  const latexProtection: Map<string, string> = new Map();
+  let protectionCounter = 0;
+
+  // Protect LaTeX expressions from text cleanup
+  const latexPatterns = [
+    /\$\$[\s\S]*?\$\$/g,  // $$...$$
+    /\\\[[\s\S]*?\\\]/g,   // \[...\]
+    /\$[^$]*?\$/g,         // $...$
+    /\\\([^)]*?\\\)/g      // \(...\)
+  ];
+
+  for (const pattern of latexPatterns) {
+    cleaned = cleaned.replace(pattern, (match) => {
+      const placeholder = `__LATEX_PROTECTED_${protectionCounter++}__`;
+      latexProtection.set(placeholder, match);
+      return placeholder;
+    });
+  }
+
+  // Apply spelling corrections (outside of LaTeX)
   for (const [wrong, correct] of Object.entries(SPELLING_CORRECTIONS)) {
     const regex = new RegExp(wrong.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
     cleaned = cleaned.replace(regex, correct);
   }
 
-  // Apply hyphenation fixes
+  // Apply hyphenation fixes (outside of LaTeX)
   for (const [regex, replacement] of HYPHENATION_FIXES) {
     cleaned = cleaned.replace(regex, replacement);
   }
 
-  // Apply formatting fixes
-  for (const [regex, replacement] of FORMATTING_FIXES) {
+  // Apply formatting fixes (outside of LaTeX) - with LaTeX-aware modifications
+  const latexAwareFormattingFixes: Array<[RegExp, string]> = [
+    // Fix multiple spaces
+    [/\s{2,}/g, ' '],
+
+    // Fix space before punctuation
+    [/\s+([.!?:;,])/g, '$1'],
+
+    // Fix missing space after punctuation
+    [/([.!?])([A-Z])/g, '$1 $2'],
+
+    // Fix parentheses spacing
+    [/\(\s+/g, '('],
+    [/\s+\)/g, ')'],
+
+    // Modified mathematical notation fixes - only apply outside protected areas
+    // These are less aggressive to avoid breaking LaTeX
+    [/(?<!\\)\s*=\s*/g, ' = '],     // Don't touch \= in LaTeX
+    [/(?<!\\)\s*\+\s*/g, ' + '],    // Don't touch \+ in LaTeX
+
+    // Fix common number formatting
+    [/(\d)\s*,\s*(\d)/g, '$1,$2'],  // Fix comma in numbers
+    [/(\d)\s*\.\s*(\d)/g, '$1.$2'], // Fix decimal points
+
+    // Fix degree symbols
+    [/(\d)\s*degrees?/gi, '$1°'],
+    [/(\d)\s*deg/gi, '$1°'],
+  ];
+
+  for (const [regex, replacement] of latexAwareFormattingFixes) {
     cleaned = cleaned.replace(regex, replacement);
   }
 
-  // Remove excessive whitespace and normalize
+  // Remove excessive whitespace and normalize (but preserve LaTeX structure)
   cleaned = cleaned
     .replace(/\t/g, ' ')           // Convert tabs to spaces
     .replace(/\r\n/g, '\n')       // Normalize line endings
@@ -132,6 +180,11 @@ export function cleanupQuestionText(text: string): string {
     .replace(/^[ \t]+/gm, '')     // Remove leading whitespace
     .replace(/\s+/g, ' ')         // Normalize internal whitespace
     .trim();
+
+  // Restore protected LaTeX expressions
+  for (const [placeholder, original] of latexProtection) {
+    cleaned = cleaned.replace(placeholder, original);
+  }
 
   return cleaned;
 }

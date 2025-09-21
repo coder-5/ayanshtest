@@ -54,7 +54,7 @@ interface PerformanceDashboardProps {
   userId?: string;
 }
 
-export function PerformanceDashboard({ userId = 'default-user' }: PerformanceDashboardProps) {
+export function PerformanceDashboard({ userId = 'ayansh' }: PerformanceDashboardProps) {
   const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

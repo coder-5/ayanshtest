@@ -5,7 +5,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import RecentActivity from "@/components/RecentActivity";
 
-async function calculateStreak(userId: string = 'default-user'): Promise<number> {
+async function calculateStreak(userId: string = 'ayansh'): Promise<number> {
   const progress = await prisma.userAttempt.findMany({
     where: { userId },
     orderBy: { attemptedAt: 'desc' },
@@ -63,7 +63,7 @@ async function getStats(userId: string = 'ayansh') {
         orderBy: { examDate: 'asc' },
         take: 3
       }),
-      calculateStreak()
+      calculateStreak(userId)
     ]);
 
     const correctAttempts = await prisma.userAttempt.count({

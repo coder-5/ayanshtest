@@ -29,7 +29,7 @@ async function getDailyProgressHandler(request: NextRequest) {
 async function createDailyProgressHandler(request: NextRequest) {
   const body = await request.json();
   const {
-    userId = 'default-user',
+    userId = 'ayansh',
     date,
     questionsAttempted,
     correctAnswers,

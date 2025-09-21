@@ -9,7 +9,7 @@ export class ProgressService {
   static async saveProgress(data: ProgressData): Promise<UserAttempt> {
     try {
       // For now, we'll use a default user ID since user auth isn't implemented
-      const userId = data.userId || 'default-user';
+      const userId = data.userId || 'ayansh';
 
       const attempt = await prisma.userAttempt.create({
         data: {
@@ -45,7 +45,7 @@ export class ProgressService {
   /**
    * Get comprehensive progress statistics for a user
    */
-  static async getProgressStats(userId: string = 'default-user'): Promise<ProgressStats> {
+  static async getProgressStats(userId: string = 'ayansh'): Promise<ProgressStats> {
     try {
       // Get all attempts for the user
       const allAttempts = await prisma.userAttempt.findMany({
@@ -147,7 +147,7 @@ export class ProgressService {
   /**
    * Get weak areas (topics with low accuracy)
    */
-  static async getWeakAreas(userId: string = 'default-user', minAttempts: number = 3): Promise<Array<{
+  static async getWeakAreas(userId: string = 'ayansh', minAttempts: number = 3): Promise<Array<{
     topic: string;
     accuracy: number;
     attempted: number;
@@ -175,7 +175,7 @@ export class ProgressService {
    * Get questions for weak areas practice
    */
   static async getWeakAreaQuestions(
-    userId: string = 'default-user',
+    userId: string = 'ayansh',
     limit: number = 10
   ): Promise<string[]> {
     try {
@@ -207,7 +207,7 @@ export class ProgressService {
   /**
    * Get performance analytics for dashboard
    */
-  static async getAnalytics(userId: string = 'default-user'): Promise<{
+  static async getAnalytics(userId: string = 'ayansh'): Promise<{
     dailyProgress: Array<{ date: string; questionsAnswered: number; accuracy: number }>;
     topicPerformance: Array<{ topic: string; accuracy: number; count: number }>;
     streakData: { currentStreak: number; longestStreak: number };

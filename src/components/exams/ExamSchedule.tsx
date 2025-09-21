@@ -52,24 +52,44 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
       return
     }
 
+    console.log(`Attempting to delete exam with ID: ${examId}`)
+
     try {
       const response = await fetch(`/api/exams/${examId}`, {
         method: 'DELETE',
       })
 
+      console.log(`DELETE response status: ${response.status} ${response.statusText}`)
+      console.log(`DELETE response headers:`, Object.fromEntries(response.headers.entries()))
+
       if (response.ok) {
+        console.log('Exam deleted successfully, refreshing list')
         // Refresh the exams list
         fetchExams()
         alert('Exam deleted successfully!')
       } else {
-        // Get specific error message from response
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('Failed to delete exam:', errorData)
-        alert(`Failed to delete exam: ${errorData.error || 'Please try again.'}`)
+        // Get the response text first to see what we're dealing with
+        const responseText = await response.text()
+        console.error('DELETE failed - Response text:', responseText)
+        console.error('DELETE failed - Response status:', response.status)
+
+        let errorData;
+        try {
+          // Try to parse as JSON
+          errorData = JSON.parse(responseText)
+          console.log('Parsed error data:', errorData)
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', parseError)
+          errorData = { error: `Server returned: ${responseText || 'Unknown error'}` }
+        }
+
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`
+        console.error('Final error message:', errorMessage)
+        alert(`Failed to delete exam: ${errorMessage}`)
       }
     } catch (error) {
-      console.error('Error deleting exam:', error)
-      alert(`Error deleting exam: ${error instanceof Error ? error.message : 'Please try again.'}`)
+      console.error('Network or other error deleting exam:', error)
+      alert(`Error deleting exam: ${error instanceof Error ? error.message : 'Network error - please try again.'}`)
     }
   }
 

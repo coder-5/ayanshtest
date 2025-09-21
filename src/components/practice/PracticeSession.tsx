@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Target, BarChart3, ChevronLeft, ChevronRight, SkipForward, Trash2, Edit3, Save, X, ArrowLeft } from "lucide-react";
+import { Trophy, Target, BarChart3, ChevronLeft, ChevronRight, SkipForward, Trash2, Edit3, Save, X, ArrowLeft, EyeOff, Eye } from "lucide-react";
 import { PracticeQuestion } from "@/types";
 import { QuestionTracker, QuestionStatus } from "./QuestionTracker";
 
@@ -36,6 +36,7 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedQuestion, setEditedQuestion] = useState<any>(null);
   const [, setSkippedQuestions] = useState<Set<number>>(new Set());
+  const [excludedQuestions, setExcludedQuestions] = useState<Set<string>>(new Set());
   const [questionStatuses, setQuestionStatuses] = useState<QuestionStatus[]>(
     questions.map(q => ({
       questionId: q.id,
@@ -80,7 +81,7 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
 
   const handleAnswer = async (answer: string) => {
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-
+    const isExcluded = excludedQuestions.has(currentQuestion.id);
 
     // Determine if answer is correct
     let isCorrect = false;
@@ -119,7 +120,7 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
           isCorrect,
           timeSpent,
           userAnswer: answer,
-          excludeFromScoring: false
+          excludeFromScoring: isExcluded
         })
       });
     } catch (error) {
@@ -242,6 +243,47 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
     setEditedQuestion(null);
   };
 
+  const handleToggleExclude = async () => {
+    const questionId = currentQuestion.id;
+    const wasExcluded = excludedQuestions.has(questionId);
+    const willBeExcluded = !wasExcluded;
+
+    // Update local state immediately for responsiveness
+    setExcludedQuestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(questionId)) {
+        newSet.delete(questionId);
+      } else {
+        newSet.add(questionId);
+      }
+      return newSet;
+    });
+
+    // Update the database record
+    try {
+      await fetch('/api/progress', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionId,
+          excludeFromScoring: willBeExcluded
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update exclude status:', error);
+      // Revert the local state change if API call failed
+      setExcludedQuestions(prev => {
+        const newSet = new Set(prev);
+        if (wasExcluded) {
+          newSet.add(questionId);
+        } else {
+          newSet.delete(questionId);
+        }
+        return newSet;
+      });
+    }
+  };
+
   const calculateStats = () => {
     const correct = sessionResults.filter(r => r.isCorrect).length;
     const total = sessionResults.length;
@@ -354,7 +396,15 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold">{sessionType} Practice Session</h1>
-                <p className="text-gray-600">Question {currentQuestionIndex + 1} of {questions.length}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-600">Question {currentQuestionIndex + 1} of {questions.length}</p>
+                  {excludedQuestions.has(currentQuestion.id) && (
+                    <Badge variant="secondary" className="text-xs">
+                      <EyeOff className="h-3 w-3 mr-1" />
+                      Excluded from tracking
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -431,6 +481,16 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
                       Edit
                     </Button>
                     <Button
+                      variant={excludedQuestions.has(currentQuestion.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleToggleExclude}
+                      className="flex items-center gap-1"
+                      title={excludedQuestions.has(currentQuestion.id) ? "Include in scoring" : "Exclude from scoring"}
+                    >
+                      {excludedQuestions.has(currentQuestion.id) ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      {excludedQuestions.has(currentQuestion.id) ? "Include" : "Exclude"}
+                    </Button>
+                    <Button
                       variant="destructive"
                       size="sm"
                       onClick={handleDeleteQuestion}
@@ -475,7 +535,7 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
             onAnswer={handleAnswer}
             onNext={handleNext}
             showSolution={showSolution}
-            userAnswer={sessionResults[sessionResults.length - 1]?.userAnswer}
+            userAnswer={showSolution ? sessionResults.find(r => r.questionId === currentQuestion.id)?.userAnswer : undefined}
             isEditMode={isEditMode}
             editedQuestion={editedQuestion}
             onQuestionEdit={setEditedQuestion}

@@ -30,7 +30,7 @@ async function getAchievementsHandler(request: NextRequest) {
 
 async function createAchievementHandler(request: NextRequest) {
   const body = await request.json();
-  const { userId = 'default-user', title, description, badgeIcon, category } = body;
+  const { userId = 'ayansh', title, description, badgeIcon, category } = body;
 
   // Check if achievement already exists
   const existing = await prisma.achievement.findFirst({

@@ -33,7 +33,7 @@ interface AchievementDisplayProps {
   userId?: string;
 }
 
-export function AchievementDisplay({ userId = 'default-user' }: AchievementDisplayProps) {
+export function AchievementDisplay({ userId = 'ayansh' }: AchievementDisplayProps) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [stats, setStats] = useState<AchievementStats | null>(null);
   const [loading, setLoading] = useState(true);

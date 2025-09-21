@@ -24,7 +24,7 @@ export class QuestionSelectionService {
    */
   static async getQuestionsWithRoundControl(options: QuestionSelectionOptions) {
     const {
-      userId = 'default-user',
+      userId = 'ayansh',
       examType,
       topic,
       difficulty,
@@ -245,7 +245,7 @@ export class QuestionSelectionService {
   /**
    * Get user's progress summary across all questions
    */
-  static async getUserProgressSummary(userId: string = 'default-user', examType?: string) {
+  static async getUserProgressSummary(userId: string = 'ayansh', examType?: string) {
     try {
       const whereClause: any = {};
       if (examType && examType !== 'all' && examType !== 'mixed') {

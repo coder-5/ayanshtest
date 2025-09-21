@@ -125,7 +125,10 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
       const processedQuestions = questionsArray.map((q: any) => ({
         ...q,
         type: q.options && q.options.length > 0 ? 'multiple-choice' : 'open-ended',
-        text: q.questionText
+        text: q.questionText || q.text,
+        questionText: q.questionText || q.text,
+        // Ensure options are properly structured
+        options: q.options || []
       }));
 
       setQuestions(processedQuestions);

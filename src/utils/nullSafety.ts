@@ -62,7 +62,7 @@ export function createSafeWhere(filters: Record<string, unknown>): Record<string
   return where;
 }
 
-export function safeUserIdFromParams(searchParams: URLSearchParams, defaultUserId: string = 'default-user'): string {
+export function safeUserIdFromParams(searchParams: URLSearchParams, defaultUserId: string = 'ayansh'): string {
   const userId = searchParams.get('userId');
   return userId?.trim() || defaultUserId;
 }

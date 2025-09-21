@@ -38,7 +38,7 @@ export const GET = withErrorHandling(getProgressHandler);
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId = 'default-user', questionId, isCorrect, timeSpent, userAnswer, excludeFromScoring = false } = body;
+    const { userId = 'ayansh', questionId, isCorrect, timeSpent, userAnswer, excludeFromScoring = false } = body;
 
     if (!questionId || isCorrect === undefined) {
       return NextResponse.json(
@@ -76,6 +76,59 @@ export async function POST(request: NextRequest) {
     console.error('Error creating progress:', error);
     return NextResponse.json(
       { error: 'Failed to create progress' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { userId = 'ayansh', questionId, excludeFromScoring } = body;
+
+    if (!questionId || excludeFromScoring === undefined) {
+      return NextResponse.json(
+        { error: 'Missing required fields: questionId and excludeFromScoring' },
+        { status: 400 }
+      );
+    }
+
+    console.log('PUT /api/progress - Updating attempts:', { userId, questionId, excludeFromScoring });
+
+    // Update the most recent attempt for this question
+    const updatedAttempt = await prisma.userAttempt.updateMany({
+      where: {
+        userId,
+        questionId
+      },
+      data: {
+        excludeFromScoring
+      }
+    });
+
+    console.log('PUT /api/progress - Update result:', updatedAttempt);
+
+    if (updatedAttempt.count === 0) {
+      console.log('PUT /api/progress - No attempts found for:', { userId, questionId });
+      return NextResponse.json(
+        { error: 'No attempts found for this question' },
+        { status: 404 }
+      );
+    }
+
+    // Invalidate progress cache when data is updated
+    const cacheKeys = [`progress:${userId}:30`, `progress:${userId}:7`, `progress:${userId}:1`];
+    cacheKeys.forEach(key => apiCache.delete(key));
+
+    return NextResponse.json({
+      success: true,
+      message: `Updated ${updatedAttempt.count} attempt(s)`,
+      excludeFromScoring
+    });
+  } catch (error) {
+    console.error('Error updating progress exclude status:', error);
+    return NextResponse.json(
+      { error: 'Failed to update exclude status' },
       { status: 500 }
     );
   }

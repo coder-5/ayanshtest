@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId = 'default-user', questionIds, sessionType = 'retry' } = body;
+    const { userId = 'ayansh', questionIds, sessionType = 'retry' } = body;
 
     if (!questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
       return NextResponse.json(

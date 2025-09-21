@@ -108,7 +108,7 @@ export class AchievementService {
   /**
    * Check and award achievements based on user activity
    */
-  static async checkAndAwardAchievements(userId: string = 'default-user') {
+  static async checkAndAwardAchievements(userId: string = 'ayansh') {
     const newAchievements: string[] = [];
 
     for (const achievement of ACHIEVEMENT_DEFINITIONS) {
@@ -276,7 +276,7 @@ export class AchievementService {
   /**
    * Get user achievements with statistics
    */
-  static async getUserAchievements(userId: string = 'default-user') {
+  static async getUserAchievements(userId: string = 'ayansh') {
     const achievements = await prisma.achievement.findMany({
       where: { userId },
       orderBy: { unlockedAt: 'desc' }

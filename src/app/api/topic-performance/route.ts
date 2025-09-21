@@ -26,7 +26,7 @@ async function getTopicPerformanceHandler(request: NextRequest) {
 
 async function updateTopicPerformanceHandler(request: NextRequest) {
   const body = await request.json();
-  const { userId = 'default-user', topicName, isCorrect, timeSpent } = body;
+  const { userId = 'ayansh', topicName, isCorrect, timeSpent } = body;
 
   // Get existing performance or create new
   const existing = await prisma.topicPerformance.findUnique({
