@@ -50,7 +50,7 @@ export default function RecentActivity({ recentAttempts, totalQuestions }: Recen
   }
 
   return (
-    <Card className="mt-8">
+    <Card className="mt-8" data-testid="recent-activity">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>

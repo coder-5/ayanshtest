@@ -8,7 +8,7 @@ export interface User {
   name: string;
   grade?: number;
   avatar?: string;
-  preferences?: {
+  preferences: {
     preferredCompetitions: string[];
     difficultyLevel: 'easy' | 'medium' | 'hard' | 'mixed';
     practiceGoals: {
@@ -97,7 +97,7 @@ class UserManager {
       this.currentUser.preferences = {
         ...this.currentUser.preferences,
         ...preferences
-      } as User['preferences'];
+      };
       this.setCurrentUser(this.currentUser);
     }
   }
@@ -168,6 +168,7 @@ export function useUser() {
       window.addEventListener('storage', handleStorageChange);
       return () => window.removeEventListener('storage', handleStorageChange);
     }
+    return () => {}; // Always return a cleanup function
   }, []);
 
   const switchUser = (userId: string) => {

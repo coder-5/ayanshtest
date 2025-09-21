@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, Target, Zap, Brain, Trophy, Loader2 } from "lucide-react";
+import { BookOpen, Clock, Target, Zap, Brain, Trophy, RefreshCw } from "lucide-react";
+import { LoadingSkeleton } from "@/components/ui/loading";
+import { InlineError } from "@/components/ui/error-display";
 import Link from "next/link";
 
 interface QuestionCounts {
@@ -12,11 +14,14 @@ interface QuestionCounts {
   amc8: number;
   moems: number;
   kangaroo: number;
+  mathcounts: number;
+  cml: number;
 }
 
 export default function PracticePage() {
-  const [counts, setCounts] = useState<QuestionCounts>({ total: 0, amc8: 0, moems: 0, kangaroo: 0 });
+  const [counts, setCounts] = useState<QuestionCounts>({ total: 0, amc8: 0, moems: 0, kangaroo: 0, mathcounts: 0, cml: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQuestionCounts();
@@ -24,11 +29,19 @@ export default function PracticePage() {
 
   const fetchQuestionCounts = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await fetch('/api/question-counts');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch question counts');
+      }
+
       const data = await response.json();
       setCounts(data);
     } catch (error) {
       console.error('Failed to fetch question counts:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load question counts');
     } finally {
       setLoading(false);
     }
@@ -44,6 +57,22 @@ export default function PracticePage() {
           Choose your practice style and start solving math competition problems!
         </p>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mb-8">
+          <InlineError
+            message={error}
+            type="error"
+          />
+          <div className="text-center mt-4">
+            <Button onClick={fetchQuestionCounts} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="text-center py-8 text-gray-500 mb-8">
@@ -98,7 +127,7 @@ export default function PracticePage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Available:</span>
                 {loading ? (
-                  <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /></Badge>
+                  <LoadingSkeleton className="h-5 w-16" />
                 ) : (
                   <Badge variant="secondary">{counts.amc8} problems</Badge>
                 )}
@@ -130,7 +159,7 @@ export default function PracticePage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Available:</span>
                 {loading ? (
-                  <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /></Badge>
+                  <LoadingSkeleton className="h-5 w-16" />
                 ) : (
                   <Badge variant="secondary">{counts.moems} problems</Badge>
                 )}
@@ -162,7 +191,7 @@ export default function PracticePage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Available:</span>
                 {loading ? (
-                  <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /></Badge>
+                  <LoadingSkeleton className="h-5 w-16" />
                 ) : (
                   <Badge variant="secondary">{counts.kangaroo} problems</Badge>
                 )}
@@ -173,6 +202,38 @@ export default function PracticePage() {
               </div>
               <Button className="w-full" variant="outline" asChild>
                 <Link href="/practice/kangaroo">Practice Kangaroo</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* MathCounts Practice */}
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer border-purple-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-purple-600" />
+              MathCounts
+            </CardTitle>
+            <CardDescription>
+              Practice with official MathCounts Sprint Round problems
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Available:</span>
+                {loading ? (
+                  <LoadingSkeleton className="h-5 w-16" />
+                ) : (
+                  <Badge variant="secondary">{counts.mathcounts} problems</Badge>
+                )}
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Level:</span>
+                <Badge variant="secondary">Middle School</Badge>
+              </div>
+              <Button className="w-full" variant="outline" asChild>
+                <Link href="/practice/mathcounts">Practice MathCounts</Link>
               </Button>
             </div>
           </CardContent>
@@ -199,8 +260,64 @@ export default function PracticePage() {
                 <span className="text-sm text-gray-600">MOEMS:</span>
                 <Badge variant="secondary">30 minutes</Badge>
               </div>
-              <Button className="w-full" variant="outline" disabled>
-                Coming Soon
+              <Button className="w-full" variant="outline" asChild>
+                <Link href="/practice/timed">Start Challenge</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Retry Failed Questions */}
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer border-red-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-red-600" />
+              Retry Failed Questions
+            </CardTitle>
+            <CardDescription>
+              Master the questions you've struggled with before
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Purpose:</span>
+                <Badge variant="destructive">Fix mistakes</Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Focus:</span>
+                <Badge variant="secondary">Failed attempts</Badge>
+              </div>
+              <Button className="w-full" variant="outline" asChild>
+                <Link href="/practice/retry">Retry Failed Questions</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Practice by Topic */}
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer border-indigo-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-indigo-600" />
+              Practice by Topic
+            </CardTitle>
+            <CardDescription>
+              Choose specific math topics to practice (Algebra, Geometry, etc.)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Topics:</span>
+                <Badge variant="secondary">All subjects</Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Source:</span>
+                <Badge variant="secondary">All competitions</Badge>
+              </div>
+              <Button className="w-full" variant="outline" asChild>
+                <Link href="/practice/topics">Browse Topics</Link>
               </Button>
             </div>
           </CardContent>

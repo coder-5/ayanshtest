@@ -1,27 +1,11 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { QuestionService } from '@/services/questionService';
 
 export async function GET() {
   try {
-    const [totalQuestions, amc8Questions, moemsQuestions, kangarooQuestions] = await Promise.all([
-      prisma.question.count(),
-      prisma.question.count({
-        where: { examName: { contains: 'AMC 8', mode: 'insensitive' } }
-      }),
-      prisma.question.count({
-        where: { examName: { contains: 'MOEMS', mode: 'insensitive' } }
-      }),
-      prisma.question.count({
-        where: { examName: { contains: 'Kangaroo', mode: 'insensitive' } }
-      })
-    ]);
+    const counts = await QuestionService.getQuestionCounts();
 
-    return NextResponse.json({
-      total: totalQuestions,
-      amc8: amc8Questions,
-      moems: moemsQuestions,
-      kangaroo: kangarooQuestions
-    });
+    return NextResponse.json(counts);
   } catch (error) {
     console.error('Failed to get question counts:', error);
     return NextResponse.json(

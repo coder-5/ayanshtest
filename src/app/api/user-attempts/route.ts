@@ -1,19 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { withErrorHandling } from '@/middleware/apiWrapper'
+import { safeUrlParam } from '@/utils/nullSafety'
 
-const prisma = new PrismaClient()
+// DELETE /api/user-attempts - Clear user attempts for specific user only
+async function deleteUserAttemptsHandler(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
 
-// DELETE /api/user-attempts - Clear all user attempts (refresh recent activity)
-export async function DELETE(request: NextRequest) {
-  try {
-    await prisma.userAttempt.deleteMany({})
+  // Require userId parameter - no default fallback for destructive operations
+  const userId = safeUrlParam(searchParams, 'userId')
 
-    return NextResponse.json({ message: 'All user attempts cleared successfully' })
-  } catch (error) {
-    console.error('Error clearing user attempts:', error)
+  if (!userId || userId === 'all' || userId === '*') {
     return NextResponse.json(
-      { error: 'Failed to clear user attempts' },
-      { status: 500 }
+      { error: 'Invalid or missing userId parameter. Cannot delete all user data.' },
+      { status: 400 }
     )
   }
+
+  // Additional safety check - prevent deletion of multiple users
+  if (userId.includes(',') || userId.includes(';') || userId.includes('|')) {
+    return NextResponse.json(
+      { error: 'Invalid userId format. Only single user deletion allowed.' },
+      { status: 400 }
+    )
+  }
+
+  // Only delete attempts for the specific user
+  const deleteResult = await prisma.userAttempt.deleteMany({
+    where: {
+      userId: userId
+    }
+  })
+
+  return NextResponse.json({
+    message: `${deleteResult.count} user attempts cleared for user: ${userId}`,
+    deletedCount: deleteResult.count,
+    userId: userId
+  })
 }
+
+export const DELETE = withErrorHandling(deleteUserAttemptsHandler)

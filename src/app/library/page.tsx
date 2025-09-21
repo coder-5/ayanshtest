@@ -3,19 +3,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, BookOpen, Calendar, User, Star, Eye, Download } from "lucide-react";
+import { Search, Filter, BookOpen, Calendar, Star, Download } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 async function getLibraryData() {
   try {
-    const [totalQuestions, amc8Questions, moemsQuestions, recentQuestions] = await Promise.all([
+    const [totalQuestions, competitionStats, topicList, recentQuestions] = await Promise.all([
       prisma.question.count(),
-      prisma.question.count({
-        where: { examName: 'AMC 8' }
+      prisma.question.groupBy({
+        by: ['examName'],
+        _count: {
+          examName: true
+        },
+        orderBy: {
+          _count: {
+            examName: 'desc'
+          }
+        }
       }),
-      prisma.question.count({
-        where: { examName: 'MOEMS' }
+      prisma.question.findMany({
+        select: {
+          topic: true
+        },
+        distinct: ['topic'],
+        orderBy: {
+          topic: 'asc'
+        }
       }),
       prisma.question.findMany({
         orderBy: { createdAt: 'desc' },
@@ -31,24 +45,31 @@ async function getLibraryData() {
       })
     ]);
 
-    const kangarooQuestions = await prisma.question.count({
-      where: { examName: { contains: 'Kangaroo', mode: 'insensitive' } }
+    // Get all unique competition names
+    const competitionNames = await prisma.question.findMany({
+      select: {
+        examName: true
+      },
+      distinct: ['examName'],
+      orderBy: {
+        examName: 'asc'
+      }
     });
 
     return {
       totalQuestions,
-      amc8Questions,
-      moemsQuestions,
-      kangarooQuestions,
+      competitionStats,
+      competitionNames: competitionNames.map(c => c.examName),
+      topicList: topicList.map(t => t.topic),
       recentQuestions
     };
   } catch (error) {
     console.error('Error fetching library data:', error);
     return {
       totalQuestions: 0,
-      amc8Questions: 0,
-      moemsQuestions: 0,
-      kangarooQuestions: 0,
+      competitionStats: [],
+      competitionNames: [],
+      topicList: [],
       recentQuestions: []
     };
   }
@@ -114,9 +135,11 @@ export default async function LibraryPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Competitions</SelectItem>
-                <SelectItem value="amc8">AMC 8</SelectItem>
-                <SelectItem value="moems">MOEMS</SelectItem>
-                <SelectItem value="kangaroo">Math Kangaroo</SelectItem>
+                {libraryData.competitionNames?.map((competition) => (
+                  <SelectItem key={competition} value={competition.toLowerCase().replace(/\s+/g, '-')}>
+                    {competition}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select>
@@ -125,13 +148,11 @@ export default async function LibraryPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Topics</SelectItem>
-                <SelectItem value="algebra">Algebra</SelectItem>
-                <SelectItem value="geometry">Geometry</SelectItem>
-                <SelectItem value="number-theory">Number Theory</SelectItem>
-                <SelectItem value="combinatorics">Combinatorics</SelectItem>
-                <SelectItem value="probability">Probability</SelectItem>
-                <SelectItem value="arithmetic">Arithmetic</SelectItem>
-                <SelectItem value="logic">Logic</SelectItem>
+                {libraryData.topicList?.map((topic) => (
+                  <SelectItem key={topic} value={topic.toLowerCase().replace(/\s+/g, '-')}>
+                    {topic}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -155,31 +176,49 @@ export default async function LibraryPage() {
             <CardDescription>Total Problems</CardDescription>
           </CardHeader>
         </Card>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-green-600">
-              {libraryData.amc8Questions.toLocaleString()}
-            </CardTitle>
-            <CardDescription>AMC 8 Problems</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-purple-600">
-              {libraryData.moemsQuestions.toLocaleString()}
-            </CardTitle>
-            <CardDescription>MOEMS Problems</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-orange-600">
-              {libraryData.kangarooQuestions.toLocaleString()}
-            </CardTitle>
-            <CardDescription>Kangaroo Problems</CardDescription>
-          </CardHeader>
-        </Card>
+        {libraryData.competitionStats?.slice(0, 3).map((stat, index) => {
+          const colors = ['text-green-600', 'text-red-600', 'text-orange-600'];
+          return (
+            <Card key={stat.examName}>
+              <CardHeader className="text-center">
+                <CardTitle className={`text-2xl font-bold ${colors[index] || 'text-purple-600'}`}>
+                  {stat._count?.examName?.toLocaleString() || '0'}
+                </CardTitle>
+                <CardDescription>{stat.examName} Problems</CardDescription>
+              </CardHeader>
+            </Card>
+          );
+        }) || []}
       </div>
+
+      {/* Additional Stats Row */}
+      {(libraryData.competitionStats?.length || 0) > 3 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {libraryData.competitionStats?.slice(3, 7).map((stat, index) => {
+            const colors = ['text-purple-600', 'text-indigo-600', 'text-pink-600', 'text-cyan-600'];
+            return (
+              <Card key={stat.examName}>
+                <CardHeader className="text-center">
+                  <CardTitle className={`text-2xl font-bold ${colors[index] || 'text-gray-600'}`}>
+                    {stat._count?.examName?.toLocaleString() || '0'}
+                  </CardTitle>
+                  <CardDescription>{stat.examName} Problems</CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          }) || []}
+          {(libraryData.competitionStats?.length || 0) <= 6 && (
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-lg font-semibold text-gray-600">
+                  Updated Automatically
+                </CardTitle>
+                <CardDescription>Counts refresh with new questions</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Recent Uploads */}
       <Card className="mb-8">
@@ -189,7 +228,7 @@ export default async function LibraryPage() {
             Recently Added
           </CardTitle>
           <CardDescription>
-            Your latest uploaded problem sets
+            Your latest problem sets
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -214,8 +253,8 @@ export default async function LibraryPage() {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No problems uploaded yet</p>
-              <p className="text-sm">Upload documents to see them here</p>
+              <p>No problems available yet</p>
+              <p className="text-sm">Start with quick practice to see recent questions</p>
             </div>
           )}
         </CardContent>
@@ -276,12 +315,12 @@ export default async function LibraryPage() {
               <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-medium mb-2">No Problems Yet</h3>
               <p className="text-sm mb-4">
-                Upload some math competition documents to start building your library
+                Start practicing to see your question library grow with sample problems
               </p>
               <Button asChild>
-                <Link href="/upload">
+                <Link href="/practice/quick">
                   <BookOpen className="h-4 w-4 mr-2" />
-                  Upload Problems
+                  Start Practice
                 </Link>
               </Button>
             </div>
@@ -309,18 +348,14 @@ export default async function LibraryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button variant="outline" asChild>
+              <a href="/api/export-library" download>
+                <Download className="h-4 w-4 mr-2" />
+                Export Library
+              </a>
+            </Button>
             <Button asChild>
-              <Link href="/upload">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Add New Problems
-              </Link>
-            </Button>
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export Library
-            </Button>
-            <Button variant="outline" asChild disabled={libraryData.totalQuestions === 0}>
               <Link href="/practice">
                 Start Practice Session
               </Link>

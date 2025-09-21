@@ -6,27 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Target, Clock, BarChart3, ChevronLeft, ChevronRight, SkipForward, Trash2, Edit3, Save, X, ArrowLeft } from "lucide-react";
-
-interface Question {
-  id: string;
-  text: string;
-  type: 'multiple-choice' | 'open-ended';
-  competition: string;
-  topic: string;
-  difficulty: string;
-  options?: Array<{
-    id: string;
-    label: string;
-    text: string;
-    isCorrect: boolean;
-  }>;
-  solutions?: Array<{
-    id: string;
-    text: string;
-    type: string;
-  }>;
-}
+import { Trophy, Target, BarChart3, ChevronLeft, ChevronRight, SkipForward, Trash2, Edit3, Save, X, ArrowLeft } from "lucide-react";
+import { PracticeQuestion } from "@/types";
+import { QuestionTracker, QuestionStatus } from "./QuestionTracker";
 
 interface SessionResult {
   questionId: string;
@@ -36,7 +18,7 @@ interface SessionResult {
 }
 
 interface PracticeSessionProps {
-  questions: Question[];
+  questions: PracticeQuestion[];
   sessionType: string;
   onComplete: (results: SessionResult[]) => void;
   onBack?: () => void;
@@ -51,11 +33,38 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
-  const [skippedQuestions, setSkippedQuestions] = useState<Set<number>>(new Set());
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editedQuestion, setEditedQuestion] = useState<Question | null>(null);
+  const [editedQuestion, setEditedQuestion] = useState<any>(null);
+  const [, setSkippedQuestions] = useState<Set<number>>(new Set());
+  const [questionStatuses, setQuestionStatuses] = useState<QuestionStatus[]>(
+    questions.map(q => ({
+      questionId: q.id,
+      status: 'unanswered' as const,
+      isFlagged: false
+    }))
+  );
+
+  // Track skipped questions during session
 
   const currentQuestion = questions[currentQuestionIndex];
+
+  // Question tracker functions
+  const handleQuestionSelect = (index: number) => {
+    setCurrentQuestionIndex(index);
+    setQuestionStartTime(Date.now());
+    setTimeElapsed(0);
+    setShowSolution(false);
+  };
+
+  const handleToggleFlag = (index: number) => {
+    setQuestionStatuses(prev =>
+      prev.map((status, i) =>
+        i === index
+          ? { ...status, isFlagged: !status.isFlagged }
+          : status
+      )
+    );
+  };
 
   // Timer effect
   useEffect(() => {
@@ -66,9 +75,10 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
 
       return () => clearInterval(interval);
     }
+    return () => {}; // Always return a cleanup function
   }, [questionStartTime, showSolution, isSessionComplete]);
 
-  const handleAnswer = async (answer: string) => {
+  const handleAnswer = async (answer: string, excludeFromScoring: boolean = false) => {
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
 
     // Determine if answer is correct
@@ -85,7 +95,22 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
       timeSpent
     };
 
+    // Log for competition-specific analysis
+    if (competitionType) {
+      console.log(`${competitionType} question answered:`, result);
+    }
+
     setSessionResults(prev => [...prev, result]);
+
+    // Update question status
+    setQuestionStatuses(prev =>
+      prev.map((status, index) =>
+        index === currentQuestionIndex
+          ? { ...status, status: isCorrect ? 'correct' : 'incorrect', userAnswer: answer, timeSpent }
+          : status
+      )
+    );
+
     setShowSolution(true);
 
     // Save progress to database
@@ -97,7 +122,8 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
           questionId: currentQuestion.id,
           isCorrect,
           timeSpent,
-          userAnswer: answer
+          userAnswer: answer,
+          excludeFromScoring
         })
       });
     } catch (error) {
@@ -139,13 +165,23 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
     };
 
     setSessionResults(prev => [...prev, result]);
+
+    // Update question status for skipped
+    setQuestionStatuses(prev =>
+      prev.map((status, index) =>
+        index === currentQuestionIndex
+          ? { ...status, status: 'skipped', userAnswer: 'SKIPPED', timeSpent: result.timeSpent }
+          : status
+      )
+    );
+
     handleNext();
   };
 
   const handleDeleteQuestion = async () => {
     if (confirm('Are you sure you want to delete this question permanently?')) {
       try {
-        const response = await fetch(`/api/questions/${competitionType}?id=${currentQuestion.id}`, {
+        const response = await fetch(`/api/questions/${currentQuestion.id}`, {
           method: 'DELETE'
         });
 
@@ -180,11 +216,10 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
     if (!editedQuestion) return;
 
     try {
-      const response = await fetch(`/api/questions/${competitionType}`, {
+      const response = await fetch(`/api/questions/${editedQuestion.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: editedQuestion.id,
           questionText: editedQuestion.text,
           difficulty: editedQuestion.difficulty,
           topic: editedQuestion.topic,
@@ -303,137 +338,153 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack, co
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Session Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold">{sessionType} Practice Session</h1>
-            <p className="text-gray-600">Question {currentQuestionIndex + 1} of {questions.length}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-blue-600" />
-              <span className="text-sm">{sessionResults.filter(r => r.isCorrect).length} correct</span>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Content Area */}
+        <div className="lg:col-span-3">
+          {/* Session Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-bold">{sessionType} Practice Session</h1>
+                <p className="text-gray-600">Question {currentQuestionIndex + 1} of {questions.length}</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm">{sessionResults.filter(r => r.isCorrect).length} correct</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm">{sessionResults.length > 0 ? Math.round((sessionResults.filter(r => r.isCorrect).length / sessionResults.length) * 100) : 0}% accuracy</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-green-600" />
-              <span className="text-sm">{sessionResults.length > 0 ? Math.round((sessionResults.filter(r => r.isCorrect).length / sessionResults.length) * 100) : 0}% accuracy</span>
-            </div>
-          </div>
-        </div>
 
-        <Progress value={((currentQuestionIndex + (showSolution ? 1 : 0)) / questions.length) * 100} className="h-2" />
-      </div>
-
-      {/* Navigation Controls */}
-      <div className="mb-6">
-        <div className="flex flex-wrap gap-2 justify-between items-center">
-          {/* Back to Practice */}
-          {onBack && (
-            <Button variant="ghost" onClick={onBack} className="flex items-center gap-1">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Practice
-            </Button>
-          )}
-
-          {/* Question Navigation */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              className="flex items-center gap-1"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSkip}
-              className="flex items-center gap-1"
-            >
-              <SkipForward className="h-4 w-4" />
-              Skip
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNext}
-              disabled={currentQuestionIndex === questions.length - 1 && !showSolution}
-              className="flex items-center gap-1"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <Progress value={((currentQuestionIndex + (showSolution ? 1 : 0)) / questions.length) * 100} className="h-2" />
           </div>
 
-          {/* Question Management */}
-          <div className="flex gap-2">
-            {!isEditMode ? (
-              <>
+          {/* Navigation Controls */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2 justify-between items-center">
+              {/* Back to Practice */}
+              {onBack && (
+                <Button variant="ghost" onClick={onBack} className="flex items-center gap-1">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Practice
+                </Button>
+              )}
+
+              {/* Question Navigation */}
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleEditQuestion}
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
                   className="flex items-center gap-1"
                 >
-                  <Edit3 className="h-4 w-4" />
-                  Edit
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteQuestion}
-                  className="flex items-center gap-1"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleSaveEdit}
-                  className="flex items-center gap-1"
-                >
-                  <Save className="h-4 w-4" />
-                  Save
-                </Button>
+
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleCancelEdit}
+                  onClick={handleSkip}
                   className="flex items-center gap-1"
                 >
-                  <X className="h-4 w-4" />
-                  Cancel
+                  <SkipForward className="h-4 w-4" />
+                  Skip
                 </Button>
-              </>
-            )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNext}
+                  disabled={currentQuestionIndex === questions.length - 1 && !showSolution}
+                  className="flex items-center gap-1"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Question Management */}
+              <div className="flex gap-2">
+                {!isEditMode ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleEditQuestion}
+                      className="flex items-center gap-1"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteQuestion}
+                      className="flex items-center gap-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      className="flex items-center gap-1"
+                    >
+                      <Save className="h-4 w-4" />
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      className="flex items-center gap-1"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Question Card */}
+          <QuestionCard
+            question={isEditMode && editedQuestion ? editedQuestion : currentQuestion}
+            questionNumber={currentQuestionIndex + 1}
+            totalQuestions={questions.length}
+            timeElapsed={timeElapsed}
+            onAnswer={handleAnswer}
+            onNext={handleNext}
+            showSolution={showSolution}
+            userAnswer={sessionResults[sessionResults.length - 1]?.userAnswer}
+            isEditMode={isEditMode}
+            editedQuestion={editedQuestion}
+            onQuestionEdit={setEditedQuestion}
+          />
+        </div>
+
+        {/* Question Tracker Sidebar */}
+        <div className="lg:col-span-1">
+          <QuestionTracker
+            questions={questions}
+            currentQuestionIndex={currentQuestionIndex}
+            questionStatuses={questionStatuses}
+            onQuestionSelect={handleQuestionSelect}
+            onToggleFlag={handleToggleFlag}
+          />
         </div>
       </div>
-
-      {/* Question Card */}
-      <QuestionCard
-        question={isEditMode && editedQuestion ? editedQuestion : currentQuestion}
-        questionNumber={currentQuestionIndex + 1}
-        totalQuestions={questions.length}
-        timeElapsed={timeElapsed}
-        onAnswer={handleAnswer}
-        onNext={handleNext}
-        showSolution={showSolution}
-        userAnswer={sessionResults[sessionResults.length - 1]?.userAnswer}
-        isEditMode={isEditMode}
-        editedQuestion={editedQuestion}
-        onQuestionEdit={setEditedQuestion}
-      />
     </div>
   );
 }

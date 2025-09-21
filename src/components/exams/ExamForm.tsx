@@ -6,39 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar, Clock, MapPin, Save, X, Repeat } from 'lucide-react'
-
-interface Exam {
-  id?: string
-  examName: string
-  examDate: Date | string        // Date datatype for exam date/time
-  location: string
-  duration: number              // Number datatype for exam duration in minutes
-  status: string
-  notes: string                 // String datatype for notes (empty string if none)
-  registrationId: string        // String datatype for registration ID (empty string if none)
-  score: number                 // Number datatype for exam score
-  maxScore: number              // Number datatype for maximum possible score
-  percentile: number            // Number datatype (float) for percentile values like 85.5
-  availableFromDate: Date | string  // Date datatype for availability start
-  availableToDate: Date | string    // Date datatype for availability end
-  examUrl: string               // String datatype for exam URL (empty string if none)
-  loginId: string               // String datatype for login ID/username (empty string if none)
-  loginPassword: string         // String datatype for login password (empty string if none)
-  registeredAt: Date | string   // Date datatype for registration date
-  createdAt?: Date | string     // Date datatype for creation date (optional for new exams)
-  updatedAt?: Date | string     // Date datatype for last update (optional for new exams)
-}
+import { ExamSchedule } from '@/types'
 
 interface ExamFormProps {
-  exam?: Exam
+  exam?: Partial<ExamSchedule>
   onSave: () => void
   onCancel: () => void
 }
 
 export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
-  const [formData, setFormData] = useState<Exam>({
+  const [formData, setFormData] = useState<Partial<ExamSchedule>>({
     examName: '',
-    examDate: '',
+    examDate: new Date(),
     location: '',
     duration: 0,
     status: 'upcoming',
@@ -47,43 +26,55 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
     score: 0,
     maxScore: 0,
     percentile: 0,
-    availableFromDate: '',
-    availableToDate: '',
+    availableFromDate: new Date(),
+    availableToDate: new Date(),
     examUrl: '',
     loginId: '',
     loginPassword: '',
-    registeredAt: ''
+    registeredAt: new Date()
   })
   const [loading, setLoading] = useState(false)
   const [customExamName, setCustomExamName] = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurrenceType, setRecurrenceType] = useState<'weekly' | 'monthly'>('weekly')
   const [recurrenceCount, setRecurrenceCount] = useState(4)
+  const [dynamicExamTypes, setDynamicExamTypes] = useState<string[]>([])
+  const [loadingExamTypes, setLoadingExamTypes] = useState(true)
+
+  // Fetch dynamic exam types on mount
+  useEffect(() => {
+    const fetchExamTypes = async () => {
+      try {
+        const response = await fetch('/api/competitions')
+        const competitions = await response.json()
+        setDynamicExamTypes([...competitions, 'Other'])
+      } catch (error) {
+        console.error('Error fetching competitions:', error)
+        // Fallback to static list
+        setDynamicExamTypes(['AMC8', 'AMC 10', 'Math Kangaroo', 'MOEMS', 'MathCounts', 'AIME', 'Local Competition', 'School Competition', 'Other'])
+      } finally {
+        setLoadingExamTypes(false)
+      }
+    }
+
+    fetchExamTypes()
+  }, [])
 
   useEffect(() => {
-    if (exam) {
+    if (exam && dynamicExamTypes.length > 0) {
       // Format date for datetime-local input
-      const examDate = new Date(exam.examDate)
-      const formattedDate = examDate.toISOString().slice(0, 16)
+      const examDate = exam.examDate ? new Date(exam.examDate) : new Date()
 
-      // Format available dates if they exist
-      const availableFromFormatted = exam.availableFromDate
-        ? new Date(exam.availableFromDate).toISOString().slice(0, 16)
-        : ''
-      const availableToFormatted = exam.availableToDate
-        ? new Date(exam.availableToDate).toISOString().slice(0, 16)
-        : ''
-
-      // Check if exam name is a custom one (not in predefined list)
-      const predefinedExams = ['AMC 8', 'AMC 10', 'Math Kangaroo', 'MOEMS', 'MathCounts', 'AIME', 'Local Competition', 'School Competition']
-      const isCustomExam = !predefinedExams.includes(exam.examName)
+      // Check if exam name is a custom one (not in dynamic list)
+      const isCustomExam = exam.examName && !dynamicExamTypes.includes(exam.examName)
 
       setFormData({
         ...exam,
-        examDate: formattedDate,
-        examName: isCustomExam ? 'Other' : exam.examName,
-        availableFromDate: availableFromFormatted,
-        availableToDate: availableToFormatted,
+        examDate,
+        examName: isCustomExam ? 'Other' : exam.examName || '',
+        availableFromDate: exam.availableFromDate ? new Date(exam.availableFromDate) : null,
+        availableToDate: exam.availableToDate ? new Date(exam.availableToDate) : null,
+        registeredAt: exam.registeredAt ? new Date(exam.registeredAt) : null,
         // All fields are now required with proper defaults
         duration: exam.duration || 0,
         notes: exam.notes || '',
@@ -93,15 +84,14 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
         percentile: exam.percentile || 0,
         examUrl: exam.examUrl || '',
         loginId: exam.loginId || '',
-        loginPassword: exam.loginPassword || '',
-        registeredAt: exam.registeredAt ? new Date(exam.registeredAt).toISOString().slice(0, 16) : ''
+        loginPassword: exam.loginPassword || ''
       })
 
-      if (isCustomExam) {
+      if (isCustomExam && exam.examName) {
         setCustomExamName(exam.examName)
       }
     }
-  }, [exam])
+  }, [exam, dynamicExamTypes])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -121,10 +111,10 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
       const examData = {
         ...formData,
         examName: formData.examName === 'Other' ? customExamName : formData.examName,
-        duration: parseInt(formData.duration.toString()) || 0,
-        score: parseInt(formData.score.toString()) || 0,
-        maxScore: parseInt(formData.maxScore.toString()) || 0,
-        percentile: parseFloat(formData.percentile.toString()) || 0,
+        duration: parseInt((formData.duration || 0).toString()) || 0,
+        score: parseInt((formData.score || 0).toString()) || 0,
+        maxScore: parseInt((formData.maxScore || 0).toString()) || 0,
+        percentile: parseFloat((formData.percentile || 0).toString()) || 0,
         availableFromDate: formData.availableFromDate || formData.examDate,
         availableToDate: formData.availableToDate || formData.examDate,
         examUrl: formData.examUrl?.trim() || '',
@@ -136,8 +126,8 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
 
       // Add recurrence data if creating recurring exams
       if (isRecurring && !exam?.id) {
-        examData.recurrenceType = recurrenceType
-        examData.recurrenceCount = recurrenceCount
+        (examData as any).recurrenceType = recurrenceType;
+        (examData as any).recurrenceCount = recurrenceCount;
       }
 
       const response = await fetch(url, {
@@ -176,17 +166,6 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
     }))
   }
 
-  const examTypes = [
-    'AMC 8',
-    'AMC 10',
-    'Math Kangaroo',
-    'MOEMS',
-    'MathCounts',
-    'AIME',
-    'Local Competition',
-    'School Competition',
-    'Other'
-  ]
 
   const statusOptions = [
     { value: 'upcoming', label: 'Upcoming' },
@@ -212,14 +191,15 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                 Exam Name *
               </label>
               <Select
-                value={formData.examName}
+                value={formData.examName || ''}
                 onValueChange={(value) => handleChange('examName', value)}
+                disabled={loadingExamTypes}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select exam type" />
+                  <SelectValue placeholder={loadingExamTypes ? "Loading..." : "Select exam type"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {examTypes.map(type => (
+                  {dynamicExamTypes.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
                 </SelectContent>
@@ -243,7 +223,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                 Status
               </label>
               <Select
-                value={formData.status}
+                value={formData.status || 'upcoming'}
                 onValueChange={(value) => handleChange('status', value)}
               >
                 <SelectTrigger>
@@ -270,8 +250,8 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
               <Input
                 id="examDate"
                 type="datetime-local"
-                value={formData.examDate}
-                onChange={(e) => handleChange('examDate', e.target.value)}
+                value={formData.examDate instanceof Date ? formData.examDate.toISOString().slice(0, 16) : ''}
+                onChange={(e) => handleChange('examDate', new Date(e.target.value))}
                 required
               />
             </div>
@@ -283,7 +263,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
               </label>
               <Input
                 id="location"
-                value={formData.location}
+                value={formData.location || ''}
                 onChange={(e) => handleChange('location', e.target.value)}
                 placeholder="School, Online, Competition Center..."
                 required
@@ -313,7 +293,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                 </label>
                 <Input
                   id="registrationId"
-                  value={formData.registrationId}
+                  value={formData.registrationId || ''}
                   onChange={(e) => handleChange('registrationId', e.target.value)}
                   placeholder="Confirmation number..."
                 />
@@ -327,8 +307,8 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
               <Input
                 id="registeredAt"
                 type="datetime-local"
-                value={formData.registeredAt}
-                onChange={(e) => handleChange('registeredAt', e.target.value)}
+                value={formData.registeredAt instanceof Date ? formData.registeredAt.toISOString().slice(0, 16) : ''}
+                onChange={(e) => handleChange('registeredAt', new Date(e.target.value))}
               />
               <p className="text-xs text-gray-500">When you registered for this exam</p>
             </div>
@@ -408,8 +388,8 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                 <Input
                   id="availableFromDate"
                   type="datetime-local"
-                  value={formData.availableFromDate}
-                  onChange={(e) => handleChange('availableFromDate', e.target.value)}
+                  value={formData.availableFromDate instanceof Date ? formData.availableFromDate.toISOString().slice(0, 16) : ''}
+                  onChange={(e) => handleChange('availableFromDate', new Date(e.target.value))}
                 />
                 <p className="text-xs text-gray-500">When the exam becomes available to take</p>
               </div>
@@ -422,8 +402,8 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                 <Input
                   id="availableToDate"
                   type="datetime-local"
-                  value={formData.availableToDate}
-                  onChange={(e) => handleChange('availableToDate', e.target.value)}
+                  value={formData.availableToDate instanceof Date ? formData.availableToDate.toISOString().slice(0, 16) : ''}
+                  onChange={(e) => handleChange('availableToDate', new Date(e.target.value))}
                 />
                 <p className="text-xs text-gray-500">When the exam is no longer available</p>
               </div>
@@ -441,7 +421,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                 <Input
                   id="examUrl"
                   type="url"
-                  value={formData.examUrl}
+                  value={formData.examUrl || ''}
                   onChange={(e) => handleChange('examUrl', e.target.value)}
                   placeholder="https://example.com/exam-portal"
                 />
@@ -454,7 +434,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                   </label>
                   <Input
                     id="loginId"
-                    value={formData.loginId}
+                    value={formData.loginId || ''}
                     onChange={(e) => handleChange('loginId', e.target.value)}
                     placeholder="username or student ID"
                   />
@@ -467,7 +447,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                   <Input
                     id="loginPassword"
                     type="password"
-                    value={formData.loginPassword}
+                    value={formData.loginPassword || ''}
                     onChange={(e) => handleChange('loginPassword', e.target.value)}
                     placeholder="exam password"
                   />
@@ -532,7 +512,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
             <textarea
               id="notes"
               className="w-full p-3 border border-gray-300 rounded-md resize-none h-20"
-              value={formData.notes}
+              value={formData.notes || ''}
               onChange={(e) => handleChange('notes', e.target.value)}
               placeholder="Any additional notes about this exam..."
             />

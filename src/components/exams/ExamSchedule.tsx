@@ -7,36 +7,16 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, MapPin, Plus, Trophy, Users, Trash2, Edit, Search, Grid, List, Filter } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-
-interface Exam {
-  id: string
-  examName: string
-  examDate: Date | string        // Date datatype for exam date/time
-  location: string
-  duration: number              // Number datatype for exam duration in minutes
-  status: string
-  notes: string                 // String datatype for notes (empty string if none)
-  registrationId: string        // String datatype for registration ID (empty string if none)
-  score: number                 // Number datatype for exam score
-  maxScore: number              // Number datatype for maximum possible score
-  percentile: number            // Number datatype (float) for percentile values like 85.5
-  availableFromDate: Date | string  // Date datatype for availability start
-  availableToDate: Date | string    // Date datatype for availability end
-  examUrl: string               // String datatype for exam URL (empty string if none)
-  loginId: string               // String datatype for login ID/username (empty string if none)
-  loginPassword: string         // String datatype for login password (empty string if none)
-  registeredAt: Date | string   // Date datatype for registration date
-  createdAt: Date | string      // Date datatype for creation date
-  updatedAt: Date | string      // Date datatype for last update
-}
+import { getExamIcon } from '@/lib/dynamic-data'
+import { ExamSchedule as ExamType } from '@/types'
 
 interface ExamScheduleProps {
   onAddExam: () => void
-  onEditExam: (exam: Exam) => void
+  onEditExam: (exam: ExamType) => void
 }
 
 export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProps) {
-  const [exams, setExams] = useState<Exam[]>([])
+  const [exams, setExams] = useState<ExamType[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('compact')
@@ -90,41 +70,6 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'upcoming': return 'bg-blue-100 text-blue-800'
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'missed': return 'bg-red-100 text-red-800'
-      case 'cancelled': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getExamIcon = (examName: string) => {
-    if (examName.includes('AMC')) return '🧮'
-    if (examName.includes('Kangaroo')) return '🦘'
-    if (examName.includes('MOEMS')) return '🏆'
-    return '📝'
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
   // Ensure exams is always an array before filtering
   const examArray = Array.isArray(exams) ? exams : []
 
@@ -133,7 +78,7 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
     const matchesSearch = searchTerm === '' ||
       exam.examName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exam.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      exam.notes.toLowerCase().includes(searchTerm.toLowerCase())
+      (exam.notes?.toLowerCase() || '').includes(searchTerm.toLowerCase())
 
     const matchesFilter = filter === 'all' || exam.status === filter
 
@@ -331,8 +276,8 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
 }
 
 interface CompactExamViewProps {
-  exams: Exam[]
-  onEdit: (exam: Exam) => void
+  exams: ExamType[]
+  onEdit: (exam: ExamType) => void
   onDelete: (examId: string) => void
 }
 
@@ -347,14 +292,8 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
     }
   }
 
-  const getExamIcon = (examName: string) => {
-    if (examName.includes('AMC')) return '🧮'
-    if (examName.includes('Kangaroo')) return '🦘'
-    if (examName.includes('MOEMS')) return '🏆'
-    return '📝'
-  }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -362,7 +301,7 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
     })
   }
 
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString: string | Date) => {
     const date = new Date(dateString)
     return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -370,12 +309,8 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
     })
   }
 
-  const getDaysUntil = (dateString: string) => {
-    const examDate = new Date(dateString)
-    const today = new Date()
-    const diffTime = examDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
+  const getDaysUntil = (dateString: string | Date) => {
+    return Math.floor((new Date(dateString).getTime() - new Date().getTime()) / 86400000)
   }
 
   // Group exams by status for better organization
@@ -411,7 +346,7 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
                       <span className="text-lg">{getExamIcon(exam.examName)}</span>
                       <div>
                         <div className="font-medium text-sm">{exam.examName}</div>
-                        {exam.duration > 0 && (
+                        {exam.duration !== null && exam.duration > 0 && (
                           <div className="text-xs text-gray-500">{exam.duration} min</div>
                         )}
                       </div>
@@ -473,7 +408,7 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
                     <span className="text-lg">{getExamIcon(exam.examName)}</span>
                     <div>
                       <div className="font-medium text-sm">{exam.examName}</div>
-                      {exam.duration > 0 && (
+                      {exam.duration !== null && exam.duration > 0 && (
                         <div className="text-xs text-gray-500">{exam.duration} min</div>
                       )}
                     </div>
@@ -497,12 +432,12 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
                 </td>
                 <td className="p-3">
                   <div className="text-sm">
-                    {exam.score > 0 && exam.maxScore > 0 ? (
+                    {(exam.score || 0) > 0 && (exam.maxScore || 0) > 0 ? (
                       <div>
                         <div className="font-medium">{exam.score}/{exam.maxScore}</div>
                         <div className="text-xs text-gray-500">
-                          {Math.round((exam.score / exam.maxScore) * 100)}%
-                          {exam.percentile > 0 && ` • ${exam.percentile}th`}
+                          {Math.round(((exam.score || 0) / (exam.maxScore || 1)) * 100)}%
+                          {(exam.percentile || 0) > 0 && ` • ${exam.percentile}th`}
                         </div>
                       </div>
                     ) : (
@@ -541,7 +476,7 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
                     <span className="text-lg">{getExamIcon(exam.examName)}</span>
                     <div>
                       <div className="font-medium text-sm">{exam.examName}</div>
-                      {exam.duration > 0 && (
+                      {exam.duration !== null && exam.duration > 0 && (
                         <div className="text-xs text-gray-500">{exam.duration} min</div>
                       )}
                     </div>
@@ -604,7 +539,7 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
         </div>
         <div className="text-center p-3 bg-orange-50 rounded-lg">
           <div className="text-xl font-bold text-orange-600">
-            {groupedExams.completed.reduce((sum, exam) => exam.score > 0 ? sum + exam.score : sum, 0)}
+            {groupedExams.completed.reduce((sum, exam) => (exam.score || 0) > 0 ? sum + (exam.score || 0) : sum, 0)}
           </div>
           <div className="text-xs text-gray-600">Total Points</div>
         </div>
@@ -612,9 +547,9 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
           <div className="text-xl font-bold text-purple-600">
             {groupedExams.completed.length > 0 ? Math.round(
               groupedExams.completed
-                .filter(exam => exam.score > 0 && exam.maxScore > 0)
-                .reduce((sum, exam) => sum + (exam.score / exam.maxScore), 0) * 100 /
-              groupedExams.completed.filter(exam => exam.score > 0 && exam.maxScore > 0).length
+                .filter(exam => (exam.score || 0) > 0 && (exam.maxScore || 0) > 0)
+                .reduce((sum, exam) => sum + ((exam.score || 0) / (exam.maxScore || 1)), 0) * 100 /
+              groupedExams.completed.filter(exam => (exam.score || 0) > 0 && (exam.maxScore || 0) > 0).length
             ) || 0 : 0}%
           </div>
           <div className="text-xs text-gray-600">Avg Score</div>
@@ -625,7 +560,7 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
 }
 
 interface ExamCardProps {
-  exam: Exam
+  exam: ExamType
   onEdit: () => void
   onDelete: () => void
   isUpcoming: boolean
@@ -642,14 +577,9 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
     }
   }
 
-  const getExamIcon = (examName: string) => {
-    if (examName.includes('AMC')) return '🧮'
-    if (examName.includes('Kangaroo')) return '🦘'
-    if (examName.includes('MOEMS')) return '🏆'
-    return '📝'
-  }
-
-  const formatDate = (dateString: string) => {
+  // Card view formatting functions (different from table view)
+  const formatDateCard = (dateString: string | Date | null) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
@@ -659,7 +589,8 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
     })
   }
 
-  const formatTime = (dateString: string) => {
+  const formatTimeCard = (dateString: string | Date | null) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString)
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -682,17 +613,17 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
                   <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      {formatDate(exam.examDate)}
+                      {formatDateCard(exam.examDate)}
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      {formatTime(exam.examDate)}
+                      {formatTimeCard(exam.examDate)}
                     </div>
                     <div className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
                       {exam.location}
                     </div>
-                    {exam.duration > 0 && (
+                    {exam.duration !== null && exam.duration > 0 && (
                       <div className="text-gray-500">
                         {exam.duration} min
                       </div>
@@ -731,16 +662,16 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
               </div>
 
               {/* Results for completed exams */}
-              {exam.status === 'completed' && (exam.score > 0 || exam.percentile > 0) && (
+              {exam.status === 'completed' && ((exam.score || 0) > 0 || (exam.percentile || 0) > 0) && (
                 <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-4 text-sm">
-                    {exam.score > 0 && exam.maxScore > 0 && (
+                    {(exam.score || 0) > 0 && (exam.maxScore || 0) > 0 && (
                       <div className="flex items-center gap-1">
                         <Trophy className="h-4 w-4 text-green-600" />
-                        Score: {exam.score}/{exam.maxScore} ({Math.round((exam.score / exam.maxScore) * 100)}%)
+                        Score: {exam.score}/{exam.maxScore} ({Math.round(((exam.score || 0) / (exam.maxScore || 1)) * 100)}%)
                       </div>
                     )}
-                    {exam.percentile > 0 && (
+                    {(exam.percentile || 0) > 0 && (
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-green-600" />
                         {exam.percentile}th percentile
@@ -751,11 +682,11 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
               )}
 
               {/* Registration info */}
-              {exam.registrationId.trim() && (
+              {exam.registrationId?.trim() && (
                 <div className="mt-2 text-xs text-gray-500">
                   Registration: {exam.registrationId}
                   {exam.registeredAt && (
-                    <span className="ml-2">({formatDate(exam.registeredAt)})</span>
+                    <span className="ml-2">({formatDateCard(exam.registeredAt)})</span>
                   )}
                 </div>
               )}
@@ -764,21 +695,21 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
               {(exam.availableFromDate !== exam.examDate || exam.availableToDate !== exam.examDate) && (
                 <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-800">
                   <div className="font-medium">Availability Window:</div>
-                  <div>From: {formatDate(exam.availableFromDate)} {formatTime(exam.availableFromDate)}</div>
-                  <div>Until: {formatDate(exam.availableToDate)} {formatTime(exam.availableToDate)}</div>
+                  <div>From: {formatDateCard(exam.availableFromDate)} {formatTimeCard(exam.availableFromDate)}</div>
+                  <div>Until: {formatDateCard(exam.availableToDate)} {formatTimeCard(exam.availableToDate)}</div>
                 </div>
               )}
 
               {/* Exam URL and Login Info */}
-              {exam.examUrl.trim() && (
+              {exam.examUrl?.trim() && (
                 <div className="mt-2 text-xs text-blue-600">
                   <a href={exam.examUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
                     🔗 Exam Portal
                   </a>
-                  {exam.loginId.trim() && (
+                  {exam.loginId?.trim() && (
                     <div className="mt-1 text-gray-600">
                       Login: {exam.loginId}
-                      {exam.loginPassword.trim() && (
+                      {exam.loginPassword?.trim() && (
                         <span className="ml-2">Password: ••••••••</span>
                       )}
                     </div>
@@ -787,7 +718,7 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
               )}
 
               {/* Notes */}
-              {exam.notes.trim() && (
+              {exam.notes?.trim() && (
                 <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
                   {exam.notes}
                 </div>

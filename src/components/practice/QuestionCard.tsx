@@ -1,85 +1,70 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, CheckCircle, XCircle, HelpCircle } from "lucide-react";
-import { useState } from "react";
-
-interface Question {
-  id: string;
-  text: string;
-  type: 'multiple-choice' | 'open-ended';
-  competition: string;
-  topic: string;
-  difficulty: string;
-  subtopic?: string;
-  hasImage?: boolean;
-  imageUrl?: string;
-  options?: Array<{
-    id: string;
-    label: string;
-    text: string;
-    isCorrect: boolean;
-  }>;
-  solutions?: Array<{
-    id: string;
-    text: string;
-    type: string;
-  }>;
-}
+import { Clock, CheckCircle, XCircle, Image as ImageIcon, AlertTriangle } from "lucide-react";
+import { useState, memo } from "react";
+import { useImageGenerator } from "@/hooks/useImageGenerator";
+import { cleanupQuestionText, cleanupOptionText } from "@/utils/textCleanup";
+import { formatTime } from "@/utils/timeUtils";
+import { PracticeQuestion, Question } from "@/types";
+import DiagramDisplay from "./DiagramDisplay";
+import SolutionVisualizer from "./SolutionVisualizer";
+import ErrorReport from "@/components/ErrorReport";
 
 interface QuestionCardProps {
-  question: Question;
+  question: PracticeQuestion;
   questionNumber: number;
   totalQuestions: number;
   timeElapsed: number;
-  onAnswer: (answer: string) => void;
-  onNext: () => void;
-  showSolution: boolean;
+  onAnswer: (answer: string, excludeFromScoring?: boolean) => void;
+  onNext?: () => void;
+  showSolution?: boolean;
   userAnswer?: string;
   isEditMode?: boolean;
   editedQuestion?: Question | null;
   onQuestionEdit?: (question: Question) => void;
+  hideNextButton?: boolean;
 }
 
-export function QuestionCard({
+const QuestionCard = memo(function QuestionCard({
   question,
   questionNumber,
   totalQuestions,
   timeElapsed,
   onAnswer,
   onNext,
-  showSolution,
+  showSolution = false,
   userAnswer,
   isEditMode = false,
   editedQuestion,
-  onQuestionEdit
+  onQuestionEdit,
+  hideNextButton = false
 }: QuestionCardProps) {
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [openEndedAnswer, setOpenEndedAnswer] = useState<string>('');
+  const [showErrorReport, setShowErrorReport] = useState(false);
+  const [excludeFromScoring, setExcludeFromScoring] = useState<boolean>(false);
+  const { generateImageUrl } = useImageGenerator();
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Using centralized formatTime utility
 
   const handleSubmit = () => {
-    const answer = question.type === 'multiple-choice' ? selectedOption : openEndedAnswer;
-    onAnswer(answer);
+    const answer = selectedOption || openEndedAnswer;
+    onAnswer(answer, excludeFromScoring);
   };
 
   const getCorrectAnswer = () => {
-    if (question.type === 'multiple-choice' && question.options) {
+    if (question.options && question.options.length > 0) {
       const correctOption = question.options.find(opt => opt.isCorrect);
       return correctOption?.label || '';
     }
-    return question.solutions?.[0]?.text || '';
+    return question.solution?.solutionText || '';
   };
 
   const isCorrect = () => {
-    if (question.type === 'multiple-choice') {
+    if (question.options && question.options.length > 0) {
       const correctOption = question.options?.find(opt => opt.isCorrect);
       return userAnswer === correctOption?.label;
     }
@@ -95,7 +80,7 @@ export function QuestionCard({
               Question {questionNumber} of {totalQuestions}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">{question.competition}</Badge>
+              <Badge variant="secondary">{question.examName}</Badge>
               <Badge variant="outline">{question.topic}</Badge>
               <Badge variant={
                 question.difficulty === 'easy' ? 'default' :
@@ -105,9 +90,17 @@ export function QuestionCard({
               </Badge>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Clock className="h-4 w-4" />
-            {formatTime(timeElapsed)}
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {formatTime(timeElapsed)}
+            </div>
+            {question.timeLimit && (
+              <div className="flex items-center gap-2 text-blue-600">
+                <span>Time Limit:</span>
+                <span className="font-medium">{question.timeLimit}min</span>
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -122,10 +115,10 @@ export function QuestionCard({
                   Question Text:
                 </label>
                 <Textarea
-                  value={editedQuestion.text}
+                  value={editedQuestion.questionText}
                   onChange={(e) => onQuestionEdit && onQuestionEdit({
                     ...editedQuestion,
-                    text: e.target.value
+                    questionText: e.target.value
                   })}
                   className="min-h-24"
                   placeholder="Enter question text..."
@@ -140,7 +133,7 @@ export function QuestionCard({
                     value={editedQuestion.difficulty}
                     onChange={(e) => onQuestionEdit && onQuestionEdit({
                       ...editedQuestion,
-                      difficulty: e.target.value
+                      difficulty: e.target.value as 'easy' | 'medium' | 'hard'
                     })}
                     className="w-full p-2 border border-gray-200 rounded-md"
                   >
@@ -228,33 +221,66 @@ export function QuestionCard({
           ) : (
             <div className="space-y-4">
               <div className="text-xl font-medium leading-relaxed text-gray-900">
-                {question.text}
+{cleanupQuestionText(question.questionText || question.text || '')}
               </div>
 
               {/* Question Image/Diagram */}
-              {question.hasImage && question.imageUrl && (
+              {question.hasImage && (
                 <div className="flex justify-center">
-                  <div className="max-w-full border border-gray-200 rounded-lg overflow-hidden">
-                    <img
-                      src={question.imageUrl}
-                      alt="Question diagram"
-                      className="max-w-full h-auto max-h-96 object-contain"
-                      onError={(e) => {
-                        // Hide image if it fails to load
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                  <div className="max-w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                    {question.imageUrl ? (
+                      <img
+                        src={question.imageUrl}
+                        alt="Question diagram"
+                        className="max-w-full h-auto max-h-96 object-contain"
+                        onError={(e) => {
+                          // Fallback to generated image if original fails
+                          const fallbackUrl = generateImageUrl(
+                            `${question.examName} Question ${questionNumber}`,
+                            'diagram',
+                            500,
+                            300
+                          );
+                          e.currentTarget.src = fallbackUrl;
+                        }}
+                      />
+                    ) : (
+                      <div className="relative">
+                        <img
+                          src={generateImageUrl(
+                            `${question.examName} Question ${questionNumber}`,
+                            'diagram',
+                            500,
+                            300
+                          )}
+                          alt="Generated question diagram"
+                          className="max-w-full h-auto max-h-96 object-contain"
+                        />
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                          <ImageIcon className="h-3 w-3" />
+                          Auto-generated
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+
+              {/* Auto-generated Diagram */}
+              <DiagramDisplay
+                questionText={question.questionText || question.text || ''}
+                className="mt-4"
+              />
             </div>
           )}
         </div>
 
-        {/* Answer Section */}
+        {/* Answer Section - Clear separation from question */}
+        <div className="border-t-4 border-blue-200 bg-blue-50 p-6 rounded-lg mt-8">
+          <h2 className="text-2xl font-bold text-blue-900 mb-6 text-center">Answer Section</h2>
         {!showSolution ? (
           <div className="space-y-6">
-            {question.type === 'multiple-choice' && question.options ? (
+            {question.options && question.options.length > 0 ? (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Choose your answer:</h3>
                 <div className="space-y-3">
@@ -276,7 +302,7 @@ export function QuestionCard({
                         }`}>
                           {option.label}
                         </div>
-                        <span className="text-lg leading-relaxed pt-1">{option.text}</span>
+                        <span className="text-lg leading-relaxed pt-1">{cleanupOptionText(option.text)}</span>
                       </div>
                     </div>
                   ))}
@@ -295,9 +321,26 @@ export function QuestionCard({
             )}
 
             <div className="pt-6 border-t border-gray-200">
+              {/* Exclude from scoring option */}
+              <div className="mb-4 flex items-center space-x-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="excludeFromScoring"
+                  checked={excludeFromScoring}
+                  onChange={(e) => setExcludeFromScoring(e.target.checked)}
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                />
+                <label htmlFor="excludeFromScoring" className="text-sm text-gray-700">
+                  <span className="font-medium">Exclude from scoring</span>
+                  <div className="text-xs text-gray-600 mt-1">
+                    Check this if the question has issues or is incomplete. This won't count against your score.
+                  </div>
+                </label>
+              </div>
+
               <Button
                 onClick={handleSubmit}
-                disabled={question.type === 'multiple-choice' ? !selectedOption : !openEndedAnswer}
+                disabled={question.options && question.options.length > 0 ? !selectedOption : !openEndedAnswer}
                 className="w-full py-4 text-xl font-semibold"
                 size="lg"
               >
@@ -332,25 +375,57 @@ export function QuestionCard({
               )}
             </div>
 
-            {/* Solution Explanation */}
-            {question.solutions && question.solutions.length > 0 && (
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <HelpCircle className="h-5 w-5 text-blue-600" />
-                  <span className="font-semibold text-blue-800">Explanation</span>
-                </div>
-                <div className="text-sm text-blue-700">
-                  {question.solutions[0].text}
-                </div>
-              </div>
+            {/* Error Reporting Button */}
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowErrorReport(true)}
+                className="text-orange-600 border-orange-300 hover:bg-orange-50"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Report Issue
+              </Button>
+            </div>
+
+            {/* Enhanced Solution Visualization */}
+            {question.solution && (
+              <SolutionVisualizer
+                solution={{
+                  solutionText: question.solution.solutionText,
+                  approach: question.solution.approach || '',
+                  keyInsights: question.solution.keyInsights || '',
+                  timeEstimate: question.solution.timeEstimate || 0
+                }}
+                questionText={question.text || ''}
+                className="mt-4"
+              />
             )}
 
-            <Button onClick={onNext} className="w-full py-4 text-xl font-semibold" size="lg">
-              {questionNumber === totalQuestions ? 'Finish Session' : 'Next Question'}
-            </Button>
+            {!hideNextButton && onNext && (
+              <Button onClick={onNext} className="w-full py-4 text-xl font-semibold" size="lg">
+                {questionNumber === totalQuestions ? 'Finish Session' : 'Next Question'}
+              </Button>
+            )}
           </div>
         )}
+        </div>
       </CardContent>
+
+      {/* Error Report Modal */}
+      {showErrorReport && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <ErrorReport
+              questionId={question.id}
+              userId="user123" // TODO: Get from auth context
+              onClose={() => setShowErrorReport(false)}
+            />
+          </div>
+        </div>
+      )}
     </Card>
   );
-}
+});
+
+export { QuestionCard };

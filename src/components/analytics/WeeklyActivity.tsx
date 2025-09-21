@@ -44,7 +44,7 @@ export function WeeklyActivity({ data }: WeeklyActivityProps) {
         <div className="space-y-4">
           {/* Activity Bars */}
           <div className="grid grid-cols-7 gap-2 h-32">
-            {data.map((day, index) => (
+            {data.map((day) => (
               <div key={day.date} className="flex flex-col items-center">
                 <div className="flex-1 flex items-end w-full">
                   <div

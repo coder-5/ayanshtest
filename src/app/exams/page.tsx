@@ -3,44 +3,52 @@
 import { useState } from 'react'
 import ExamSchedule from '@/components/exams/ExamSchedule'
 import ExamForm from '@/components/exams/ExamForm'
+import { Button } from '@/components/ui/button'
+import { ExamSchedule as ExamType } from '@/types'
+import Link from 'next/link'
 
-interface Exam {
-  id?: string
-  examName: string
-  examDate: string
-  location: string
-  duration?: number
-  status: string
-  notes?: string
-  registrationId?: string
-  score?: number
-  maxScore?: number
-  percentile?: number
-}
+const createDefaultExam = (): Partial<ExamType> => ({
+  examName: '',
+  examDate: new Date(),
+  location: '',
+  duration: 120,
+  status: 'upcoming' as const,
+  notes: null,
+  registrationId: null,
+  score: null,
+  maxScore: null,
+  percentile: null,
+  availableFromDate: null,
+  availableToDate: null,
+  examUrl: null,
+  loginId: null,
+  loginPassword: null,
+  registeredAt: null
+})
 
 export default function ExamsPage() {
   const [showForm, setShowForm] = useState(false)
-  const [editingExam, setEditingExam] = useState<Exam | undefined>(undefined)
+  const [editingExam, setEditingExam] = useState<Partial<ExamType>>(createDefaultExam())
 
   const handleAddExam = () => {
-    setEditingExam(undefined)
+    setEditingExam(createDefaultExam())
     setShowForm(true)
   }
 
-  const handleEditExam = (exam: Exam) => {
+  const handleEditExam = (exam: ExamType) => {
     setEditingExam(exam)
     setShowForm(true)
   }
 
   const handleSave = () => {
     setShowForm(false)
-    setEditingExam(undefined)
+    setEditingExam(createDefaultExam())
     // The ExamSchedule component will automatically refresh
   }
 
   const handleCancel = () => {
     setShowForm(false)
-    setEditingExam(undefined)
+    setEditingExam(createDefaultExam())
   }
 
   if (showForm) {
@@ -65,6 +73,13 @@ export default function ExamsPage() {
       </div>
 
       <ExamSchedule onAddExam={handleAddExam} onEditExam={handleEditExam} />
+
+      {/* Navigation */}
+      <div className="mt-8 text-center">
+        <Button variant="ghost" asChild>
+          <Link href="/">← Back to Dashboard</Link>
+        </Button>
+      </div>
     </div>
   )
 }

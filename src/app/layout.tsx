@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { Navigation } from "@/components/ui/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,9 +20,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-          {children}
-        </div>
+        <ErrorBoundary>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+            <Navigation />
+            <main>
+              {children}
+            </main>
+          </div>
+        </ErrorBoundary>
       </body>
     </html>
   );

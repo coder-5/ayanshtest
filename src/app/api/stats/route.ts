@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ProgressService } from '@/services/progressService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,46 +9,40 @@ export async function GET(request: NextRequest) {
 
     const [
       totalQuestions,
-      totalProgress,
-      correctAnswers,
+      progressStats,
       recentProgress,
       topicStats,
       competitionStats
     ] = await Promise.all([
       prisma.question.count(),
-      prisma.userAttempt.count({ where: { userId } }),
-      prisma.userAttempt.count({ where: { userId, isCorrect: true } }),
+      ProgressService.getProgressStats(userId),
       prisma.userAttempt.findMany({
-        where: { userId },
+        where: { userId, excludeFromScoring: false },
         orderBy: { attemptedAt: 'desc' },
         take: 10,
         include: { question: true }
       }),
       prisma.userAttempt.groupBy({
         by: ['questionId'],
-        where: { userId },
+        where: { userId, excludeFromScoring: false },
         _count: { _all: true },
         _sum: { timeSpent: true }
       }),
       prisma.userAttempt.groupBy({
         by: ['questionId'],
-        where: { userId },
+        where: { userId, excludeFromScoring: false },
         _count: { _all: true }
       })
     ]);
-
-    const accuracy = totalProgress > 0 ? (correctAnswers / totalProgress) * 100 : 0;
-
-    const streak = await calculateStreak(userId);
 
     const weeklyProgress = await getWeeklyProgress(userId);
 
     return NextResponse.json({
       totalQuestions,
-      totalProgress,
-      correctAnswers,
-      accuracy: Math.round(accuracy * 100) / 100,
-      streak,
+      totalProgress: progressStats.totalAttempts,
+      correctAnswers: progressStats.correctAnswers,
+      accuracy: Math.round(progressStats.accuracy * 100) / 100,
+      streak: progressStats.streakData.currentStreak,
       recentProgress,
       weeklyProgress,
       topicStats: await enrichTopicStats(topicStats),
@@ -64,7 +59,7 @@ export async function GET(request: NextRequest) {
 
 async function calculateStreak(userId: string): Promise<number> {
   const progress = await prisma.userAttempt.findMany({
-    where: { userId },
+    where: { userId, excludeFromScoring: false },
     orderBy: { attemptedAt: 'desc' },
     select: { attemptedAt: true }
   });
@@ -87,9 +82,6 @@ async function calculateStreak(userId: string): Promise<number> {
     if (dateTime === currentDate.getTime()) {
       streak++;
       currentDate.setDate(currentDate.getDate() - 1);
-    } else if (dateTime === currentDate.getTime()) {
-      streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
     } else {
       break;
     }
@@ -105,6 +97,7 @@ async function getWeeklyProgress(userId: string) {
   const progress = await prisma.userAttempt.findMany({
     where: {
       userId,
+      excludeFromScoring: false,
       attemptedAt: { gte: weekAgo }
     },
     orderBy: { attemptedAt: 'asc' }

@@ -1,57 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ProgressService } from '@/services/progressService';
+import { AchievementService } from '@/services/achievementService';
 import { prisma } from '@/lib/prisma';
+import { withErrorHandling } from '@/middleware/apiWrapper';
+import { safeUrlParam } from '@/utils/nullSafety';
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || 'default-user';
-    const competition = searchParams.get('competition');
-    const topic = searchParams.get('topic');
+async function getProgressHandler(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const userId = safeUrlParam(searchParams, 'userId');
 
-    const where: any = { userId };
-
-    if (competition) {
-      where.question = { competition };
-    }
-
-    if (topic) {
-      where.question = { ...where.question, topic };
-    }
-
-    const progress = await prisma.userAttempt.findMany({
-      where,
-      include: {
-        question: {
-          include: {
-            options: true,
-            solution: true
-          }
-        }
-      },
-      orderBy: { attemptedAt: 'desc' }
-    });
-
-    const stats = {
-      totalQuestions: progress.length,
-      correctAnswers: progress.filter(p => p.isCorrect).length,
-      accuracy: progress.length > 0 ? (progress.filter(p => p.isCorrect).length / progress.length) * 100 : 0,
-      averageTime: progress.length > 0 ? progress.reduce((sum, p) => sum + (p.timeSpent || 0), 0) / progress.length : 0
-    };
-
-    return NextResponse.json({ progress, stats });
-  } catch (error) {
-    console.error('Error fetching progress:', error);
+  if (!userId) {
     return NextResponse.json(
-      { error: 'Failed to fetch progress' },
-      { status: 500 }
+      { error: 'userId parameter is required to access progress data' },
+      { status: 400 }
     );
   }
+
+  const stats = await ProgressService.getProgressStats(userId);
+
+  return NextResponse.json({
+    success: true,
+    data: stats
+  });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId = 'default-user', questionId, isCorrect, timeSpent, userAnswer } = body;
+    const { userId = 'default-user', questionId, isCorrect, timeSpent, userAnswer, excludeFromScoring = false } = body;
 
     if (!questionId || isCorrect === undefined) {
       return NextResponse.json(
@@ -60,25 +36,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const progress = await prisma.userAttempt.create({
-      data: {
-        userId,
-        questionId,
-        isCorrect,
-        timeSpent: timeSpent || 0,
-        selectedAnswer: userAnswer
-      },
-      include: {
-        question: {
-          include: {
-            options: true,
-            solution: true
-          }
-        }
-      }
+    const progress = await ProgressService.saveProgress({
+      questionId,
+      isCorrect,
+      timeSpent: timeSpent || 0,
+      userAnswer,
+      userId,
+      excludeFromScoring
     });
 
-    return NextResponse.json(progress, { status: 201 });
+    // Check for new achievements after saving progress
+    try {
+      const newAchievements = await AchievementService.checkAndAwardAchievements(userId);
+      return NextResponse.json({
+        ...progress,
+        newAchievements
+      }, { status: 201 });
+    } catch (achievementError) {
+      console.error('Error checking achievements:', achievementError);
+      // Still return the progress even if achievements fail
+      return NextResponse.json(progress, { status: 201 });
+    }
   } catch (error) {
     console.error('Error creating progress:', error);
     return NextResponse.json(

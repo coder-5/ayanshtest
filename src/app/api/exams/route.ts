@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 // GET /api/exams - Fetch all exams
 export async function GET(request: NextRequest) {
@@ -18,21 +16,22 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Transform data to eliminate null values with proper defaults
+    // Return raw data preserving nulls for proper state handling
     const transformedExams = exams.map(exam => ({
       ...exam,
-      duration: exam.duration || 0,
-      notes: exam.notes || '',
-      registrationId: exam.registrationId || '',
-      registeredAt: exam.registeredAt || exam.createdAt,
-      score: exam.score || 0,
-      maxScore: exam.maxScore || 0,
-      percentile: exam.percentile || 0,
-      availableFromDate: exam.availableFromDate || exam.examDate,
-      availableToDate: exam.availableToDate || exam.examDate,
-      examUrl: exam.examUrl || '',
-      loginId: exam.loginId || '',
-      loginPassword: exam.loginPassword || ''
+      // Preserve nulls for meaningful state distinction
+      duration: exam.duration,
+      notes: exam.notes,
+      registrationId: exam.registrationId,
+      registeredAt: exam.registeredAt,
+      score: exam.score,
+      maxScore: exam.maxScore,
+      percentile: exam.percentile,
+      availableFromDate: exam.availableFromDate,
+      availableToDate: exam.availableToDate,
+      examUrl: exam.examUrl,
+      loginId: exam.loginId,
+      loginPassword: exam.loginPassword
     }))
 
     return NextResponse.json(transformedExams)

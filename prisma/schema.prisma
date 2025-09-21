@@ -10,10 +10,10 @@ datasource db {
 model Question {
   id          String   @id @default(cuid())
   questionText String  // Mathematical content in MathJax/LaTeX format
-  examName    String   // AMC 8, Math Kangaroo, MOEMS
+  examName    String   // AMC8, Kangaroo, MOEMS, MathCounts, CML
   examYear    Int      // Year of the exam (2020, 2021, etc.)
   questionNumber String?  // Original question number in exam (1-25 for AMC, 2A-2E for MOEMS)
-  difficulty  String   // Beginner, Intermediate, Advanced
+  difficulty  String   // easy, medium, hard
   topic       String   // Algebra, Geometry, Number Theory, etc.
   subtopic    String?  // More specific categorization
   hasImage    Boolean  @default(false)
@@ -27,10 +27,15 @@ model Question {
   solution    Solution?
   attempts    UserAttempt[]
   tags        QuestionTag[]
+  errorReports ErrorReport[]
 
   @@unique([examName, examYear, questionNumber])
   @@index([examName, examYear])
   @@index([topic, difficulty])
+  @@index([difficulty])
+  @@index([topic])
+  @@index([examName, topic])
+  @@index([createdAt])
 }
 
 model Option {
@@ -66,7 +71,7 @@ model Solution {
 
 model Exam {
   id          String   @id @default(cuid())
-  name        String   // AMC 8, Math Kangaroo, MOEMS
+  name        String   // AMC8, Kangaroo, MOEMS, MathCounts, CML
   year        Int
   fullName    String   // "American Mathematics Competitions 8"
   description String?
@@ -93,6 +98,7 @@ model User {
   dailyStats  DailyProgress[]
   weeklyStats WeeklyAnalysis[]
   topicPerformance TopicPerformance[]
+  errorReports ErrorReport[]
 }
 
 model UserAttempt {
@@ -103,16 +109,19 @@ model UserAttempt {
   isCorrect    Boolean
   timeSpent    Int      // Time in seconds
   hintsUsed    Int      @default(0)
+  excludeFromScoring Boolean @default(false) // Allow excluding problematic questions from score calculation
   attemptedAt  DateTime @default(now())
 
   // Relations
-  user         User     @relation(fields: [userId], references: [id])
-  question     Question @relation(fields: [questionId], references: [id])
-  session      PracticeSession? @relation(fields: [sessionId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  session      PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   sessionId    String?
 
   @@index([userId, questionId])
   @@index([userId, attemptedAt])
+  @@index([questionId, attemptedAt])
+  @@index([userId, isCorrect])
 }
 
 model PracticeSession {
@@ -128,7 +137,7 @@ model PracticeSession {
   focusTopics String? // Topics focused on in this session (comma-separated)
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   attempts    UserAttempt[]
 }
 
@@ -147,7 +156,7 @@ model DailyProgress {
   createdAt        DateTime @default(now())
 
   // Relations
-  user             User     @relation(fields: [userId], references: [id])
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId, date])
@@ -183,7 +192,7 @@ model WeeklyAnalysis {
   createdAt             DateTime @default(now())
 
   // Relations
-  user                  User     @relation(fields: [userId], references: [id])
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, weekStartDate])
   @@index([userId, weekStartDate])
@@ -203,7 +212,7 @@ model TopicPerformance {
   updatedAt       DateTime @updatedAt
 
   // Relations
-  user            User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, topicName])
   @@index([userId, strengthLevel])
@@ -231,7 +240,7 @@ model Tag {
 
 model ExamSchedule {
   id          String   @id @default(cuid())
-  examName    String   // AMC 8, Math Kangaroo, MOEMS, etc.
+  examName    String   // AMC8, Kangaroo, MOEMS, MathCounts, CML
   examDate    DateTime // Date and time of the exam
   location    String   // School, Online, Competition Center, etc.
   duration    Int?     // Exam duration in minutes
@@ -263,6 +272,7 @@ model ExamSchedule {
   @@index([examDate])
   @@index([status])
   @@index([availableFromDate])
+  @@index([examName, examDate])
 }
 
 model QuestionTag {
@@ -286,7 +296,40 @@ model Achievement {
   category    String   // streak, accuracy, volume, speed
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, category])
 }
+
+model ErrorReport {
+  id          String   @id @default(cuid())
+  questionId  String
+  userId      String?
+  reportType  String   // WRONG_ANSWER, INCORRECT_SOLUTION, UNCLEAR_QUESTION, etc.
+
+  description String
+  severity    String   // CRITICAL, HIGH, MEDIUM, LOW
+  evidence    String?  // Screenshot, explanation
+
+  // Reporter assessment
+  suggestedFix String?
+  confidence  Int      // 1-10 how confident reporter is
+
+  // Review process
+  status      String   @default("PENDING") // PENDING, INVESTIGATING, CONFIRMED, FIXED, REJECTED
+  reviewedBy  String?
+  reviewNotes String?
+  resolution  String?
+
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+
+  // Relations
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([questionId, status])
+  @@index([reportType, severity])
+  @@index([status])
+}
+

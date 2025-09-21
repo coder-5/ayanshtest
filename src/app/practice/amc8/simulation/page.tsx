@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Clock, CheckCircle, Circle, AlertCircle } from "lucide-react";
+import { Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 interface Question {
@@ -60,6 +60,7 @@ export default function AMC8SimulationPage() {
 
       return () => clearInterval(timer);
     }
+    return;
   }, [simulation.isStarted, simulation.isFinished, simulation.timeLeft]);
 
   const fetchSimulationQuestions = async () => {

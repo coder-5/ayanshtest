@@ -1,30 +1,13 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PracticeSession } from "@/components/practice/PracticeSession";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-
-interface Question {
-  id: string;
-  text: string;
-  type: 'multiple-choice' | 'open-ended';
-  competition: string;
-  topic: string;
-  difficulty: string;
-  options?: Array<{
-    id: string;
-    label: string;
-    text: string;
-    isCorrect: boolean;
-  }>;
-  solutions?: Array<{
-    id: string;
-    text: string;
-    type: string;
-  }>;
-}
+import { usePracticeProgress } from "@/hooks/useLocalStorage";
+import { PracticeQuestion } from "@/types";
+import { transformQuestionForPractice } from "@/utils/questionTransforms";
 
 interface SessionResult {
   questionId: string;
@@ -34,46 +17,56 @@ interface SessionResult {
 }
 
 export default function QuickPracticePage() {
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [progress, setProgress] = usePracticeProgress();
+  const [roundInfo, setRoundInfo] = useState<any>(null);
 
   useEffect(() => {
     fetchQuestions();
   }, []);
 
+  // Memoize shuffled questions to avoid re-shuffling on re-renders
+  const shuffledQuestions = useMemo(() => {
+    if (questions.length === 0) return [];
+
+    // Fisher-Yates shuffle algorithm
+    const shuffled = [...questions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 10); // Take first 10 for quick practice
+  }, [questions]);
+
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/questions?limit=25');
+      // Use smart selection API to ensure no repeats until all questions attempted
+      const response = await fetch('/api/questions/smart-selection?examType=mixed&limit=10&sessionType=practice');
 
       if (!response.ok) {
         throw new Error('Failed to fetch questions');
       }
 
       const data = await response.json();
-      // Map API response to frontend interface
-      const mappedQuestions = (data.questions || []).map((q: any) => ({
-        id: q.id,
-        text: q.questionText,
-        type: q.type === 'open-ended' ? 'open-ended' : 'multiple-choice',
-        competition: q.examName,
-        topic: q.topic,
-        difficulty: q.difficulty,
-        options: q.options?.map((opt: any) => ({
-          id: opt.id,
-          label: opt.optionLetter,
-          text: opt.optionText,
-          isCorrect: opt.isCorrect
-        })),
-        solutions: q.solution ? [{
-          id: q.solution.id,
-          text: q.solution.solutionText,
-          type: q.solution.type
-        }] : []
-      }));
+
+      if (!data.success || !data.data) {
+        throw new Error('Invalid response format');
+      }
+
+      // Map API response to frontend interface - fix PracticeSession data structure
+      const mappedQuestions = (data.data || []).map(transformQuestionForPractice);
+
       setQuestions(mappedQuestions);
+      setRoundInfo(data.roundInfo);
+
+      // Log round information for user awareness
+      if (data.message) {
+        console.log('Round Status:', data.message);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load questions');
     } finally {
@@ -83,7 +76,20 @@ export default function QuickPracticePage() {
 
   const handleSessionComplete = (results: SessionResult[]) => {
     console.log('Session completed with results:', results);
-    // Results are already saved to database via the PracticeSession component
+
+    // Update local progress tracking
+    const correctAnswers = results.filter(r => r.isCorrect).length;
+    const totalTime = results.reduce((sum, r) => sum + r.timeSpent, 0);
+
+    setProgress(prev => ({
+      ...prev,
+      sessionsCompleted: prev.sessionsCompleted + 1,
+      totalQuestionsAnswered: prev.totalQuestionsAnswered + results.length,
+      correctAnswers: prev.correctAnswers + correctAnswers,
+      averageTimePerQuestion: (prev.averageTimePerQuestion * prev.totalQuestionsAnswered + totalTime) /
+                             (prev.totalQuestionsAnswered + results.length),
+      lastSessionDate: new Date().toISOString()
+    }));
   };
 
   if (loading) {
@@ -150,24 +156,50 @@ export default function QuickPracticePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Round Information */}
+            {roundInfo && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h3 className="font-semibold text-blue-800 mb-2">Practice Round Status</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <span className="font-medium">Current Round:</span> {roundInfo.roundNumber}
+                  </div>
+                  <div>
+                    <span className="font-medium">Progress:</span> {roundInfo.attemptedInRound}/{roundInfo.totalQuestionsInRound}
+                  </div>
+                  <div>
+                    <span className="font-medium">Completed Rounds:</span> {roundInfo.completedRounds}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{questions.length}</div>
+                <div className="text-2xl font-bold text-blue-600">{shuffledQuestions.length}</div>
                 <div className="text-sm text-gray-600">Questions Ready</div>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">Mixed</div>
-                <div className="text-sm text-gray-600">Difficulty Levels</div>
+                <div className="text-2xl font-bold text-green-600">{progress.sessionsCompleted}</div>
+                <div className="text-sm text-gray-600">Sessions Completed</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {progress.totalQuestionsAnswered > 0 ?
+                    Math.round((progress.correctAnswers / progress.totalQuestionsAnswered) * 100) : 0}%
+                </div>
+                <div className="text-sm text-gray-600">Accuracy Rate</div>
               </div>
             </div>
 
             <div className="space-y-3">
               <h3 className="font-semibold">What to expect:</h3>
               <ul className="text-sm text-gray-600 space-y-1">
+                <li>• <strong>Round-based practice:</strong> All questions attempted once before any repeats</li>
                 <li>• Mix of multiple choice and open-ended questions</li>
                 <li>• Questions from AMC 8, MOEMS, and Math Kangaroo</li>
                 <li>• Immediate feedback after each question</li>
-                <li>• Progress tracking and performance analytics</li>
+                <li>• Intelligent selection prioritizes unattempted questions</li>
               </ul>
             </div>
 
@@ -192,8 +224,8 @@ export default function QuickPracticePage() {
 
   return (
     <PracticeSession
-      questions={questions}
-      sessionType="Quick Practice"
+      questions={shuffledQuestions}
+      sessionType="Quick"
       onComplete={handleSessionComplete}
     />
   );
