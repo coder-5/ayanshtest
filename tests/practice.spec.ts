@@ -163,7 +163,7 @@ test.describe('Practice Page Tests', () => {
     await page.reload();
 
     // Should show loading spinners initially
-    const loadingSpinners = page.locator('.animate-spin');
+    page.locator('.animate-spin');
     // Spinners might be visible briefly, or counts might load immediately
     // This is race condition dependent
   });

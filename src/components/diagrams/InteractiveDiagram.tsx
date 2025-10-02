@@ -130,8 +130,8 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({
 
         engineRef.current = engine;
 
-        // Setup event listeners
-        setupDiagramEvents(engine);
+        // Setup event listeners and store cleanup function
+        const cleanupEvents = setupDiagramEvents(engine);
 
         // Initialize measurements
         initializeMeasurements(generatedDiagram);
@@ -142,21 +142,47 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({
         onDiagramReady?.(engine);
         setIsLoading(false);
 
+        // Store cleanup function for later use
+        return cleanupEvents;
+
       } catch (err) {
-        console.error('Failed to initialize diagram:', err);
         setError(err instanceof Error ? err.message : 'Failed to create diagram');
         setIsLoading(false);
+        return undefined;
       }
     };
 
-    initializeDiagram();
+    let eventCleanup: (() => void) | undefined;
+
+    const initializeAndSetup = async () => {
+      eventCleanup = await initializeDiagram();
+    };
+
+    initializeAndSetup();
 
     return () => {
+      // Clean up event listeners first
+      if (eventCleanup) {
+        eventCleanup();
+      }
+
+      // Clean up engine
       if (engineRef.current) {
         engineRef.current.destroy();
         engineRef.current = null;
       }
+
+      // Clean up any created blob URLs
+      const container = containerRef.current;
+      if (container) {
+        const links = container.querySelectorAll('a[href^="blob:"]');
+        links.forEach(link => {
+          const href = (link as HTMLAnchorElement).href;
+          URL.revokeObjectURL(href);
+        });
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionText, finalConfig]);
 
   const setupDiagramEvents = (_engine: AdvancedDiagramEngine) => {
@@ -164,8 +190,7 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
-    // Handle shape clicks
-    container.addEventListener('click', (event) => {
+    const handleShapeClick = (event: Event) => {
       const target = event.target as Element;
       const shapeId = target.id;
 
@@ -173,14 +198,26 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({
         const shapeData = extractShapeData(target);
         onShapeClick(shapeId, shapeData);
       }
-    });
+    };
 
-    // Handle measurement updates
-    container.addEventListener('measurementchange', (event: any) => {
+    const handleMeasurementChange = (event: CustomEvent) => {
       const { measurement, value } = event.detail;
       onMeasurementChange?.(measurement, value);
       updateMeasurement(measurement, value);
-    });
+    };
+
+    // Add event listeners
+    container.addEventListener('click', handleShapeClick);
+    container.addEventListener('measurementchange', handleMeasurementChange as EventListener);
+
+    // Store cleanup functions
+    const cleanup = () => {
+      container.removeEventListener('click', handleShapeClick);
+      container.removeEventListener('measurementchange', handleMeasurementChange as EventListener);
+    };
+
+    // Return cleanup function
+    return cleanup;
   };
 
   const extractShapeData = (element: Element): any => {
@@ -290,7 +327,6 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({
         downloadBlob(exported, `diagram.${format}`);
       }
     } catch (error) {
-      console.error('Export failed:', error);
     }
   }, []);
 

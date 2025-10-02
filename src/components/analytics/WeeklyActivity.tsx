@@ -34,7 +34,7 @@ export function WeeklyActivity({ data }: WeeklyActivityProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-blue-600" />
-          This Week's Activity
+          This Week&apos;s Activity
         </CardTitle>
         <CardDescription>
           Your daily practice activity and performance

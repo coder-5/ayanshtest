@@ -65,7 +65,7 @@ export default function AMC8SimulationPage() {
 
   const fetchSimulationQuestions = async () => {
     try {
-      const response = await fetch('/api/questions?examName=AMC 8&limit=25&random=true');
+      const response = await fetch('/api/questions?examName=AMC8&limit=25&random=true');
       const data = await response.json();
 
       if (data.questions && data.questions.length >= 25) {
@@ -75,7 +75,6 @@ export default function AMC8SimulationPage() {
         }));
       }
     } catch (error) {
-      console.error('Failed to fetch simulation questions:', error);
     } finally {
       setLoading(false);
     }
@@ -114,7 +113,14 @@ export default function AMC8SimulationPage() {
       const userAnswer = simulation.answers[question.id];
       if (userAnswer) {
         const correctOption = question.options.find(opt => opt.isCorrect);
-        const isCorrect = userAnswer === correctOption?.optionLetter;
+        const normalizeValue = (value: any): string => {
+          if (value == null) return '';
+          let normalized = String(value).trim().toLowerCase();
+          // Remove "Answer: " prefix if it exists
+          normalized = normalized.replace(/^answer:\s*/i, '');
+          return normalized;
+        };
+        const isCorrect = normalizeValue(userAnswer) === normalizeValue(correctOption?.optionLetter || (correctOption as any)?.label);
 
         try {
           await fetch('/api/progress', {
@@ -128,7 +134,6 @@ export default function AMC8SimulationPage() {
             })
           });
         } catch (error) {
-          console.error('Failed to save progress:', error);
         }
       }
     }
@@ -145,7 +150,14 @@ export default function AMC8SimulationPage() {
     simulation.questions.forEach(question => {
       const userAnswer = simulation.answers[question.id];
       const correctOption = question.options.find(opt => opt.isCorrect);
-      if (userAnswer === correctOption?.optionLetter) {
+      const normalizeValue = (value: any): string => {
+        if (value == null) return '';
+        let normalized = String(value).trim().toLowerCase();
+        // Remove "Answer: " prefix if it exists
+        normalized = normalized.replace(/^answer:\s*/i, '');
+        return normalized;
+      };
+      if (normalizeValue(userAnswer) === normalizeValue(correctOption?.optionLetter || (correctOption as any)?.label)) {
         correct++;
       }
     });
@@ -215,7 +227,7 @@ export default function AMC8SimulationPage() {
             <div className="text-center space-y-4">
               <p className="text-gray-600">
                 This simulation closely mimics the real AMC 8 exam experience.
-                You'll have 40 minutes to complete 25 multiple choice questions.
+                You&apos;ll have 40 minutes to complete 25 multiple choice questions.
               </p>
               <Button onClick={startSimulation} size="lg" className="px-8">
                 Start Simulation
@@ -324,7 +336,7 @@ export default function AMC8SimulationPage() {
             {currentQuestion?.questionText}
           </p>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {currentQuestion?.options.map((option) => (
               <button
                 key={option.id}

@@ -12,14 +12,14 @@ export async function GET(request: NextRequest) {
     await prisma.examSchedule.updateMany({
       where: {
         examDate: { lt: now },
-        status: 'upcoming'
+        status: 'UPCOMING'
       },
       data: {
-        status: 'missed'
+        status: 'MISSED'
       }
     })
 
-    const where = status ? { status } : {}
+    const where = status && ['UPCOMING', 'COMPLETED', 'MISSED', 'CANCELLED'].includes(status) ? { status: status as any } : {}
 
     const exams = await prisma.examSchedule.findMany({
       where,
@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(transformedExams)
   } catch (error) {
-    console.error('Error fetching exams:', error)
     return NextResponse.json(
       [],
       { status: 500 }
@@ -87,7 +86,7 @@ export async function POST(request: NextRequest) {
     // Determine status based on exam date
     const examDateObj = new Date(examDate)
     const now = new Date()
-    const status = examDateObj < now ? 'missed' : 'upcoming'
+    const status = examDateObj < now ? 'MISSED' : 'UPCOMING'
 
     const exam = await prisma.examSchedule.create({
       data: {
@@ -128,7 +127,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transformedExam, { status: 201 })
   } catch (error) {
-    console.error('Error creating exam:', error)
     return NextResponse.json(
       { error: 'Failed to create exam' },
       { status: 500 }

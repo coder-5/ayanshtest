@@ -11,7 +11,7 @@ interface QuestionQualityIndicatorProps {
 }
 
 export const QuestionQualityIndicator: React.FC<QuestionQualityIndicatorProps> = ({
-  questionId,
+  questionId: _questionId,
   qualityScore = 100,
   reportCount = 0,
   issues = [],

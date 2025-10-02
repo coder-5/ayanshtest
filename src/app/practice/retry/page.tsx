@@ -5,6 +5,8 @@ import { RefreshCw, Target, AlertTriangle, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import { RetrySessionManager } from "@/components/practice/RetrySessionManager";
 
+export const dynamic = 'force-dynamic';
+
 async function getFailedQuestionsData() {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://192.168.1.197:3000/'}/api/failed-questions?limit=50`, {
@@ -17,7 +19,6 @@ async function getFailedQuestionsData() {
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching failed questions:', error);
     return {
       questions: [],
       summary: {
@@ -42,7 +43,7 @@ export default async function RetryPage() {
           Retry Failed Questions 🎯
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Master the questions you've struggled with. Turn your weaknesses into strengths!
+          Master the questions you&apos;ve struggled with. Turn your weaknesses into strengths!
         </p>
       </div>
 
@@ -143,16 +144,16 @@ export default async function RetryPage() {
               Excellent Work! 🎉
             </h3>
             <p className="text-gray-600 mb-6">
-              You haven't failed any questions recently, or you've already mastered all your previous mistakes!
+              You haven&apos;t failed any questions recently, or you&apos;ve already mastered all your previous mistakes!
             </p>
             <div className="space-y-4">
               <p className="text-sm text-gray-500">
                 This means either:
               </p>
               <ul className="text-sm text-gray-600 space-y-2 max-w-md mx-auto">
-                <li>• You haven't started practicing yet</li>
-                <li>• You've answered all questions correctly</li>
-                <li>• You've already retried and mastered your failed questions</li>
+                <li>• You haven&apos;t started practicing yet</li>
+                <li>• You&apos;ve answered all questions correctly</li>
+                <li>• You&apos;ve already retried and mastered your failed questions</li>
               </ul>
               <div className="pt-4">
                 <Button asChild>

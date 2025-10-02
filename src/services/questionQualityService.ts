@@ -54,7 +54,6 @@ export class QuestionQualityService {
         issues
       };
     } catch (error) {
-      console.error('Error calculating question quality:', error);
       // Default to reliable if we can't calculate
       return {
         questionId,
@@ -139,7 +138,6 @@ export class QuestionQualityService {
       });
 
     } catch (error) {
-      console.error('Error calculating bulk question quality:', error);
       // Default all to reliable if we can't calculate
       questionIds.forEach(id => {
         qualityMap.set(id, {
@@ -241,7 +239,6 @@ export class QuestionQualityService {
       })).filter(q => !q.quality.isReliable);
 
     } catch (error) {
-      console.error('Error getting questions needing review:', error);
       return [];
     }
   }

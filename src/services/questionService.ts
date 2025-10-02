@@ -28,6 +28,11 @@ export class QuestionService {
     try {
       const competitions = await prisma.question.groupBy({
         by: ['examName'],
+        where: {
+          examName: {
+            not: null
+          }
+        },
         _count: {
           examName: true
         },
@@ -38,12 +43,13 @@ export class QuestionService {
         }
       });
 
-      return competitions.map(comp => ({
-        name: comp.examName,
-        count: comp._count.examName
-      }));
+      return competitions
+        .filter(comp => comp.examName !== null)
+        .map(comp => ({
+          name: comp.examName as string,
+          count: comp._count.examName
+        }));
     } catch (error) {
-      console.error('Error in QuestionService.getAllCompetitions:', error);
       throw error;
     }
   }
@@ -92,7 +98,6 @@ export class QuestionService {
       // Transform data to ensure no nulls and consistent format
       return finalQuestions.map(transformQuestion);
     } catch (error) {
-      console.error('Error in QuestionService.getQuestions:', error);
       throw error;
     }
   }
@@ -105,15 +110,19 @@ export class QuestionService {
       const examName = getExamName(examType);
 
       const years = await prisma.question.findMany({
-        where: { examName },
+        where: {
+          examName,
+          examYear: {
+            not: null
+          }
+        },
         select: { examYear: true },
         distinct: ['examYear'],
         orderBy: { examYear: 'desc' }
       });
 
-      return years.map(y => y.examYear);
+      return years.map(y => y.examYear as number);
     } catch (error) {
-      console.error('Error in QuestionService.getAvailableYears:', error);
       throw error;
     }
   }
@@ -141,7 +150,6 @@ export class QuestionService {
         total: counts[5]
       };
     } catch (error) {
-      console.error('Error in QuestionService.getQuestionCounts:', error);
       throw error;
     }
   }
@@ -155,7 +163,6 @@ export class QuestionService {
         where: { id }
       });
     } catch (error) {
-      console.error('Error in QuestionService.deleteQuestion:', error);
       throw error;
     }
   }
@@ -169,7 +176,7 @@ export class QuestionService {
         where: { id: update.id },
         data: {
           ...(update.questionText && { questionText: update.questionText }),
-          difficulty: update.difficulty || 'medium',
+          difficulty: (update.difficulty as any) || 'MEDIUM',
           topic: update.topic || 'Mixed',
           subtopic: update.subtopic || 'Problem Solving',
           hasImage: update.hasImage || false,
@@ -183,7 +190,6 @@ export class QuestionService {
 
       return transformQuestion(updatedQuestion);
     } catch (error) {
-      console.error('Error in QuestionService.updateQuestion:', error);
       throw error;
     }
   }

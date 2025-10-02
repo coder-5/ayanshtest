@@ -572,7 +572,7 @@ export class AdvancedDiagramEngine {
     // Implementation for hiding tooltips
   }
 
-  private onShapeClick(shape: Shape): void {
+  private onShapeClick(_shape: Shape): void {
     // Handle shape interactions
   }
 

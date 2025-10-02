@@ -135,7 +135,6 @@ export async function GET(_request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Export error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to export library' },
       { status: 500 }

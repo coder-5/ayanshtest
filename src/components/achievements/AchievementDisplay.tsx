@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,11 +39,7 @@ export function AchievementDisplay({ userId = 'ayansh' }: AchievementDisplayProp
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  useEffect(() => {
-    fetchAchievements();
-  }, [userId]);
-
-  const fetchAchievements = async () => {
+  const fetchAchievements = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/achievements?userId=${userId}&withStats=true`);
@@ -56,11 +52,14 @@ export function AchievementDisplay({ userId = 'ayansh' }: AchievementDisplayProp
         setAchievements(data);
       }
     } catch (error) {
-      console.error('Failed to fetch achievements:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchAchievements();
+  }, [fetchAchievements]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {

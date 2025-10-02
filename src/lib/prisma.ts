@@ -7,15 +7,15 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient() {
   try {
     return new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'], // Reduced logging for performance
       datasources: {
         db: {
-          url: process.env.DATABASE_URL
+          url: process.env.DATABASE_URL || 'file:./dev.db'
         }
       }
     });
   } catch (error) {
-    console.error('Failed to create Prisma client:', error);
+    console.error('Database connection failed:', error);
     throw new Error('Database connection failed');
   }
 }
@@ -30,14 +30,13 @@ export async function withRetry<T>(
   maxRetries: number = 3,
   delay: number = 1000
 ): Promise<T> {
-  let lastError: Error;
+  let lastError: Error = new Error('No attempts made');
 
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      console.error(`Database operation failed (attempt ${i + 1}/${maxRetries}):`, error);
 
       if (i < maxRetries - 1) {
         // Wait before retrying, with exponential backoff

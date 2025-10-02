@@ -1,0 +1,201 @@
+AMC 8 2025 Questions
+
+1. The eight-pointed star, shown in the figure below, is a popular quilting pattern. What percent of the entire 444-by-444 grid is covered by the star?
+A) 40
+B) 50
+C) 60
+D) 75
+E) 80
+Answer: B
+
+2. The table below shows the ancient Egyptian heiroglyphs that were used to represent different numbers. What number was represented by the given combination of heiroglyphs?
+A) 1,423
+B) 10,423
+C) 14,023
+D) 14,203
+E) 14,230
+Answer: B
+
+3. "Buffalo Shuffle-o" is a card game in which all the cards are distributed evenly among all players at the start of the game. When Annika and 3 of her friends play, each player is dealt 15 cards. Suppose 2 more friends join the next game. How many cards will be dealt to each player?
+A) 8
+B) 9
+C) 10
+D) 11
+E) 12
+Answer: C
+
+4. Lucius is counting backward by 7s. His first three numbers are 100, 93, and 86. What is his 10th number?
+A) 30
+B) 37
+C) 42
+D) 44
+E) 47
+Answer: B
+
+5. Betty drives a truck to deliver packages in a neighborhood whose street map is shown. Betty starts at the factory (labeled F) and drives to location A, then B, then C, before returning to F. What is the shortest distance, in blocks, she can drive to complete the route?
+A) 20
+B) 22
+C) 24
+D) 26
+E) 28
+Answer: C
+
+6. Sekou writes the numbers 15, 16, 17, 18, 19. After he erases one of the numbers, the sum of the remaining four numbers is a multiple of 4. Which number did he erase?
+A) 15
+B) 16
+C) 17
+D) 18
+E) 19
+Answer: C
+
+7. On the most recent exam in Prof. Xochi's class: • 5 students earned a score of at least 95%, • 13 students earned a score of at least 90%, • 27 students earned a score of at least 85%, and • 50 students earned a score of at least 80%. How many students earned a score of at least 80% and less than 90%?
+A) 8
+B) 14
+C) 22
+D) 37
+E) 45
+Answer: D
+
+8. Isaiah cuts open a cardboard cube along some of its edges to form the flat shape shown, which has an area of 18 square centimeters. What was the volume of the cube in cubic centimeters?
+A) 3√3
+B) 6
+C) 9
+D) 6√3
+E) 9√3
+Answer: A
+
+9. Ningli looks at the 6 pairs of numbers directly across from each other on a clock. She takes the average of each pair of numbers. What is the average of the resulting 6 numbers?
+A) 5
+B) 6.5
+C) 8
+D) 9.5
+E) 12
+Answer: B
+
+10. In the figure, ABCD is a rectangle with sides of length AB=5 inches and AD=3 inches. Rectangle ABCD is rotated 90° clockwise around the midpoint of side DC to give a second rectangle. What is the total area, in square inches, covered by the two overlapping rectangles?
+A) 22
+B) 25
+C) 26
+D) 28
+E) 30
+Answer: C
+
+11. Ellen has 8 blue tiles and 4 yellow tiles. Each tile is a unit square. She arranges all 12 tiles to form a rectangle. How many different rectangles can she form in which the yellow tiles form a connected region?
+A) 4
+B) 5
+C) 6
+D) 7
+E) 8
+Answer: B
+
+12. Each of the even numbers 2, 4, 6, ..., 50 is divided by 7. The remainders are recorded. Which remainder occurs most frequently?
+A) 0
+B) 2
+C) 4
+D) 6
+E) There is a tie
+Answer: E
+
+13. A number N is inserted into the list 2, 6, 7, 7, 28. The mean is now twice as great as the median. What is N?
+A) 7
+B) 14
+C) 20
+D) 28
+E) 34
+Answer: E
+
+14. Kei draws a 6-by-6 grid. He colors 13 of the unit squares silver and the remaining squares gold. Kei then folds the grid in half vertically, forming pairs of overlapping unit squares. Let m and M equal the least and greatest possible number of gold-on-gold pairs, respectively. What is the value of m+M?
+A) 12
+B) 14
+C) 16
+D) 18
+E) 20
+Answer: C
+
+15. Five distinct integers from 1 to 10 are chosen, and five distinct integers from 111 to 120 are chosen. No two numbers differ by exactly 10. What is the sum of the ten chosen numbers?
+A) 95
+B) 100
+C) 105
+D) 110
+E) 115
+Answer: C
+
+16. In the land of Markovia, there are three cities: A, B, and C. There are 100 people who live in A, 120 who live in B, and 160 who live in C. Everyone works in one of the three cities. How many people work in A?
+A) 55
+B) 60
+C) 65
+D) 70
+E) 75
+Answer: B
+
+17. Let S be the set of all points (x,y) in the coordinate plane such that |x-2| + |y-3| = 1. The set S forms a quadrilateral. What is the area of this quadrilateral?
+A) 1
+B) 2
+C) 3
+D) 4
+E) 6
+Answer: B
+
+18. Anna writes down the integers from 1 to N. She then erases exactly three numbers so that the sum of the remaining numbers is 2024. What is N?
+A) 66
+B) 67
+C) 68
+D) 69
+E) 70
+Answer: C
+
+19. How many ordered triples (a,b,c) of positive integers satisfy the conditions a ≤ b ≤ c and a + b + c = 15?
+A) 30
+B) 35
+C) 40
+D) 42
+E) 45
+Answer: B
+
+20. In triangle ABC, angle A = 60°, AB = 8, and AC = 6. The angle bisector of angle A meets side BC at point D. What is BD?
+A) 16/7
+B) 24/7
+C) 32/7
+D) 40/7
+E) 48/7
+Answer: C
+
+21. A sequence of positive integers a₁, a₂, a₃, ... satisfies aₙ₊₁ = aₙ + (sum of digits of aₙ) for n ≥ 1. If a₁ = 2024, what is a₅?
+A) 2050
+B) 2057
+C) 2071
+D) 2079
+E) 2088
+Answer: D
+
+22. Let ABCD be a convex quadrilateral with AB = 7, BC = 3, CD = 5, and DA = 6. The diagonals AC and BD intersect at point P. If the area of triangle APB is 12, what is the area of triangle CPD?
+A) 15/7
+B) 20/7
+C) 25/7
+D) 30/7
+E) 35/7
+Answer: B
+
+23. Find the number of ordered pairs (m,n) of positive integers such that m² + n² + mn = 2024.
+A) 3
+B) 4
+C) 5
+D) 6
+E) 8
+Answer: A
+
+24. In how many ways can the positive integers from 1 to 16 be arranged in a 4×4 grid so that each row sum and each column sum is even?
+A) 2⁹ × 3! × 3!
+B) 2¹⁰ × 3! × 3!
+C) 2¹¹ × 3! × 3!
+D) 2¹² × 3! × 3!
+E) 2¹³ × 3! × 3!
+Answer: A
+
+25. Let f(x) = x² + 2x + 2024. How many positive integers n ≤ 100 have the property that f(n) is divisible by n?
+A) 32
+B) 33
+C) 34
+D) 35
+E) 36
+Answer: C

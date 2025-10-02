@@ -20,7 +20,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
     examDate: new Date(),
     location: '',
     duration: 0,
-    status: 'upcoming',
+    status: 'UPCOMING',
     notes: '',
     registrationId: '',
     score: 0,
@@ -49,7 +49,6 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
         const competitions = await response.json()
         setDynamicExamTypes([...competitions, 'Other'])
       } catch (error) {
-        console.error('Error fetching competitions:', error)
         // Fallback to static list
         setDynamicExamTypes(['AMC8', 'AMC 10', 'Math Kangaroo', 'MOEMS', 'MathCounts', 'AIME', 'Local Competition', 'School Competition', 'Other'])
       } finally {
@@ -146,13 +145,9 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
         onSave()
       } else {
         const error = await response.json()
-        console.error('Error saving exam:', error)
-        console.error('Response status:', response.status)
-        console.error('Form data sent:', examData)
         alert(`Failed to save exam: ${error.error || 'Unknown error'}. Please try again.`)
       }
     } catch (error) {
-      console.error('Error saving exam:', error)
       alert('Failed to save exam. Please try again.')
     } finally {
       setLoading(false)
@@ -168,10 +163,10 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
 
 
   const statusOptions = [
-    { value: 'upcoming', label: 'Upcoming' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'missed', label: 'Missed' },
-    { value: 'cancelled', label: 'Cancelled' }
+    { value: 'UPCOMING', label: 'Upcoming' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'MISSED', label: 'Missed' },
+    { value: 'CANCELLED', label: 'Cancelled' }
   ]
 
   return (
@@ -223,7 +218,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
                 Status
               </label>
               <Select
-                value={formData.status || 'upcoming'}
+                value={formData.status || 'UPCOMING'}
                 onValueChange={(value) => handleChange('status', value)}
               >
                 <SelectTrigger>
@@ -457,7 +452,7 @@ export default function ExamForm({ exam, onSave, onCancel }: ExamFormProps) {
           </div>
 
           {/* Results (for completed exams) */}
-          {formData.status === 'completed' && (
+          {formData.status === 'COMPLETED' && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Results</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

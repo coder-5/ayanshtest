@@ -24,6 +24,7 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
 
   useEffect(() => {
     fetchExams()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
 
   const fetchExams = async () => {
@@ -36,11 +37,9 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
       if (Array.isArray(data)) {
         setExams(data)
       } else {
-        console.error('API returned non-array data:', data)
         setExams([])
       }
     } catch (error) {
-      console.error('Error fetching exams:', error)
       setExams([])
     } finally {
       setLoading(false)
@@ -52,43 +51,33 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
       return
     }
 
-    console.log(`Attempting to delete exam with ID: ${examId}`)
 
     try {
       const response = await fetch(`/api/exams/${examId}`, {
         method: 'DELETE',
       })
 
-      console.log(`DELETE response status: ${response.status} ${response.statusText}`)
-      console.log(`DELETE response headers:`, Object.fromEntries(response.headers.entries()))
 
       if (response.ok) {
-        console.log('Exam deleted successfully, refreshing list')
         // Refresh the exams list
         fetchExams()
         alert('Exam deleted successfully!')
       } else {
         // Get the response text first to see what we're dealing with
         const responseText = await response.text()
-        console.error('DELETE failed - Response text:', responseText)
-        console.error('DELETE failed - Response status:', response.status)
 
         let errorData;
         try {
           // Try to parse as JSON
           errorData = JSON.parse(responseText)
-          console.log('Parsed error data:', errorData)
         } catch (parseError) {
-          console.error('Failed to parse response as JSON:', parseError)
           errorData = { error: `Server returned: ${responseText || 'Unknown error'}` }
         }
 
         const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`
-        console.error('Final error message:', errorMessage)
         alert(`Failed to delete exam: ${errorMessage}`)
       }
     } catch (error) {
-      console.error('Network or other error deleting exam:', error)
       alert(`Error deleting exam: ${error instanceof Error ? error.message : 'Network error - please try again.'}`)
     }
   }
@@ -108,8 +97,8 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
     return matchesSearch && matchesFilter
   })
 
-  const upcomingExams = filteredExams.filter(exam => exam.status === 'upcoming')
-  const completedExams = filteredExams.filter(exam => exam.status === 'completed')
+  const upcomingExams = filteredExams.filter(exam => exam.status === 'UPCOMING')
+  const completedExams = filteredExams.filter(exam => exam.status === 'COMPLETED')
 
   if (loading) {
     return (
@@ -134,7 +123,7 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Ayansh's Exam Schedule
+              Ayansh&apos;s Exam Schedule
             </CardTitle>
             <Button onClick={onAddExam} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
@@ -165,10 +154,10 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Exams</SelectItem>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="missed">Missed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="UPCOMING">Upcoming</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="MISSED">Missed</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -198,7 +187,7 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
             {/* Results Summary */}
             {searchTerm && (
               <div className="text-sm text-gray-600">
-                Found {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} matching "{searchTerm}"
+                Found {filteredExams.length} exam{filteredExams.length !== 1 ? 's' : ''} matching &quot;{searchTerm}&quot;
               </div>
             )}
           </div>
@@ -207,7 +196,7 @@ export default function ExamSchedule({ onAddExam, onEditExam }: ExamScheduleProp
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-medium mb-2">No exams scheduled</h3>
-              <p className="text-sm">Add your first exam to start tracking Ayansh's competition schedule.</p>
+              <p className="text-sm">Add your first exam to start tracking Ayansh&apos;s competition schedule.</p>
             </div>
           ) : filteredExams.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
@@ -333,13 +322,13 @@ function CompactExamView({ exams, onEdit, onDelete }: CompactExamViewProps) {
   }
 
   const getDaysUntil = (dateString: string | Date) => {
-    return Math.floor((new Date(dateString).getTime() - new Date().getTime()) / 86400000)
+    return Math.ceil((new Date(dateString).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
   }
 
   // Group exams by status for better organization
   const groupedExams = {
-    upcoming: exams.filter(exam => exam.status === 'upcoming'),
-    completed: exams.filter(exam => exam.status === 'completed'),
+    upcoming: exams.filter(exam => exam.status === 'UPCOMING'),
+    completed: exams.filter(exam => exam.status === 'COMPLETED'),
     others: exams.filter(exam => !['upcoming', 'completed'].includes(exam.status))
   }
 
@@ -685,7 +674,7 @@ function ExamCard({ exam, onEdit, onDelete, isUpcoming }: ExamCardProps) {
               </div>
 
               {/* Results for completed exams */}
-              {exam.status === 'completed' && ((exam.score || 0) > 0 || (exam.percentile || 0) > 0) && (
+              {exam.status === 'COMPLETED' && ((exam.score || 0) > 0 || (exam.percentile || 0) > 0) && (
                 <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-4 text-sm">
                     {(exam.score || 0) > 0 && (exam.maxScore || 0) > 0 && (

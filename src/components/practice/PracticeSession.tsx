@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { QuestionCard } from "./QuestionCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Target, BarChart3, ChevronLeft, ChevronRight, SkipForward, Trash2, Edit3, Save, X, ArrowLeft, EyeOff, Eye } from "lucide-react";
-import { PracticeQuestion } from "@/types";
+import { Trophy, Target, BarChart3, ChevronLeft, ChevronRight, SkipForward, Trash2, Edit3, X, ArrowLeft, EyeOff, Eye } from "lucide-react";
+import { PracticeQuestion, OptionInput, EditableQuestion, NormalizableValue, SaveQueue } from "@/types";
 import { QuestionTracker, QuestionStatus } from "./QuestionTracker";
 
 interface SessionResult {
@@ -15,6 +15,7 @@ interface SessionResult {
   userAnswer: string;
   isCorrect: boolean;
   timeSpent: number;
+  excludeFromScoring?: boolean;
 }
 
 interface PracticeSessionProps {
@@ -34,9 +35,21 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editedQuestion, setEditedQuestion] = useState<any>(null);
+  const [editedQuestion, setEditedQuestion] = useState<EditableQuestion | null>(null);
   const [, setSkippedQuestions] = useState<Set<number>>(new Set());
   const [excludedQuestions, setExcludedQuestions] = useState<Set<string>>(new Set());
+
+  // Auto-save functionality with race condition protection
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activeSaveRequestRef = useRef<AbortController | null>(null);
+  const saveQueueRef = useRef<SaveQueue>(new Map());
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveRetryCount, setSaveRetryCount] = useState(0);
+  const [progressSaveStatus, setProgressSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [progressSaveError, setProgressSaveError] = useState<string | null>(null);
+
+  // Calculate included questions count
+  const includedQuestionsCount = questions.length - excludedQuestions.size;
   const [questionStatuses, setQuestionStatuses] = useState<QuestionStatus[]>(
     questions.map(q => ({
       questionId: q.id,
@@ -79,15 +92,43 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
     return () => {}; // Always return a cleanup function
   }, [questionStartTime, showSolution, isSessionComplete]);
 
+  // Cleanup auto-save timeout on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup timers and abort controllers on unmount
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      if (activeSaveRequestRef.current) {
+        activeSaveRequestRef.current.abort();
+      }
+      // Clear save queue
+      const saveQueue = saveQueueRef.current;
+      saveQueue.clear();
+    };
+  }, []);
+
   const handleAnswer = async (answer: string) => {
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
     const isExcluded = excludedQuestions.has(currentQuestion.id);
 
     // Determine if answer is correct
     let isCorrect = false;
+    const normalizeValue = (value: NormalizableValue): string => {
+      if (value == null) return '';
+      let normalized = String(value).trim().toLowerCase();
+      // Remove "Answer: " prefix if it exists
+      normalized = normalized.replace(/^answer:\s*/i, '');
+      return normalized;
+    };
+
     if (currentQuestion.type === 'multiple-choice' && currentQuestion.options) {
+      // Multiple choice question
       const correctOption = currentQuestion.options.find(opt => opt.isCorrect);
-      isCorrect = answer === correctOption?.label;
+      isCorrect = normalizeValue(answer) === normalizeValue(correctOption?.label || (correctOption as any)?.optionLetter);
+    } else if (currentQuestion.solution?.solutionText) {
+      // Text/numerical question - check against solution text
+      isCorrect = normalizeValue(answer) === normalizeValue(currentQuestion.solution.solutionText);
     }
 
     const result: SessionResult = {
@@ -108,11 +149,13 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
       )
     );
 
-    setShowSolution(true);
+    // Solution is now shown only when user requests it
+    setShowSolution(false);
 
-    // Save progress to database
+    // Save progress to database with error handling and user notification
     try {
-      await fetch('/api/progress', {
+      setProgressSaveStatus('saving');
+      const response = await fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,8 +166,30 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
           excludeFromScoring: isExcluded
         })
       });
-    } catch (error) {
-      console.error('Failed to save progress:', error);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+
+        if (response.status === 404) {
+          // Question was deleted, don't save progress but don't show error to user
+          setProgressSaveStatus('idle');
+          setProgressSaveError(null);
+          return;
+        }
+
+        throw new Error(`Failed to save progress: ${response.status} ${response.statusText} - ${errorData.error || ''}`);
+      }
+
+      setProgressSaveStatus('idle');
+      setProgressSaveError(null);
+    } catch (error: unknown) {
+      setProgressSaveStatus('error');
+      setProgressSaveError(error instanceof Error ? error.message : 'Failed to save progress');
+      // Auto-hide error after 5 seconds
+      setTimeout(() => {
+        setProgressSaveStatus('idle');
+        setProgressSaveError(null);
+      }, 5000);
     }
   };
 
@@ -198,45 +263,161 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
           }
         }
       } catch (error) {
-        console.error('Failed to delete question:', error);
         alert('Failed to delete question. Please try again.');
       }
     }
   };
 
+  // Auto-save function with debouncing
+  const autoSaveQuestion = useCallback(async (question: EditableQuestion, retryCount = 0) => {
+    if (!question || !question.id) return;
+
+    const questionId = question.id;
+    const maxRetries = 3;
+    const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
+
+    // Cancel any existing request for this question
+    if (activeSaveRequestRef.current) {
+      activeSaveRequestRef.current.abort();
+    }
+
+    // Check if there's already a save in progress for this question
+    if (saveQueueRef.current.has(questionId)) {
+      return; // Skip if already saving
+    }
+
+    try {
+      setSaveStatus('saving');
+      setSaveRetryCount(retryCount);
+
+      // Create new AbortController for this request
+      const abortController = new AbortController();
+      activeSaveRequestRef.current = abortController;
+
+      // Format options for the API (filter out empty ones)
+      const formattedOptions = question.options?.filter((option) => {
+        // Handle both old (label/text) and new (optionLetter/optionText) formats
+        const letter = option.optionLetter || option.label;
+        const text = option.optionText || option.text;
+        return letter &&
+               text &&
+               typeof letter === 'string' &&
+               typeof text === 'string' &&
+               letter.trim().length > 0 &&
+               text.trim().length > 0;
+      }).map((option): OptionInput => ({
+        optionLetter: option.optionLetter || option.label,
+        optionText: option.optionText || option.text,
+        isCorrect: option.isCorrect || false
+      })) || [];
+
+      // Prepare request body
+      const requestBody = {
+        questionText: question.questionText,
+        examName: question.examName,
+        examYear: question.examYear,
+        topic: question.topic,
+        difficulty: question.difficulty,
+        options: formattedOptions,
+        solution: question.solution, // Include solution data
+        // version: question.version || 1 // Include version for optimistic locking
+      };
+
+
+      // Add to save queue
+      const savePromise = fetch(`/api/questions/${questionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: abortController.signal
+      });
+
+      saveQueueRef.current.set(questionId, savePromise);
+      const response = await savePromise;
+
+      if (response.ok) {
+        const updatedQuestion = await response.json();
+        // Update the current questions array
+        questions[currentQuestionIndex] = updatedQuestion;
+        setSaveStatus('saved');
+        setSaveRetryCount(0);
+        // Reset status after 2 seconds
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else if (response.status === 404) {
+        // Question was deleted, stop trying to save it
+        setSaveStatus('idle');
+        setSaveRetryCount(0);
+        return; // Don't retry for deleted questions
+      } else if (response.status === 409) {
+        // Handle conflict - question was edited by another user
+        const conflictData = await response.json();
+        setSaveStatus('error');
+        setSaveRetryCount(0);
+        // Show error for longer time for conflicts
+        setTimeout(() => setSaveStatus('idle'), 8000);
+        throw new Error(`Conflict: ${conflictData.message}`);
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error: unknown) {
+      // Don't retry if request was aborted
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      // Retry logic with exponential backoff
+      if (retryCount < maxRetries) {
+        setTimeout(() => {
+          autoSaveQuestion(question, retryCount + 1);
+        }, retryDelay);
+      } else {
+        setSaveStatus('error');
+        setSaveRetryCount(0);
+        // Keep error state longer for critical failures
+        setTimeout(() => setSaveStatus('idle'), 5000);
+      }
+    } finally {
+      // Clean up
+      saveQueueRef.current.delete(questionId);
+      if (activeSaveRequestRef.current) {
+        activeSaveRequestRef.current = null;
+      }
+    }
+  }, [questions, currentQuestionIndex]);
+
+  // Debounced question edit handler with improved race condition handling
+  const handleQuestionEdit = useCallback((updatedQuestion: EditableQuestion) => {
+    setEditedQuestion(updatedQuestion);
+
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Reset retry count for new edits
+    setSaveRetryCount(0);
+
+    // Set new timeout for auto-save (2 seconds after user stops typing)
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      autoSaveQuestion(updatedQuestion);
+    }, 2000);
+  }, [autoSaveQuestion]);
+
   const handleEditQuestion = () => {
-    setEditedQuestion({ ...currentQuestion });
+    // Normalize option format to use optionLetter/optionText consistently
+    const normalizedQuestion: EditableQuestion = {
+      ...currentQuestion,
+      type: currentQuestion.type || 'multiple-choice',
+      options: currentQuestion.options?.map((option) => ({
+        ...option,
+        optionLetter: option.label || (option as any).optionLetter || '',
+        optionText: option.text || (option as any).optionText || ''
+      })) || []
+    };
+    setEditedQuestion(normalizedQuestion);
     setIsEditMode(true);
   };
 
-  const handleSaveEdit = async () => {
-    if (!editedQuestion) return;
-
-    try {
-      const response = await fetch(`/api/questions/${editedQuestion.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questionText: editedQuestion.text,
-          difficulty: editedQuestion.difficulty,
-          topic: editedQuestion.topic,
-          subtopic: editedQuestion.subtopic || 'Problem Solving',
-          hasImage: editedQuestion.hasImage || false,
-          imageUrl: editedQuestion.imageUrl || ''
-        })
-      });
-
-      if (response.ok) {
-        // Update the current questions array
-        questions[currentQuestionIndex] = editedQuestion;
-        setIsEditMode(false);
-        setEditedQuestion(null);
-      }
-    } catch (error) {
-      console.error('Failed to update question:', error);
-      alert('Failed to update question. Please try again.');
-    }
-  };
 
   const handleCancelEdit = () => {
     setIsEditMode(false);
@@ -259,9 +440,9 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
       return newSet;
     });
 
-    // Update the database record
+    // Update the database record with proper error handling
     try {
-      await fetch('/api/progress', {
+      const response = await fetch('/api/progress', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -269,8 +450,11 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
           excludeFromScoring: willBeExcluded
         })
       });
-    } catch (error) {
-      console.error('Failed to update exclude status:', error);
+
+      if (!response.ok) {
+        throw new Error(`Failed to update question exclusion: ${response.status}`);
+      }
+    } catch (error: unknown) {
       // Revert the local state change if API call failed
       setExcludedQuestions(prev => {
         const newSet = new Set(prev);
@@ -281,17 +465,22 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
         }
         return newSet;
       });
+      // Show error notification
+      setProgressSaveError(`Failed to ${willBeExcluded ? 'exclude' : 'include'} question from scoring`);
+      setTimeout(() => setProgressSaveError(null), 3000);
     }
   };
 
   const calculateStats = () => {
-    const correct = sessionResults.filter(r => r.isCorrect).length;
-    const total = sessionResults.length;
+    // Only count non-excluded questions
+    const includedResults = sessionResults.filter(r => !r.excludeFromScoring);
+    const correct = includedResults.filter(r => r.isCorrect).length;
+    const total = includedResults.length;
     const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
     const totalTime = Math.floor((Date.now() - sessionStartTime) / 1000);
-    const avgTime = total > 0 ? Math.round(sessionResults.reduce((sum, r) => sum + r.timeSpent, 0) / total) : 0;
+    const avgTime = total > 0 ? Math.round(includedResults.reduce((sum, r) => sum + r.timeSpent, 0) / total) : 0;
 
-    return { correct, total, accuracy, totalTime, avgTime };
+    return { correct, total, accuracy, totalTime, avgTime, excludedCount: sessionResults.length - includedResults.length };
   };
 
   if (isSessionComplete) {
@@ -307,6 +496,11 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
             <CardTitle className="text-3xl">Session Complete!</CardTitle>
             <CardDescription className="text-lg">
               Great job completing your {sessionType} practice session
+              {stats.excludedCount > 0 && (
+                <span className="block text-sm text-amber-600 mt-2">
+                  Note: {stats.excludedCount} question{stats.excludedCount > 1 ? 's were' : ' was'} excluded from scoring.
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
 
@@ -398,6 +592,9 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
                 <h1 className="text-2xl font-bold">{sessionType} Practice Session</h1>
                 <div className="flex items-center gap-2">
                   <p className="text-gray-600">Question {currentQuestionIndex + 1} of {questions.length}</p>
+                  {excludedQuestions.size > 0 && (
+                    <p className="text-xs text-gray-500">({includedQuestionsCount} counting toward progress)</p>
+                  )}
                   {excludedQuestions.has(currentQuestion.id) && (
                     <Badge variant="secondary" className="text-xs">
                       <EyeOff className="h-3 w-3 mr-1" />
@@ -409,16 +606,22 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Target className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm">{sessionResults.filter(r => r.isCorrect).length} correct</span>
+                  <span className="text-sm">{sessionResults.filter(r => r.isCorrect && !r.excludeFromScoring).length} correct</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">{sessionResults.length > 0 ? Math.round((sessionResults.filter(r => r.isCorrect).length / sessionResults.length) * 100) : 0}% accuracy</span>
+                  <span className="text-sm">{
+                    (() => {
+                      const includedResults = sessionResults.filter(r => !r.excludeFromScoring);
+                      return includedResults.length > 0 ?
+                        Math.round((includedResults.filter(r => r.isCorrect).length / includedResults.length) * 100) : 0;
+                    })()
+                  }% accuracy</span>
                 </div>
               </div>
             </div>
 
-            <Progress value={((currentQuestionIndex + (showSolution ? 1 : 0)) / questions.length) * 100} className="h-2" />
+            <Progress value={((currentQuestionIndex + (showSolution ? 1 : 0)) / Math.max(includedQuestionsCount, 1)) * 100} className="h-2" />
           </div>
 
           {/* Navigation Controls */}
@@ -502,15 +705,61 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
                   </>
                 ) : (
                   <>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleSaveEdit}
-                      className="flex items-center gap-1"
-                    >
-                      <Save className="h-4 w-4" />
-                      Save
-                    </Button>
+                    {/* Auto-save Status Indicator */}
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-md text-sm">
+                      {saveStatus === 'saving' && (
+                        <>
+                          <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+                          <span className="text-blue-600">
+                            Saving...{saveRetryCount > 0 && ` (retry ${saveRetryCount}/3)`}
+                          </span>
+                        </>
+                      )}
+                      {saveStatus === 'saved' && (
+                        <>
+                          <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="text-green-600">Saved</span>
+                        </>
+                      )}
+                      {saveStatus === 'error' && (
+                        <>
+                          <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="text-red-600">Save failed</span>
+                        </>
+                      )}
+                      {saveStatus === 'idle' && (
+                        <span className="text-gray-500">Auto-save enabled</span>
+                      )}
+                    </div>
+
+                    {/* Progress Save Error Notification */}
+                    {progressSaveError && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm mt-2">
+                        <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <span className="text-red-700">{progressSaveError}</span>
+                      </div>
+                    )}
+
+                    {/* Progress Save Status */}
+                    {progressSaveStatus === 'saving' && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md text-sm mt-2">
+                        <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+                        <span className="text-blue-700">Saving progress...</span>
+                      </div>
+                    )}
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -530,15 +779,14 @@ export function PracticeSession({ questions, sessionType, onComplete, onBack }: 
           <QuestionCard
             question={isEditMode && editedQuestion ? editedQuestion : currentQuestion}
             questionNumber={currentQuestionIndex + 1}
-            totalQuestions={questions.length}
+            totalQuestions={includedQuestionsCount}
             timeElapsed={timeElapsed}
             onAnswer={handleAnswer}
             onNext={handleNext}
-            showSolution={showSolution}
-            userAnswer={showSolution ? sessionResults.find(r => r.questionId === currentQuestion.id)?.userAnswer : undefined}
+            userAnswer={sessionResults.find(r => r.questionId === currentQuestion.id)?.userAnswer || ''}
             isEditMode={isEditMode}
             editedQuestion={editedQuestion}
-            onQuestionEdit={setEditedQuestion}
+            onQuestionEdit={handleQuestionEdit as any}
             isQuestionSubmitted={questionStatuses[currentQuestionIndex]?.status !== 'unanswered'}
           />
         </div>

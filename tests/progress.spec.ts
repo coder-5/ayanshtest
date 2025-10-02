@@ -261,7 +261,7 @@ test.describe('Progress Page Tests', () => {
 
   test('should handle data loading states', async ({ page }) => {
     // Look for loading indicators
-    const loadingElements = [
+    [
       page.locator('.animate-spin'),
       page.locator('text=Loading'),
       page.locator('[data-testid="loading"]'),

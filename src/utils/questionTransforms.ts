@@ -5,10 +5,10 @@ export function transformQuestion(question: any): Question {
   const result: Question = {
     id: question.id,
     questionText: question.questionText || '',
-    examName: question.examName || '',
-    examYear: question.examYear || 2023,
+    examName: question.examName || null,
+    examYear: question.examYear || null,
     questionNumber: question.questionNumber || '1',
-    difficulty: question.difficulty || 'medium',
+    difficulty: question.difficulty || 'MEDIUM',
     topic: question.topic || 'Mixed',
     subtopic: question.subtopic || 'Problem Solving',
     hasImage: question.hasImage || false,
@@ -59,7 +59,7 @@ export function transformQuestionForPractice(question: any): any {
     id: question.id,
     text: question.questionText, // PracticeSession expects 'text'
     type: question.options && question.options.length > 0 ? 'multiple-choice' as const : 'open-ended' as const,
-    competition: `${question.examName} ${question.examYear}`,
+    competition: question.examName && question.examYear ? `${question.examName} ${question.examYear}` : (question.examName || 'Topic Practice'),
     examName: question.examName, // QuestionCard expects 'examName'
     examYear: question.examYear,
     topic: question.topic,

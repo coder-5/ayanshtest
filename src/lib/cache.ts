@@ -8,8 +8,17 @@ interface CacheEntry {
 class SimpleCache {
   private cache = new Map<string, CacheEntry>();
   private readonly defaultTTL = 5 * 60 * 1000; // 5 minutes default
+  private readonly maxSize = 1000; // Maximum cache entries to prevent memory issues
 
   set(key: string, data: any, ttl?: number): void {
+    // Implement LRU eviction when cache is full
+    if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
+    }
+
     const entry: CacheEntry = {
       data,
       timestamp: Date.now(),
@@ -21,18 +30,15 @@ class SimpleCache {
   get(key: string): any | null {
     const entry = this.cache.get(key);
     if (!entry) {
-      console.log(`Cache MISS for key: ${key}`);
       return null;
     }
 
     // Check if entry has expired
     if (Date.now() - entry.timestamp > entry.ttl) {
-      console.log(`Cache EXPIRED for key: ${key}`);
       this.cache.delete(key);
       return null;
     }
 
-    console.log(`Cache HIT for key: ${key}`);
     return entry.data;
   }
 
@@ -47,7 +53,8 @@ class SimpleCache {
   // Clean up expired entries
   cleanup(): void {
     const now = Date.now();
-    for (const [key, entry] of this.cache.entries()) {
+    const entries = Array.from(this.cache.entries());
+    for (const [key, entry] of entries) {
       if (now - entry.timestamp > entry.ttl) {
         this.cache.delete(key);
       }

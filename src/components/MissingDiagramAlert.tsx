@@ -60,7 +60,6 @@ export const MissingDiagramAlert: React.FC<MissingDiagramAlertProps> = ({
         }, 3000);
       }
     } catch (error) {
-      console.error('Error reporting missing diagram:', error);
     } finally {
       setIsReporting(false);
     }
@@ -75,7 +74,7 @@ export const MissingDiagramAlert: React.FC<MissingDiagramAlertProps> = ({
     return (
       <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
         <CheckCircle className="h-4 w-4" />
-        <span>Thanks! We'll add the missing picture. 🎨</span>
+        <span>Thanks! We&apos;ll add the missing picture. 🎨</span>
       </div>
     );
   }

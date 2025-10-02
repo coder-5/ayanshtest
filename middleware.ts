@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const fullUrl = request.url;
 
@@ -44,6 +44,34 @@ export function middleware(request: NextRequest) {
       console.warn(`Suspicious query parameter blocked: ${search}`);
       return new NextResponse('Bad Request - Suspicious Content Detected', { status: 400 });
     }
+  }
+
+  // Handle case-insensitive redirects for practice routes
+  if (pathname.startsWith('/practice/')) {
+    // Check for exam type case mismatch in the URL
+    const examTypeMatch = pathname.match(/^\/practice\/([^\/]+)(\/.*)?$/);
+    if (examTypeMatch) {
+      const examType = examTypeMatch[1];
+      const remainingPath = examTypeMatch[2] || '';
+      const lowerExamType = examType.toLowerCase();
+
+      // If the examType is not lowercase, redirect to lowercase version
+      if (examType !== lowerExamType) {
+        const newPath = `/practice/${lowerExamType}${remainingPath}`;
+        console.log(`Redirecting case mismatch: ${pathname} -> ${newPath}`);
+        return NextResponse.redirect(new URL(newPath + search, request.url));
+      }
+    }
+  }
+
+  // Add Ayansh user context to all API requests
+  if (pathname.startsWith('/api/')) {
+    const response = NextResponse.next()
+    response.headers.set('x-user-id', 'ayansh')
+    response.headers.set('x-user-role', 'student')
+    response.headers.set('x-user-name', 'Ayansh')
+    console.log(`API request with user context: ${pathname}`)
+    return response
   }
 
   // Continue with the request

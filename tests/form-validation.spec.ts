@@ -96,7 +96,6 @@ test.describe('Form Validation Tests', () => {
         await page.waitForTimeout(500);
 
         const scoreField = page.getByLabel(/Score/i);
-        const maxScoreField = page.getByLabel(/Max Score/i);
         const percentileField = page.getByLabel(/Percentile/i);
 
         if (await scoreField.isVisible()) {
@@ -271,7 +270,7 @@ test.describe('Form Validation Tests', () => {
           expect(acceptAttribute).toMatch(/\.(pdf|doc|docx|png|jpg|jpeg)/);
         }
 
-        const multipleAttribute = await fileInput.getAttribute('multiple');
+        await fileInput.getAttribute('multiple');
         // Multiple attribute may or may not be present
       }
     });

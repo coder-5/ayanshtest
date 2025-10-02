@@ -42,7 +42,6 @@ export default function TopicPracticePage() {
       const data = result.success ? result.data : result;
       setTopics(data);
     } catch (error) {
-      console.error('Failed to fetch topics:', error);
       setError(error instanceof Error ? error.message : 'Failed to load topics');
     } finally {
       setLoading(false);
@@ -167,9 +166,9 @@ export default function TopicPracticePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Difficulties</SelectItem>
-                    <SelectItem value="easy">Easy</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="hard">Hard</SelectItem>
+                    <SelectItem value="EASY">Easy</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HARD">Hard</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

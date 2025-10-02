@@ -40,7 +40,6 @@ export default function PracticePage() {
       const data = await response.json();
       setCounts(data);
     } catch (error) {
-      console.error('Failed to fetch question counts:', error);
       setError(error instanceof Error ? error.message : 'Failed to load question counts');
     } finally {
       setLoading(false);
@@ -275,7 +274,7 @@ export default function PracticePage() {
               Retry Failed Questions
             </CardTitle>
             <CardDescription>
-              Master the questions you've struggled with before
+              Master the questions you&apos;ve struggled with before
             </CardDescription>
           </CardHeader>
           <CardContent>

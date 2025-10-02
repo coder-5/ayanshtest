@@ -32,7 +32,7 @@ export function RetrySessionManager({ questions, summary: _ }: RetrySessionManag
 
   // Get unique values for filters
   const topics = Array.from(new Set(questions.map(q => q.question.topic))).sort();
-  const exams = Array.from(new Set(questions.map(q => q.question.examName))).sort();
+  const exams = Array.from(new Set(questions.map(q => q.question.examName).filter((name): name is string => Boolean(name)))).sort();
   const difficulties = Array.from(new Set(questions.map(q => q.question.difficulty))).sort();
 
   // Apply filters
@@ -56,7 +56,7 @@ export function RetrySessionManager({ questions, summary: _ }: RetrySessionManag
       filtered = filtered.filter(q =>
         q.question.questionText.toLowerCase().includes(query) ||
         q.question.topic.toLowerCase().includes(query) ||
-        q.question.examName.toLowerCase().includes(query)
+        (q.question.examName && q.question.examName.toLowerCase().includes(query))
       );
     }
 
@@ -97,7 +97,6 @@ export function RetrySessionManager({ questions, summary: _ }: RetrySessionManag
         alert('Failed to start retry session');
       }
     } catch (error) {
-      console.error('Error starting retry session:', error);
       alert('Error starting retry session');
     } finally {
       setLoading(false);
@@ -256,7 +255,7 @@ export function RetrySessionManager({ questions, summary: _ }: RetrySessionManag
         <CardHeader>
           <CardTitle>Failed Questions ({filteredQuestions.length})</CardTitle>
           <CardDescription>
-            Questions you've struggled with in the past - time to master them!
+            Questions you&apos;ve struggled with in the past - time to master them!
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -267,11 +266,11 @@ export function RetrySessionManager({ questions, summary: _ }: RetrySessionManag
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary">{item.question.examName}</Badge>
+                        {item.question.examName && <Badge variant="secondary">{item.question.examName}</Badge>}
                         <Badge variant="outline">{item.question.topic}</Badge>
                         <Badge variant={
-                          item.question.difficulty === 'easy' ? 'default' :
-                          item.question.difficulty === 'medium' ? 'secondary' : 'destructive'
+                          item.question.difficulty === 'EASY' ? 'default' :
+                          item.question.difficulty === 'MEDIUM' ? 'secondary' : 'destructive'
                         }>
                           {item.question.difficulty}
                         </Badge>
@@ -283,7 +282,7 @@ export function RetrySessionManager({ questions, summary: _ }: RetrySessionManag
                       </div>
 
                       <h3 className="font-medium mb-2">
-                        {item.question.examName} {item.question.examYear} #{item.question.questionNumber}
+                        {item.question.examName && item.question.examYear ? `${item.question.examName} ${item.question.examYear}` : ''} {item.question.questionNumber ? `#${item.question.questionNumber}` : ''}
                       </h3>
 
                       <p className="text-sm text-gray-600 mb-3">

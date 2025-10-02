@@ -2,16 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { qualityValidationService } from '@/services/qualityValidationService';
 
-// const QualityRequestSchema = z.object({
-//   action: z.enum(['validate', 'metrics', 'dashboard', 'report']),
-//   questionId: z.string().optional(),
-//   questionIds: z.array(z.string()).optional(),
-//   startDate: z.string().optional(),
-//   endDate: z.string().optional(),
-//   examType: z.string().optional(),
-//   topic: z.string().optional()
-// });
-
 // GET /api/quality - Get quality metrics and reports
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +32,6 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error handling quality request:', error);
     return NextResponse.json(
       { error: 'Failed to process quality request' },
       { status: 500 }
@@ -74,7 +63,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error processing quality validation:', error);
     return NextResponse.json(
       { error: 'Failed to process quality validation' },
       { status: 500 }

@@ -14,7 +14,6 @@ export async function getDynamicCompetitions() {
 
     return competitions.map(c => c.examName);
   } catch (error) {
-    console.error('Error fetching competitions:', error);
     return [];
   }
 }
@@ -33,7 +32,6 @@ export async function getDynamicTopics() {
 
     return topics.map(t => t.topic);
   } catch (error) {
-    console.error('Error fetching topics:', error);
     return [];
   }
 }
@@ -54,7 +52,6 @@ export async function getCompetitionStats() {
 
     return stats;
   } catch (error) {
-    console.error('Error fetching competition stats:', error);
     return [];
   }
 }
@@ -73,7 +70,6 @@ export async function getDynamicData() {
       stats
     };
   } catch (error) {
-    console.error('Error fetching dynamic data:', error);
     return {
       competitions: [],
       topics: [],

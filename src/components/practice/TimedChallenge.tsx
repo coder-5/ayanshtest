@@ -50,10 +50,12 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
   const startTime = useRef<number>(Date.now());
   const questionStartTime = useRef<number>(Date.now());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch questions when component mounts
   useEffect(() => {
     fetchQuestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]);
 
   // Timer logic
@@ -83,16 +85,41 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
         clearInterval(timerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, timeRemaining, challengeComplete]);
 
   // Show warning when time is running low
   useEffect(() => {
     if (showWarning) {
-      const timeout = setTimeout(() => setShowWarning(false), 3000);
-      return () => clearTimeout(timeout);
+      warningTimeoutRef.current = setTimeout(() => setShowWarning(false), 3000);
+      return () => {
+        if (warningTimeoutRef.current) {
+          clearTimeout(warningTimeoutRef.current);
+          warningTimeoutRef.current = null;
+        }
+      };
     }
-    return () => {}; // Always return a cleanup function
+    return () => {
+      if (warningTimeoutRef.current) {
+        clearTimeout(warningTimeoutRef.current);
+        warningTimeoutRef.current = null;
+      }
+    };
   }, [showWarning]);
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (warningTimeoutRef.current) {
+        clearTimeout(warningTimeoutRef.current);
+        warningTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const fetchQuestions = async () => {
     try {
@@ -118,7 +145,6 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
       } else if (data.questions && Array.isArray(data.questions)) {
         questionsArray = data.questions;
       } else {
-        console.error('Invalid response format:', data);
         throw new Error('Invalid response format: expected array of questions');
       }
 
@@ -133,7 +159,6 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
 
       setQuestions(processedQuestions);
     } catch (error) {
-      console.error('Failed to fetch questions:', error);
     } finally {
       setLoading(false);
     }
@@ -151,9 +176,21 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
 
     // Determine if answer is correct
     let isCorrect = false;
+    const normalizeValue = (value: any): string => {
+      if (value == null) return '';
+      let normalized = String(value).trim().toLowerCase();
+      // Remove "Answer: " prefix if it exists
+      normalized = normalized.replace(/^answer:\s*/i, '');
+      return normalized;
+    };
+
     if (currentQuestion.type === 'multiple-choice' && currentQuestion.options) {
+      // Multiple choice question
       const correctOption = currentQuestion.options.find(opt => opt.isCorrect);
-      isCorrect = answer === correctOption?.label;
+      isCorrect = normalizeValue(answer) === normalizeValue(correctOption?.label || (correctOption as any)?.optionLetter);
+    } else if (currentQuestion.solution?.solutionText) {
+      // Text/numerical question - check against solution text
+      isCorrect = normalizeValue(answer) === normalizeValue(currentQuestion.solution.solutionText);
     }
 
     const result = {
@@ -180,7 +217,6 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
         })
       });
     } catch (error) {
-      console.error('Failed to save progress:', error);
     }
 
     // Move to next question or finish
@@ -242,7 +278,7 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
             <CardTitle className="text-red-600">No Questions Available</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>We couldn't find enough questions for this challenge. Please try a different exam type or reduce the number of questions.</p>
+            <p>We couldn&apos;t find enough questions for this challenge. Please try a different exam type or reduce the number of questions.</p>
             <Button onClick={onBack} className="mt-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Setup
@@ -280,7 +316,7 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
               <ul className="text-sm text-yellow-700 space-y-1">
                 <li>• Once you click start, the timer begins immediately</li>
                 <li>• You cannot pause or restart the challenge</li>
-                <li>• Make sure you're in a quiet environment</li>
+                <li>• Make sure you&apos;re in a quiet environment</li>
                 <li>• All questions must be attempted to get accurate results</li>
               </ul>
             </div>
@@ -344,7 +380,6 @@ export function TimedChallenge({ config, onComplete, onBack }: TimedChallengePro
         totalQuestions={questions.length}
         timeElapsed={Math.floor((Date.now() - questionStartTime.current) / 1000)}
         onAnswer={handleAnswer}
-        showSolution={false}
         hideNextButton={true}
       />
 

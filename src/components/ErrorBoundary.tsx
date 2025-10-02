@@ -30,7 +30,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Log error to external service (implement based on your needs)
     this.logErrorToService(error, errorInfo);
@@ -60,20 +59,17 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     // Log to console for development
     if (process.env.NODE_ENV === 'development') {
       console.group('🚨 ErrorBoundary - Error Details');
-      console.error('Error:', error);
-      console.error('Component Stack:', errorInfo.componentStack);
-      console.error('Error ID:', errorId);
       console.groupEnd();
     }
 
-    // TODO: In production, send to error tracking service
+    // In production, this would send to error tracking service like Sentry
     // Example:
     if (process.env.NODE_ENV === 'production') {
       fetch('/api/errors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(errorLog)
-      }).catch(console.error);
+      });
     }
 
     // Store error ID in state for user reference

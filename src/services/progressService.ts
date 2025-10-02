@@ -11,6 +11,16 @@ export class ProgressService {
       // For now, we'll use a default user ID since user auth isn't implemented
       const userId = data.userId || 'ayansh';
 
+      // First check if the question exists to prevent foreign key constraint errors
+      const questionExists = await prisma.question.findUnique({
+        where: { id: data.questionId },
+        select: { id: true }
+      });
+
+      if (!questionExists) {
+        throw new Error(`Question with ID ${data.questionId} not found`);
+      }
+
       const attempt = await prisma.userAttempt.create({
         data: {
           userId,
@@ -37,7 +47,6 @@ export class ProgressService {
         sessionId: attempt.sessionId
       };
     } catch (error) {
-      console.error('Error in ProgressService.saveProgress:', error);
       throw error;
     }
   }
@@ -128,7 +137,7 @@ export class ProgressService {
       // Calculate streak data
       const streakData = this.calculateStreaks(attempts);
 
-      return {
+      const result = {
         totalAttempts,
         correctAnswers,
         accuracy,
@@ -138,8 +147,10 @@ export class ProgressService {
         difficultyBreakdown,
         recentSessions
       };
+
+
+      return result;
     } catch (error) {
-      console.error('Error in ProgressService.getProgressStats:', error);
       throw error;
     }
   }
@@ -166,7 +177,6 @@ export class ProgressService {
         }))
         .sort((a, b) => a.accuracy - b.accuracy);
     } catch (error) {
-      console.error('Error in ProgressService.getWeakAreas:', error);
       throw error;
     }
   }
@@ -199,7 +209,6 @@ export class ProgressService {
 
       return questions.map(q => q.id);
     } catch (error) {
-      console.error('Error in ProgressService.getWeakAreaQuestions:', error);
       throw error;
     }
   }
@@ -234,7 +243,6 @@ export class ProgressService {
         streakData
       };
     } catch (error) {
-      console.error('Error in ProgressService.getAnalytics:', error);
       throw error;
     }
   }

@@ -3,20 +3,26 @@ const nextConfig = {
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  },
+
+  // ESLint configuration - now re-enabled with better rules
+  eslint: {
+    ignoreDuringBuilds: false, // Re-enabled after improving ESLint config
+  },
+
+  // Turbopack configuration
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
 
   // Enable development tools
   devIndicators: {
-    buildActivity: true,
-    buildActivityPosition: 'bottom-right',
+    position: 'bottom-left',
   },
 
   // Development logging
@@ -26,10 +32,10 @@ const nextConfig = {
     },
   },
 
-  // Compiler optimizations
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
+  // Compiler optimizations (disabled for Turbopack compatibility)
+  // compiler: {
+  //   removeConsole: process.env.NODE_ENV === 'production',
+  // },
 
   // Fix CORS issues for development and production
   async headers() {
@@ -71,18 +77,12 @@ const nextConfig = {
       })
     );
 
-    // Performance optimizations
-    if (dev) {
-      // Development optimizations
-      config.cache = {
-        type: 'filesystem',
-        cacheDirectory: require('path').resolve(__dirname, '.next/cache'),
-      };
-
-      // Reduce rebuild time
+    // Performance optimizations for webpack (Turbopack handles its own caching)
+    if (dev && !process.env.TURBOPACK) {
       config.watchOptions = {
-        ignored: ['node_modules/**', '.next/**'],
+        ignored: ['node_modules/**'],
         poll: false,
+        aggregateTimeout: 200,
       };
     }
 
@@ -112,6 +112,10 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    domains: ['localhost', '192.168.1.197'],
+    unoptimized: process.env.NODE_ENV === 'development',
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 

@@ -81,7 +81,6 @@ export class DiagramGenerator {
       };
 
     } catch (error) {
-      console.error('Diagram generation failed:', error);
       return this.generateFallbackDiagram(prompt);
     }
   }
@@ -506,7 +505,7 @@ export class DiagramGenerator {
       );
       return engine.export('svg') as string;
     } catch (error) {
-      console.warn('AdvancedDiagramEngine not available, using fallback');
+      // AdvancedDiagramEngine not available, using fallback
     }
 
     // For now, return a placeholder SVG

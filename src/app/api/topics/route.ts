@@ -34,11 +34,10 @@ export async function GET() {
     const response = ApiResponse.success(topicsWithCounts);
 
     // Cache for 10 minutes (topics don't change frequently)
-    apiCache.set(cacheKey, JSON.parse(response.body!), 10 * 60 * 1000);
+    apiCache.set(cacheKey, topicsWithCounts, 10 * 60 * 1000);
 
     return response;
   } catch (error) {
-    console.error('Failed to get topics:', error);
     return ApiResponse.serverError('Failed to get topics');
   }
 }

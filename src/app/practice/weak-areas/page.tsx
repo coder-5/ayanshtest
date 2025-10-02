@@ -63,7 +63,7 @@ export default function WeakAreasPracticePage() {
             Your Strong Areas
           </CardTitle>
           <CardDescription>
-            Topics where you're performing well (75%+ accuracy)
+            Topics where you&apos;re performing well (75%+ accuracy)
           </CardDescription>
         </CardHeader>
         <CardContent>

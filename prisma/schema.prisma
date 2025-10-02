@@ -7,20 +7,56 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums for better type safety and performance
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ExamStatus {
+  UPCOMING
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  CONFIRMED
+  FIXED
+  REJECTED
+}
+
+enum DiagramStatus {
+  ACTIVE
+  REPLACED
+  DELETED
+}
+
 model Question {
   id          String   @id @default(cuid())
   questionText String  // Mathematical content in MathJax/LaTeX format
-  examName    String   // AMC8, Kangaroo, MOEMS, MathCounts, CML
-  examYear    Int      // Year of the exam (2020, 2021, etc.)
+  examName    String?  // AMC8, Kangaroo, MOEMS, MathCounts, CML (optional for topic-based questions)
+  examYear    Int?     // Year of the exam (2020, 2021, etc.) (optional for topic-based questions)
   questionNumber String?  // Original question number in exam (1-25 for AMC, 2A-2E for MOEMS)
-  difficulty  String   // easy, medium, hard
+  difficulty  DifficultyLevel @default(MEDIUM)
   topic       String   // Algebra, Geometry, Number Theory, etc.
   subtopic    String?  // More specific categorization
   hasImage    Boolean  @default(false)
-  imageUrl    String?  // URL to question diagram/image
+  imageUrl    String?  // URL to question diagram/image (auto-generated)
   timeLimit   Int?     // Time limit in minutes (for MOEMS)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft delete timestamp
 
   // Relations
   options     Option[]
@@ -28,6 +64,7 @@ model Question {
   attempts    UserAttempt[]
   tags        QuestionTag[]
   errorReports ErrorReport[]
+  userDiagrams UserDiagram[]
 
   @@unique([examName, examYear, questionNumber])
   @@index([examName, examYear])
@@ -35,7 +72,11 @@ model Question {
   @@index([difficulty])
   @@index([topic])
   @@index([examName, topic])
+  @@index([examName, topic, difficulty])
   @@index([createdAt])
+  @@index([hasImage, topic])
+  @@index([examName, difficulty])
+  @@index([deletedAt])
 }
 
 model Option {
@@ -86,10 +127,10 @@ model Exam {
 model User {
   id          String   @id @default(cuid())
   name        String   // Ayansh
-  email       String?  @unique
   grade       Int?     // School grade level (5th grade)
   targetScore Int?     // Goal score for competitions
   createdAt   DateTime @default(now())
+  deletedAt   DateTime? // Soft delete timestamp
 
   // Relations
   attempts    UserAttempt[]
@@ -99,6 +140,7 @@ model User {
   weeklyStats WeeklyAnalysis[]
   topicPerformance TopicPerformance[]
   errorReports ErrorReport[]
+  userDiagrams UserDiagram[]
 }
 
 model UserAttempt {
@@ -107,14 +149,15 @@ model UserAttempt {
   questionId   String
   selectedAnswer String? // User's selected option (A, B, C, D, E) or numerical answer
   isCorrect    Boolean
-  timeSpent    Int      // Time in seconds
-  hintsUsed    Int      @default(0)
+  timeSpent    Int      @db.Integer // Time in seconds (must be >= 0)
+  hintsUsed    Int      @default(0) @db.Integer // Number of hints used (must be >= 0)
   excludeFromScoring Boolean @default(false) // Allow excluding problematic questions from score calculation
   attemptedAt  DateTime @default(now())
+  deletedAt    DateTime? // Soft delete timestamp
 
   // Relations
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
   session      PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   sessionId    String?
 
@@ -122,6 +165,14 @@ model UserAttempt {
   @@index([userId, attemptedAt])
   @@index([questionId, attemptedAt])
   @@index([userId, isCorrect])
+  @@index([userId, attemptedAt, isCorrect])
+  @@index([questionId, isCorrect])
+  @@index([userId, timeSpent])
+  @@index([sessionId, isCorrect])
+  @@index([deletedAt])
+
+  // Constraints to ensure data integrity
+  @@map("user_attempts")
 }
 
 model PracticeSession {
@@ -135,6 +186,7 @@ model PracticeSession {
   totalTime   Int?     // Total time in seconds
   averageTimePerQuestion Float? // Average time per question
   focusTopics String? // Topics focused on in this session (comma-separated)
+  deletedAt   DateTime? // Soft delete timestamp
 
   // Relations
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -244,7 +296,7 @@ model ExamSchedule {
   examDate    DateTime // Date and time of the exam
   location    String   // School, Online, Competition Center, etc.
   duration    Int?     // Exam duration in minutes
-  status      String   @default("upcoming") // upcoming, completed, missed, cancelled
+  status      ExamStatus @default(UPCOMING)
   notes       String?  // Additional notes about the exam
 
   // Date range for when the exam can be taken
@@ -253,17 +305,15 @@ model ExamSchedule {
 
   // Online exam access details
   examUrl       String? // URL for online exams
-  loginId       String? // Login ID/username for the exam
-  loginPassword String? // Password for the exam (consider encryption in production)
 
   // Registration details
   registeredAt DateTime? // When registered for the exam
   registrationId String? // Registration confirmation number
 
   // Results (if exam is completed)
-  score       Int?     // Score achieved
-  maxScore    Int?     // Maximum possible score
-  percentile  Float?   // Percentile ranking
+  score       Int?     // Score achieved (must be >= 0, no penalty for wrong answers)
+  maxScore    Int?     // Maximum possible score (must be > 0)
+  percentile  Float?   // Percentile ranking (0.0 to 100.0)
 
   // Metadata
   createdAt   DateTime @default(now())
@@ -308,7 +358,7 @@ model ErrorReport {
   reportType  String   // WRONG_ANSWER, INCORRECT_SOLUTION, UNCLEAR_QUESTION, etc.
 
   description String
-  severity    String   // CRITICAL, HIGH, MEDIUM, LOW
+  severity    ReportSeverity
   evidence    String?  // Screenshot, explanation
 
   // Reporter assessment
@@ -316,7 +366,7 @@ model ErrorReport {
   confidence  Int      // 1-10 how confident reporter is
 
   // Review process
-  status      String   @default("PENDING") // PENDING, INVESTIGATING, CONFIRMED, FIXED, REJECTED
+  status      ReportStatus @default(PENDING)
   reviewedBy  String?
   reviewNotes String?
   resolution  String?
@@ -331,5 +381,47 @@ model ErrorReport {
   @@index([questionId, status])
   @@index([reportType, severity])
   @@index([status])
+  @@index([status, severity])
+  @@index([questionId, reportType])
+  @@index([userId, status])
+  @@index([createdAt, status])
+}
+
+model UserDiagram {
+  id          String   @id @default(cuid())
+  questionId  String
+  userId      String?
+  imageUrl    String   // URL to user-uploaded diagram image
+  filename    String   // Original filename
+  fileSize    Int      // File size in bytes
+  mimeType    String   // image/png, image/jpeg, etc.
+  status      DiagramStatus @default(ACTIVE)
+
+  // Moderation and quality
+  isApproved  Boolean  @default(false) // Whether diagram is approved for use
+  moderatedBy String?  // Admin who approved/rejected
+  moderatedAt DateTime?
+  rejectionReason String? // Why diagram was rejected
+
+  // Usage tracking
+  isPreferred Boolean  @default(true) // Whether to prefer this over auto-generated
+  usageCount  Int      @default(0) // How many times this diagram has been viewed
+  sequence    Int      @default(1) // Order of diagram for questions with multiple diagrams
+
+  // Metadata
+  description String?  // Optional description of what the diagram shows
+  source      String?  // Where the diagram came from (user_upload, admin_replacement, etc.)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([questionId, status])
+  @@index([questionId, isPreferred])
+  @@index([userId])
+  @@index([isApproved, status])
 }
 

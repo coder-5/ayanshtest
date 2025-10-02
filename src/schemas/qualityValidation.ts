@@ -82,8 +82,8 @@ export const QuestionContentSchema = z.object({
       );
     }, "Must be a valid mathematical topic"),
 
-  difficulty: z.enum(['easy', 'medium', 'hard'], {
-    errorMap: () => ({ message: "Difficulty must be easy, medium, or hard" })
+  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD'], {
+    errorMap: () => ({ message: "Difficulty must be EASY, MEDIUM, or HARD" })
   }),
 
   examName: z.string()

@@ -2,8 +2,10 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { processDocxFile } from "@/lib/document-processor";
 import { ApiResponse } from '@/lib/api-response';
+import { rateLimiters, withRateLimit } from '@/lib/rate-limiter';
+import { withErrorHandling } from '@/lib/error-handler';
 
-export async function POST(request: NextRequest) {
+async function uploadHandler(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -36,7 +38,6 @@ export async function POST(request: NextRequest) {
     try {
       buffer = await file.arrayBuffer();
     } catch (error) {
-      console.error('Error reading file:', error);
       return ApiResponse.serverError('Failed to read file. File may be corrupted.');
     }
 
@@ -53,7 +54,6 @@ export async function POST(request: NextRequest) {
         questions = await parseQuestions(content, examName, examYear, description);
       }
     } catch (processingError) {
-      console.error('File processing error:', processingError);
       return ApiResponse.serverError(
         `Failed to process ${file.type} file. Please ensure the file is not corrupted and contains valid question data.`
       );
@@ -66,35 +66,104 @@ export async function POST(request: NextRequest) {
     // Save questions to database using upsert to handle duplicates
     let savedQuestions;
     try {
-      savedQuestions = await Promise.all(
-        questions.map(question =>
-          prisma.question.upsert({
-            where: {
-              examName_examYear_questionNumber: {
-                examName: question.examName,
+      // Use database transaction to ensure atomicity
+      savedQuestions = await prisma.$transaction(async (tx) => {
+        const results = [];
+
+        for (const question of questions) {
+          try {
+            // First upsert the question - clean all text fields
+            const savedQuestion = await tx.question.upsert({
+              where: {
+                examName_examYear_questionNumber: {
+                  examName: cleanTextForDatabase(question.examName),
+                  examYear: question.examYear,
+                  questionNumber: cleanTextForDatabase(question.questionNumber || '1')
+                }
+              },
+              update: {
+                questionText: cleanTextForDatabase(question.questionText),
+                topic: cleanTextForDatabase(question.topic),
+                subtopic: (question as any).subtopic ? cleanTextForDatabase((question as any).subtopic) : null,
+                difficulty: question.difficulty as any,
+                hasImage: typeof (question as any).hasImage === 'boolean' ? (question as any).hasImage : false,
+                imageUrl: (question as any).imageUrl ? cleanTextForDatabase((question as any).imageUrl) : null,
+                timeLimit: (question as any).timeLimit || null,
+                updatedAt: new Date()
+              },
+              create: {
+                questionText: cleanTextForDatabase(question.questionText),
+                examName: cleanTextForDatabase(question.examName),
                 examYear: question.examYear,
-                questionNumber: question.questionNumber || '1'
+                questionNumber: cleanTextForDatabase(question.questionNumber || '1'),
+                topic: cleanTextForDatabase(question.topic),
+                subtopic: (question as any).subtopic ? cleanTextForDatabase((question as any).subtopic) : null,
+                difficulty: question.difficulty as any,
+                hasImage: typeof (question as any).hasImage === 'boolean' ? (question as any).hasImage : false,
+                imageUrl: (question as any).imageUrl ? cleanTextForDatabase((question as any).imageUrl) : null,
+                timeLimit: (question as any).timeLimit || null
               }
-            },
-            update: {
-              questionText: question.questionText,
-              topic: question.topic,
-              subtopic: (question as any).subtopic || null,
-              difficulty: question.difficulty,
-              hasImage: (question as any).hasImage || false,
-              imageUrl: (question as any).imageUrl || null,
-              timeLimit: (question as any).timeLimit || null,
-              updatedAt: new Date()
-            },
-            create: question
-          })
-        )
-      );
-    } catch (dbError) {
-      console.error('Database error while saving questions:', dbError);
-      return ApiResponse.serverError(
-        'Failed to save questions to database. Please try again or contact support if the issue persists.'
-      );
+            });
+
+            // Then save answer choices if they exist (within same transaction)
+            if ((question as any).answerChoices && Array.isArray((question as any).answerChoices)) {
+              // Delete existing options first
+              await tx.option.deleteMany({
+                where: { questionId: savedQuestion.id }
+              });
+
+              // Validate option data before creating
+              const validChoices = (question as any).answerChoices.filter((choice: any) =>
+                choice.letter && choice.text && typeof choice.letter === 'string' && typeof choice.text === 'string'
+              );
+
+              if (validChoices.length > 0) {
+                // Create new options in batch for better performance - clean all text fields
+                await tx.option.createMany({
+                  data: validChoices.map((choice: any) => ({
+                    questionId: savedQuestion.id,
+                    optionLetter: cleanTextForDatabase(choice.letter),
+                    optionText: cleanTextForDatabase(choice.text),
+                    isCorrect: Boolean(choice.isCorrect)
+                  }))
+                });
+              }
+            }
+
+            results.push(savedQuestion);
+          } catch (questionError: any) {
+            console.error(`Failed to save question ${question.questionNumber}:`, questionError);
+            // Throw error to rollback transaction
+            throw new Error(`Failed to save question ${question.questionNumber}: ${questionError.message}`);
+          }
+        }
+
+        return results;
+      }, {
+        maxWait: 10000, // Maximum time to wait for transaction to start (10s)
+        timeout: 30000, // Maximum time for transaction to complete (30s)
+      });
+    } catch (dbError: any) {
+      console.error('Database transaction error:', dbError);
+
+      // Provide specific error messages for different failure types
+      if (dbError.message?.includes('Transaction failed')) {
+        return ApiResponse.serverError(
+          'Upload transaction failed. All changes have been rolled back. Please try again.'
+        );
+      } else if (dbError.message?.includes('timeout')) {
+        return ApiResponse.serverError(
+          'Upload timeout. The operation took too long. Please try with fewer questions or check your connection.'
+        );
+      } else if (dbError.message?.includes('Unique constraint')) {
+        return ApiResponse.serverError(
+          'Some questions already exist. Please check for duplicates or use different question numbers.'
+        );
+      } else {
+        return ApiResponse.serverError(
+          `Failed to save questions to database: ${dbError.message || 'Unknown error'}. Please try again.`
+        );
+      }
     }
 
     const uploadData = {
@@ -110,8 +179,6 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Upload error:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'Unknown error');
     return ApiResponse.serverError('Failed to process document. Please try again.');
   }
 }
@@ -163,18 +230,32 @@ async function parseQuestions(content: string, examName: string, examYear: strin
   return questions;
 }
 
+function cleanTextForDatabase(text: string): string {
+  if (!text) return '';
+
+  // Convert to string and handle potential null/undefined values
+  const safeText = String(text);
+
+  // Remove null bytes and other problematic characters, but preserve normal text
+  return safeText
+    .replace(/\0/g, '') // Remove null bytes
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters except \t, \n, \r
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
+}
+
 function createQuestionObject(questionText: string, examName: string, examYear: string, _description: string, questionNumber: number) {
   // Clean up the question text
-  const cleanText = questionText.trim();
+  const cleanText = cleanTextForDatabase(questionText);
 
   // Determine difficulty based on exam type and question number
-  let difficulty = 'medium';
+  let difficulty = 'MEDIUM';
   if (examName.toLowerCase().includes('amc 8') && questionNumber <= 10) {
-    difficulty = 'easy';
+    difficulty = 'EASY';
   } else if (questionNumber <= 5) {
-    difficulty = 'easy';
+    difficulty = 'EASY';
   } else if (questionNumber >= 20) {
-    difficulty = 'hard';
+    difficulty = 'HARD';
   }
 
   // Determine topic based on question content
@@ -216,3 +297,6 @@ function getTimeLimit(examName: string): number {
 
   return 5; // Default 5 minutes
 }
+
+// Export with rate limiting and error handling
+export const POST = withRateLimit(rateLimiters.upload, withErrorHandling(uploadHandler));

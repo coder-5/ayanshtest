@@ -1,24 +1,16 @@
 import { z } from 'zod';
-import { DIFFICULTY_LEVELS, EXAM_TYPES, TOPICS } from '@/constants';
+
+// Base schemas
+export const idSchema = z.string().min(1, 'ID is required').max(100, 'ID too long');
 
 // Question schemas
 export const questionSchema = z.object({
   questionText: z.string().min(1, 'Question text is required').max(5000, 'Question text too long'),
-  examName: z.enum([EXAM_TYPES.AMC8, EXAM_TYPES.KANGAROO, EXAM_TYPES.MOEMS, EXAM_TYPES.OTHERS]),
-  examYear: z.number().min(2000).max(new Date().getFullYear() + 1),
-  questionNumber: z.string().optional(),
-  difficulty: z.enum([DIFFICULTY_LEVELS.BEGINNER, DIFFICULTY_LEVELS.INTERMEDIATE, DIFFICULTY_LEVELS.ADVANCED, DIFFICULTY_LEVELS.OTHERS]),
-  topic: z.enum([
-    TOPICS.ALGEBRA,
-    TOPICS.GEOMETRY,
-    TOPICS.NUMBER_THEORY,
-    TOPICS.COMBINATORICS,
-    TOPICS.PROBABILITY,
-    TOPICS.STATISTICS,
-    TOPICS.LOGIC,
-    TOPICS.MIXED,
-    TOPICS.OTHERS
-  ]),
+  examName: z.string().nullable().optional(),
+  examYear: z.number().min(2000).max(new Date().getFullYear() + 1).nullable().optional(),
+  questionNumber: z.string().nullable().optional(),
+  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']),
+  topic: z.string().min(1, 'Topic is required'),
   subtopic: z.string().optional(),
   hasImage: z.boolean().default(false),
   imageUrl: z.string().url().optional(),
@@ -31,13 +23,31 @@ export const optionSchema = z.object({
   isCorrect: z.boolean().default(false),
 });
 
+// Progress tracking schema
+export const progressSchema = z.object({
+  userId: z.string().default('ayansh'),
+  questionId: z.string().min(1, 'Question ID is required'),
+  isCorrect: z.boolean(),
+  timeSpent: z.number().min(0).default(0),
+  userAnswer: z.string().optional(),
+  excludeFromScoring: z.boolean().default(false),
+});
+
+// Topic performance schema
+export const topicPerformanceSchema = z.object({
+  userId: z.string().default('ayansh'),
+  topicName: z.string().min(1, 'Topic name is required'),
+  isCorrect: z.boolean(),
+  timeSpent: z.number().min(0).default(0),
+});
+
 export const createQuestionSchema = z.object({
   question: questionSchema,
-  options: z.array(optionSchema).min(2, 'At least 2 options required').max(5, 'Maximum 5 options allowed'),
+  options: z.array(optionSchema).max(10, 'Maximum 10 options allowed').optional(),
   solution: z.object({
-    solutionText: z.string().min(1, 'Solution is required').max(10000),
+    solutionText: z.string().max(10000, 'Solution text is too long (maximum 10,000 characters)').optional(),
     approach: z.string().optional(),
-    difficulty: z.string().min(1, 'Solution difficulty is required'),
+    difficulty: z.string().optional(),
     timeEstimate: z.number().positive().optional(),
     keyInsights: z.string().optional(),
     commonMistakes: z.string().optional(),
@@ -93,6 +103,13 @@ export const fileUploadSchema = z.object({
   fileType: z.enum(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
 });
 
+// Pagination schema
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sort: z.enum(['asc', 'desc']).default('desc')
+});
+
 export type QuestionInput = z.infer<typeof questionSchema>;
 export type CreateQuestionInput = z.infer<typeof createQuestionSchema>;
 export type UserAttemptInput = z.infer<typeof userAttemptSchema>;
@@ -100,3 +117,4 @@ export type PracticeSessionInput = z.infer<typeof practiceSessionSchema>;
 export type ExamScheduleInput = z.infer<typeof examScheduleSchema>;
 export type QuestionQuery = z.infer<typeof questionQuerySchema>;
 export type StatsQuery = z.infer<typeof statsQuerySchema>;
+export type Pagination = z.infer<typeof paginationSchema>;

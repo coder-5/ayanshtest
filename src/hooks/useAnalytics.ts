@@ -56,6 +56,7 @@ export function useAnalytics(userId: string = 'ayansh') {
 
   useEffect(() => {
     fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const refreshAnalytics = () => {

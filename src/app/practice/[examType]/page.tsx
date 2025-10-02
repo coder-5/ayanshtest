@@ -3,13 +3,14 @@ import { isValidExamType } from '@/constants/examTypes';
 import { notFound } from 'next/navigation';
 
 interface Props {
-  params: {
+  params: Promise<{
     examType: string;
-  };
+  }>;
 }
 
-export default function ExamTypePracticePage({ params }: Props) {
-  const { examType } = params;
+export default async function ExamTypePracticePage({ params }: Props) {
+  const resolvedParams = await params;
+  const { examType } = resolvedParams;
 
   // Validate exam type
   if (!isValidExamType(examType)) {

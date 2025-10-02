@@ -10,7 +10,7 @@ export interface User {
   avatar?: string;
   preferences: {
     preferredCompetitions: string[];
-    difficultyLevel: 'easy' | 'medium' | 'hard' | 'mixed';
+    difficultyLevel: 'EASY' | 'MEDIUM' | 'HARD' | 'mixed';
     practiceGoals: {
       questionsPerDay: number;
       sessionsPerWeek: number;
@@ -60,11 +60,19 @@ class UserManager {
     if (typeof window !== 'undefined') {
       const savedUser = localStorage.getItem('currentUser');
       if (savedUser) {
-        this.currentUser = JSON.parse(savedUser);
+        try {
+          this.currentUser = JSON.parse(savedUser);
+        } catch (error) {
+          // Invalid saved user data, using default
+          this.setCurrentUser(DEFAULT_USERS[0]);
+        }
       } else {
         // Default to Ayansh for first time use
         this.setCurrentUser(DEFAULT_USERS[0]);
       }
+    } else {
+      // Server-side rendering - use default user
+      this.currentUser = DEFAULT_USERS[0];
     }
   }
 
@@ -73,8 +81,12 @@ class UserManager {
   }
 
   getCurrentUserId(): string {
-    const userId = this.currentUser?.id || 'ayansh';
-    return userId;
+    // Ensure we always return a valid user ID
+    if (this.currentUser?.id) {
+      return this.currentUser.id;
+    }
+    // Fallback to default user
+    return DEFAULT_USERS[0].id;
   }
 
   setCurrentUser(user: User) {
@@ -117,7 +129,6 @@ class UserManager {
         return await response.json();
       }
     } catch (error) {
-      console.error('Failed to fetch user stats:', error);
     }
 
     return null;
@@ -134,7 +145,7 @@ class UserManager {
     if (!user) {
       return {
         competition: 'amc8',
-        difficulty: 'medium',
+        difficulty: 'MEDIUM',
         questionCount: 10
       };
     }
@@ -144,7 +155,7 @@ class UserManager {
 
     return {
       competition: primaryCompetition,
-      difficulty: preferences?.difficultyLevel || 'medium',
+      difficulty: preferences?.difficultyLevel || 'MEDIUM',
       questionCount: preferences?.practiceGoals.questionsPerDay || 10
     };
   }
@@ -155,21 +166,37 @@ export const userManager = new UserManager();
 
 // React hook for using user state
 export function useUser() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Initialize with default user to avoid SSR issues
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    // During SSR, return default user immediately
+    if (typeof window === 'undefined') {
+      return DEFAULT_USERS[0];
+    }
+    return userManager.getCurrentUser() || DEFAULT_USERS[0];
+  });
 
   useEffect(() => {
-    setCurrentUser(userManager.getCurrentUser());
-
-    // Listen for user changes
-    const handleStorageChange = () => {
-      setCurrentUser(userManager.getCurrentUser());
-    };
-
+    // Only run on client side
     if (typeof window !== 'undefined') {
+      const user = userManager.getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+      }
+
+      // Listen for user changes
+      const handleStorageChange = () => {
+        const updatedUser = userManager.getCurrentUser();
+        if (updatedUser) {
+          setCurrentUser(updatedUser);
+        }
+      };
+
       window.addEventListener('storage', handleStorageChange);
       return () => window.removeEventListener('storage', handleStorageChange);
     }
-    return () => {}; // Always return a cleanup function
+
+    // Return undefined for server-side
+    return undefined;
   }, []);
 
   const switchUser = (userId: string) => {

@@ -13,7 +13,7 @@ export interface ExamConfig {
 export const EXAM_CONFIGS: Record<string, ExamConfig> = {
   amc8: {
     id: 'amc8',
-    name: 'amc8',
+    name: 'AMC8',
     displayName: 'AMC 8',
     description: 'American Mathematics Competitions 8',
     color: 'blue',
@@ -24,7 +24,7 @@ export const EXAM_CONFIGS: Record<string, ExamConfig> = {
   },
   kangaroo: {
     id: 'kangaroo',
-    name: 'kangaroo',
+    name: 'Kangaroo',
     displayName: 'Math Kangaroo',
     description: 'International Mathematical Kangaroo',
     color: 'green',
@@ -35,7 +35,7 @@ export const EXAM_CONFIGS: Record<string, ExamConfig> = {
   },
   moems: {
     id: 'moems',
-    name: 'moems',
+    name: 'MOEMS',
     displayName: 'MOEMS',
     description: 'Mathematical Olympiad for Elementary and Middle Schools',
     color: 'purple',
@@ -46,7 +46,7 @@ export const EXAM_CONFIGS: Record<string, ExamConfig> = {
   },
   mathcounts: {
     id: 'mathcounts',
-    name: 'mathcounts',
+    name: 'MathCounts',
     displayName: 'MathCounts',
     description: 'MathCounts Competition Sprint Round',
     color: 'red',
@@ -57,7 +57,7 @@ export const EXAM_CONFIGS: Record<string, ExamConfig> = {
   },
   cml: {
     id: 'cml',
-    name: 'cml',
+    name: 'CML',
     displayName: 'CML',
     description: 'Continental Mathematics League',
     color: 'orange',

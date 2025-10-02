@@ -72,7 +72,6 @@ export default function ErrorReport({ questionId, userId, onClose }: ErrorReport
         throw new Error('Failed to submit error report');
       }
     } catch (error) {
-      console.error('Error submitting report:', error);
       alert('Failed to submit error report. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -86,7 +85,7 @@ export default function ErrorReport({ questionId, userId, onClose }: ErrorReport
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Report Submitted</h3>
           <p className="text-gray-600">
-            Thank you for helping improve our content quality. We'll review your report soon.
+            Thank you for helping improve our content quality. We&apos;ll review your report soon.
           </p>
         </CardContent>
       </Card>
@@ -101,7 +100,7 @@ export default function ErrorReport({ questionId, userId, onClose }: ErrorReport
           Report Issue
         </CardTitle>
         <CardDescription>
-          Help us improve content quality by reporting any errors or issues you've found.
+          Help us improve content quality by reporting any errors or issues you&apos;ve found.
         </CardDescription>
       </CardHeader>
 

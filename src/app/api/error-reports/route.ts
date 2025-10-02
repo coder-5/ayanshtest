@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
       confidence = 5
     } = body;
 
-    console.log('Error report request:', { questionId, reportType, severity });
 
     // Validate required fields
     if (!questionId || !reportType || !description || !severity) {
@@ -51,7 +50,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!questionExists) {
-      console.log('Question not found:', questionId);
       return NextResponse.json(
         { error: 'Question not found. Cannot create error report for non-existent question.' },
         { status: 404 }
@@ -83,7 +81,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error creating error report:', error);
     return NextResponse.json(
       { error: 'Failed to submit error report' },
       { status: 500 }
@@ -131,7 +128,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching error reports:', error);
     return NextResponse.json(
       { error: 'Failed to fetch error reports' },
       { status: 500 }

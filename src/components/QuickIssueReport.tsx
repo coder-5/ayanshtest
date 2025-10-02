@@ -98,7 +98,6 @@ export default function QuickIssueReport({
         throw new Error('Failed to submit report');
       }
     } catch (error) {
-      console.error('Error submitting quick report:', error);
       setIsSubmitting(false);
       setSelectedIssue(null);
     }
@@ -142,7 +141,7 @@ export default function QuickIssueReport({
           )}
         </div>
         <p className="text-sm text-gray-600">
-          Click on what's wrong and we'll fix it! 😊
+          Click on what&apos;s wrong and we&apos;ll fix it! 😊
         </p>
       </CardHeader>
 

@@ -8,8 +8,34 @@ import { Target, BookOpen, Clock } from "lucide-react";
 import Link from "next/link";
 import { PracticeSession } from "@/components/practice/PracticeSession";
 import { EXAM_CONFIGS, type ExamType } from "@/constants/examConfig";
-import { apiRequest, handleClientError, showErrorToast } from "@/utils/clientErrorHandler";
+import { handleClientResponse, ClientError } from "@/lib/error-handler";
 import { PracticeQuestion } from "@/types";
+
+// Simple toast helper (can be replaced with proper toast library later)
+const showErrorToast = (_message: string) => {
+  // TODO: Replace with proper toast library
+};
+
+const apiRequest = async (url: string, options?: RequestInit): Promise<any> => {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  });
+  return await handleClientResponse(response);
+};
+
+const handleClientError = (error: unknown): string => {
+  if (error instanceof ClientError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'An unexpected error occurred';
+};
 
 interface ExamPracticeProps {
   examType: ExamType;
@@ -26,11 +52,13 @@ export default function ExamPractice({ examType }: ExamPracticeProps) {
   // Fetch available years on component mount
   useEffect(() => {
     fetchAvailableYears();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examType]);
 
   const fetchAvailableYears = async () => {
     try {
-      const years = await apiRequest(`/api/questions/exam/${examConfig.name}/years`);
+      const response = await apiRequest(`/api/questions/exam/${examConfig.id}/years`);
+      const years = response.data || response; // Handle both wrapped and unwrapped responses
       const yearData = years.map((year: number) => ({
         examYear: year,
         _count: { id: 0 } // Will be populated with actual count later
@@ -45,24 +73,41 @@ export default function ExamPractice({ examType }: ExamPracticeProps) {
   const fetchQuestionsByYear = async (year: number) => {
     setLoading(true);
     try {
-      const data = await apiRequest(`/api/questions/exam/${examConfig.name}?year=${year}`);
-      const transformedQuestions = data.map((q: any) => ({
-        id: q.id,
-        text: q.questionText,
-        type: q.options && q.options.length > 0 ? 'multiple-choice' as const : 'open-ended' as const,
-        competition: `${examConfig.displayName} ${q.examYear}`,
-        topic: q.topic,
-        difficulty: q.difficulty.toLowerCase(),
-        hasImage: q.hasImage,
-        imageUrl: q.imageUrl,
-        options: q.options?.map((opt: any) => ({
-          id: opt.id,
-          label: opt.optionLetter,
-          text: opt.optionText,
-          isCorrect: opt.isCorrect
-        })) || []
-      }));
-      setQuestions(transformedQuestions);
+      const response = await apiRequest(`/api/questions/exam/${examConfig.id}?year=${year}`);
+      const data = response.data || response; // Handle both wrapped and unwrapped responses
+
+      // Fetch solutions for each question
+      const questionsWithSolutions = await Promise.all(
+        data.map(async (q: any) => {
+          let solution = null;
+          try {
+            const solutionResponse = await apiRequest(`/api/solutions?questionId=${q.id}`);
+            solution = solutionResponse.data || solutionResponse;
+          } catch (error) {
+            // No solution found, that's okay
+          }
+
+          return {
+            id: q.id,
+            text: q.questionText,
+            type: q.options && q.options.length > 0 ? 'multiple-choice' as const : 'open-ended' as const,
+            competition: `${examConfig.displayName} ${q.examYear}`,
+            topic: q.topic,
+            difficulty: q.difficulty.toLowerCase(),
+            hasImage: q.hasImage,
+            imageUrl: q.imageUrl,
+            options: q.options?.map((opt: any) => ({
+              id: opt.id,
+              label: opt.optionLetter,
+              text: opt.optionText,
+              isCorrect: opt.isCorrect
+            })) || [],
+            solution: solution
+          };
+        })
+      );
+
+      setQuestions(questionsWithSolutions);
       setInPracticeMode(true);
     } catch (error) {
       const errorMessage = handleClientError(error);
@@ -240,13 +285,41 @@ export default function ExamPractice({ examType }: ExamPracticeProps) {
                     <span>Time:</span>
                     <Badge variant="outline">{examConfig.totalQuestions! * examConfig.timePerQuestion!} min</Badge>
                   </div>
-                  <Link href={`/practice/${examConfig.name}/simulation`}>
+                  <Link href={`/practice/${examConfig.id}/simulation`}>
                     <Button className="w-full mt-4">Start Full Simulation</Button>
                   </Link>
                 </div>
               </CardContent>
             </Card>
           )}
+
+          {/* Detailed Solutions */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className={`h-5 w-5 text-${examConfig.color}-600`} />
+                Detailed Solutions
+              </CardTitle>
+              <CardDescription>
+                Browse questions with complete solutions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span>Mode:</span>
+                  <Badge variant="secondary">Study Mode</Badge>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Solutions:</span>
+                  <Badge variant="outline">Full Details</Badge>
+                </div>
+                <Link href={`/practice/${examConfig.id}/solutions`}>
+                  <Button className="w-full mt-4">View Solutions</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

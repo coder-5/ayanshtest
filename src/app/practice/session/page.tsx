@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PracticeSession } from "@/components/practice/PracticeSession";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ interface SessionResult {
   timeSpent: number;
 }
 
-export default function TopicSessionPage() {
+function TopicSessionContent() {
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,26 +29,7 @@ export default function TopicSessionPage() {
   const topic = searchParams.get('topic') || '';
   const difficulty = searchParams.get('difficulty') || '';
 
-  useEffect(() => {
-    if (topic) {
-      fetchQuestions();
-    }
-  }, [topic, difficulty]);
-
-  // Memoize shuffled questions to avoid re-shuffling on re-renders
-  const shuffledQuestions = useMemo(() => {
-    if (questions.length === 0) return [];
-
-    // Fisher-Yates shuffle algorithm
-    const shuffled = [...questions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled.slice(0, 15); // Take first 15 for topic practice
-  }, [questions]);
-
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -84,7 +65,26 @@ export default function TopicSessionPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [topic, difficulty]);
+
+  useEffect(() => {
+    if (topic) {
+      fetchQuestions();
+    }
+  }, [topic, difficulty, fetchQuestions]);
+
+  // Memoize shuffled questions to avoid re-shuffling on re-renders
+  const shuffledQuestions = useMemo(() => {
+    if (questions.length === 0) return [];
+
+    // Fisher-Yates shuffle algorithm
+    const shuffled = [...questions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 15); // Take first 15 for topic practice
+  }, [questions]);
 
   const handleSessionComplete = (results: SessionResult[]) => {
 
@@ -273,5 +273,26 @@ export default function TopicSessionPage() {
       sessionType={`${topic} Practice`}
       onComplete={handleSessionComplete}
     />
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading session...</span>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function TopicSessionPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <TopicSessionContent />
+    </Suspense>
   );
 }

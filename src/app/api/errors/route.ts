@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+// User authentication removed - using hardcoded user for now
+import { withErrorHandling } from '@/lib/error-handler';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 const ErrorReportSchema = z.object({
   questionId: z.string(),
@@ -31,8 +34,7 @@ const ErrorUpdateSchema = z.object({
 });
 
 // GET /api/errors - Get error reports with filters
-export async function GET(request: NextRequest) {
-  try {
+async function getErrorReportsHandler(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     const questionId = searchParams.get('questionId');
@@ -96,12 +98,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle regular error reports query
-    const where: any = {};
+    const where: Prisma.ErrorReportWhereInput = {};
 
     if (questionId) where.questionId = questionId;
-    if (status) where.status = status;
-    if (severity) where.severity = severity;
-    if (reportType) where.reportType = reportType;
+    if (status) where.status = status as any;
+    if (severity) where.severity = severity as any;
+    if (reportType) where.reportType = reportType as any;
 
     const [errorReports, total] = await Promise.all([
       prisma.errorReport.findMany({
@@ -142,20 +144,14 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / limit)
       }
     });
-
-  } catch (error) {
-    console.error('Error fetching error reports:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch error reports' },
-      { status: 500 }
-    );
-  }
 }
 
 // POST /api/errors - Submit new error report
-export async function POST(request: NextRequest) {
-  try {
+async function createErrorReportHandler(request: NextRequest) {
     const body = await request.json();
+    // Using default user since auth is removed
+    const user = { id: 'ayansh', name: 'Ayansh' };
+
     const validatedData = ErrorReportSchema.parse(body);
 
     // Check if question exists
@@ -191,7 +187,7 @@ export async function POST(request: NextRequest) {
         description: validatedData.description,
         severity: validatedData.severity,
         confidence: validatedData.confidence,
-        userId: validatedData.userId || null,
+        userId: user.id,
         evidence: validatedData.evidence || null,
         suggestedFix: validatedData.suggestedFix || null
       },
@@ -213,27 +209,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(errorReport, { status: 201 });
-
-  } catch (error) {
-    console.error('Error creating error report:', error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to create error report' },
-      { status: 500 }
-    );
-  }
 }
 
 // PUT /api/errors - Update error report (for admin/review)
-export async function PUT(request: NextRequest) {
-  try {
+async function updateErrorReportHandler(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -248,14 +227,14 @@ export async function PUT(request: NextRequest) {
     const validatedData = ErrorUpdateSchema.parse(body);
 
     // Add resolved timestamp if status is being set to FIXED or REJECTED
-    const updateData: any = { ...validatedData };
+    const updateData: typeof validatedData & { resolvedAt?: Date } = { ...validatedData };
     if (validatedData.status === 'FIXED' || validatedData.status === 'REJECTED') {
       updateData.resolvedAt = new Date();
     }
 
     const errorReport = await prisma.errorReport.update({
       where: { id },
-      data: updateData,
+      data: updateData as any,
       include: {
         question: {
           select: {
@@ -274,20 +253,9 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(errorReport);
-
-  } catch (error) {
-    console.error('Error updating error report:', error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to update error report' },
-      { status: 500 }
-    );
-  }
 }
+
+// Export handlers with error handling
+export const GET = withErrorHandling(getErrorReportsHandler);
+export const POST = withErrorHandling(createErrorReportHandler);
+export const PUT = withErrorHandling(updateErrorReportHandler);

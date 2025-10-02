@@ -1,4 +1,4 @@
-import { test, expect, request } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * COMPREHENSIVE API TESTING SUITE
@@ -29,17 +29,17 @@ test.describe('🔌 Comprehensive API Testing', () => {
           { limit: 50 },
           { page: 1 },
           { page: 2 },
-          { examName: 'AMC 8' },
+          { examName: 'AMC8' },
           { examName: 'Math Kangaroo' },
-          { difficulty: 'easy' },
-          { difficulty: 'medium' },
-          { difficulty: 'hard' },
+          { difficulty: 'EASY' },
+          { difficulty: 'MEDIUM' },
+          { difficulty: 'HARD' },
           { topic: 'Algebra' },
           { topic: 'Geometry' },
           { year: 2024 },
           { year: 2023 },
           { random: 'true' },
-          { limit: 20, examName: 'AMC 8', difficulty: 'medium' },
+          { limit: 20, examName: 'AMC8', difficulty: 'MEDIUM' },
           { page: 1, limit: 15, topic: 'Algebra' },
           { examName: 'MOEMS', year: 2024, random: 'true' }
         ]
@@ -115,17 +115,23 @@ test.describe('🔌 Comprehensive API Testing', () => {
         endpoint: '/api/question-counts',
         paramCombinations: [
           {},
-          { examName: 'AMC 8' },
+          { examName: 'AMC8' },
           { examName: 'Math Kangaroo' },
           { topic: 'Algebra' },
-          { difficulty: 'easy' }
+          { difficulty: 'EASY' }
         ]
       }
     ];
 
     for (const { endpoint, paramCombinations } of getEndpoints) {
       for (const params of paramCombinations) {
-        const queryString = new URLSearchParams(params).toString();
+        const stringParams = Object.entries(params).reduce((acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = String(value);
+          }
+          return acc;
+        }, {} as Record<string, string>);
+        const queryString = new URLSearchParams(stringParams).toString();
         const fullUrl = queryString ? `${endpoint}?${queryString}` : endpoint;
 
         console.log(`Testing GET ${fullUrl}`);
@@ -278,7 +284,7 @@ test.describe('🔌 Comprehensive API Testing', () => {
     // Test exam creation with various combinations
     const examData = [
       {
-        examName: 'Test AMC 8 2024',
+        examName: 'Test AMC8 2024',
         examYear: 2024,
         location: 'Test School',
         examDate: '2024-11-15',

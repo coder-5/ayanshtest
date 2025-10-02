@@ -190,7 +190,6 @@ function loadSavedSession(): SavedSession | null {
     const saved = localStorage.getItem(SESSION_STORAGE_KEY);
     return saved ? JSON.parse(saved) : null;
   } catch (error) {
-    console.error('Error loading saved session:', error);
     return null;
   }
 }
@@ -212,7 +211,6 @@ function saveSession(session: PracticeSessionState): void {
 
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionToSave));
   } catch (error) {
-    console.error('Error saving session:', error);
   }
 }
 
@@ -222,7 +220,6 @@ function clearSavedSession(): void {
   try {
     localStorage.removeItem(SESSION_STORAGE_KEY);
   } catch (error) {
-    console.error('Error clearing saved session:', error);
   }
 }
 
@@ -247,7 +244,6 @@ function saveToHistory(session: PracticeSessionState): void {
     const updatedHistory = [historyEntry, ...history].slice(0, 50);
     localStorage.setItem(SESSIONS_HISTORY_KEY, JSON.stringify(updatedHistory));
   } catch (error) {
-    console.error('Error saving to history:', error);
   }
 }
 
@@ -258,7 +254,6 @@ function getSessionHistory() {
     const history = localStorage.getItem(SESSIONS_HISTORY_KEY);
     return history ? JSON.parse(history) : [];
   } catch (error) {
-    console.error('Error loading session history:', error);
     return [];
   }
 }

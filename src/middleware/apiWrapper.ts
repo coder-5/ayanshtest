@@ -1,16 +1,5 @@
 import { NextRequest } from 'next/server';
-import { handleApiError } from '@/utils/errorHandler';
-
-// Enhanced API wrapper for consistent error handling
-export function withErrorHandling(handler: Function) {
-  return async (req: NextRequest, context?: any) => {
-    try {
-      return await handler(req, context);
-    } catch (error) {
-      return handleApiError(error);
-    }
-  };
-}
+import { handleAPIError } from '@/lib/error-handler';
 
 // Safe JSON parsing with error handling
 export async function safeJsonParse(req: NextRequest): Promise<any> {
@@ -32,7 +21,7 @@ export function withValidation(schema: any, handler: Function) {
       // Pass validated data to handler
       return await handler(req, context, validatedData);
     } catch (error) {
-      return handleApiError(error);
+      return handleAPIError(error);
     }
   };
 }

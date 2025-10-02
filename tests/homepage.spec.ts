@@ -130,7 +130,7 @@ test.describe('Homepage Tests', () => {
 
   test('should show recent activity section', async ({ page }) => {
     // Check for RecentActivity component
-    const recentActivityExists = await page.locator('[data-testid="recent-activity"]').isVisible().catch(() => false);
+    await page.locator('[data-testid="recent-activity"]').isVisible().catch(() => false);
 
     // The component exists but content depends on data
     // This is a basic check that the section renders

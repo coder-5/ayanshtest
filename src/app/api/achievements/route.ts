@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AchievementService } from '@/services/achievementService';
 import { prisma } from '@/lib/prisma';
-import { withErrorHandling } from '@/middleware/apiWrapper';
+import { withErrorHandling } from '@/lib/error-handler';
 import { safeUserIdFromParams } from '@/utils/nullSafety';
 
 async function getAchievementsHandler(request: NextRequest) {

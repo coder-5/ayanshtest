@@ -4,8 +4,9 @@ import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { examType: string } }
+  context: { params: Promise<{ examType: string }> }
 ) {
+  const params = await context.params;
   try {
     const { examType } = params;
 
@@ -18,7 +19,6 @@ export async function GET(
 
     return ApiResponse.success(availableYears);
   } catch (error) {
-    console.error(`Error fetching ${params.examType} years:`, error);
     return ApiResponse.serverError('Failed to fetch years');
   }
 }

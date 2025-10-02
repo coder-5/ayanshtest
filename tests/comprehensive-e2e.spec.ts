@@ -1,4 +1,4 @@
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { testDataManager } from './utils/test-data-manager';
 
 /**
@@ -101,7 +101,7 @@ test.describe('📝 Comprehensive Form Testing', () => {
 
     const testCombinations = [
       {
-        examName: 'AMC 8',
+        examName: 'AMC8',
         examYear: '2024',
         file: 'test-document.txt',
         expected: 'should succeed'
@@ -152,7 +152,7 @@ test.describe('📝 Comprehensive Form Testing', () => {
       await page.click('[data-testid="upload-submit"]');
 
       if (combo.expected === 'should succeed') {
-        await expect(page.locator('text=success', { timeout: 10000 })).toBeVisible();
+        await expect(page.locator('text=success')).toBeVisible({ timeout: 10000 });
       } else {
         await expect(page.locator('text=error,text=required,text=invalid')).toBeVisible();
       }

@@ -11,6 +11,11 @@ export interface ProcessedQuestion {
   timeLimit?: number;
   hasImage: boolean;
   imageUrl?: string;
+  answerChoices?: Array<{
+    letter: string;
+    text: string;
+    isCorrect: boolean;
+  }>;
 }
 
 export async function processDocxFile(
@@ -22,16 +27,32 @@ export async function processDocxFile(
   try {
     // Convert DOCX to text using mammoth
     const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
-    const text = result.value;
+
+    // Clean the extracted text to remove null bytes and problematic characters
+    const cleanedText = cleanTextForProcessing(result.value);
 
     // Parse questions from the extracted text
-    const questions = parseQuestionsFromText(text, examName, examYear, description);
+    const questions = parseQuestionsFromText(cleanedText, examName, examYear, description);
 
     return questions;
   } catch (error) {
-    console.error('Error processing DOCX file:', error);
     throw new Error('Failed to process DOCX file: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
+}
+
+function cleanTextForProcessing(text: string): string {
+  if (!text) return '';
+
+  // Convert to string and handle potential null/undefined values
+  const safeText = String(text);
+
+  // Remove null bytes and other problematic characters that can cause DB issues
+  return safeText
+    .replace(/\0/g, '') // Remove null bytes
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters except \t, \n, \r
+    .replace(/\r\n/g, '\n') // Normalize line endings
+    .replace(/\r/g, '\n') // Convert remaining \r to \n
+    .trim();
 }
 
 function parseQuestionsFromText(
@@ -41,6 +62,7 @@ function parseQuestionsFromText(
   description?: string
 ): ProcessedQuestion[] {
   const questions: ProcessedQuestion[] = [];
+  const processedQuestionNumbers = new Set<number>(); // Track processed question numbers
 
   // Split text into lines and clean them
   const lines = text
@@ -49,71 +71,113 @@ function parseQuestionsFromText(
     .filter(line => line.length > 0);
 
   let currentQuestion = '';
+  let currentAnswerChoices: Array<{letter: string; text: string; isCorrect: boolean}> = [];
   let questionNumber = 1;
   let isInQuestion = false;
+  let isInAnswerChoices = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Enhanced question detection patterns
+    // Enhanced question detection patterns - more restrictive to avoid false positives
     const questionPatterns = [
-      /^(\d+)\.?\s*(.+)$/,                    // "1. Question text"
+      /^(\d+)\.?\s+(.+)$/,                    // "1. Question text" (requires space after number)
       /^(?:Question|Problem)\s+(\d+):?\s*(.+)$/i,  // "Question 1: Text"
-      /^(\d+)\)\s*(.+)$/,                     // "1) Question text"
-      /^Problem\s+(\d+)\s*(.+)$/i,            // "Problem 1 Text"
+      /^(\d+)\)\s+(.+)$/,                     // "1) Question text" (requires space after parenthesis)
     ];
 
+    // Answer choice patterns
+    const answerChoicePattern = /^([A-E])\)\s*(.+)$/i;
+    const answerKeyPattern = /^(?:Answer|Solution):\s*([A-E])\b/i;
+
     let questionMatch = null;
+    let detectedQuestionNumber = null;
+
+    // Find the first matching pattern and extract question number
     for (const pattern of questionPatterns) {
       questionMatch = line.match(pattern);
-      if (questionMatch) break;
+      if (questionMatch) {
+        detectedQuestionNumber = parseInt(questionMatch[1]);
+        // Only accept if this is a new question number we haven't seen
+        if (!processedQuestionNumbers.has(detectedQuestionNumber) && questionMatch[2]?.trim().length > 10) {
+          break;
+        } else {
+          questionMatch = null; // Reject this match
+        }
+      }
     }
 
-    if (questionMatch) {
+    const answerChoiceMatch = line.match(answerChoicePattern);
+    const answerKeyMatch = line.match(answerKeyPattern);
+
+    if (questionMatch && detectedQuestionNumber) {
       // Save previous question if we have one
-      if (currentQuestion.trim() && isInQuestion) {
+      if (currentQuestion.trim() && isInQuestion && !processedQuestionNumbers.has(questionNumber)) {
         const processedQuestion = createQuestionObject(
           currentQuestion.trim(),
           examName,
           examYear,
           description,
-          (questionNumber - 1).toString()
+          questionNumber.toString(),
+          currentAnswerChoices.length > 0 ? currentAnswerChoices : undefined
         );
         if (processedQuestion) {
           questions.push(processedQuestion);
+          processedQuestionNumbers.add(questionNumber);
         }
       }
 
       // Start new question
-      questionNumber = parseInt(questionMatch[1]);
+      questionNumber = detectedQuestionNumber;
       currentQuestion = questionMatch[2] || '';
+      currentAnswerChoices = [];
       isInQuestion = true;
-    } else if (isInQuestion) {
-      // Skip potential answer sections
-      if (isAnswerSection(line)) {
-        break;
-      }
+      isInAnswerChoices = false;
+    } else if (answerChoiceMatch && (isInQuestion || isInAnswerChoices)) {
+      // Found an answer choice
+      const letter = answerChoiceMatch[1].toUpperCase();
+      const choiceText = answerChoiceMatch[2].trim();
 
+      currentAnswerChoices.push({
+        letter,
+        text: choiceText,
+        isCorrect: false // Will be set when we find the answer key
+      });
+
+      isInAnswerChoices = true;
+      isInQuestion = false; // No longer in question text
+    } else if (answerKeyMatch) {
+      // Found answer key - mark the correct choice
+      const correctLetter = answerKeyMatch[1].toUpperCase();
+      currentAnswerChoices.forEach(choice => {
+        choice.isCorrect = choice.letter === correctLetter;
+      });
+    } else if (isInQuestion && !isAnswerSection(line)) {
       // Continue building current question
       if (currentQuestion) {
         currentQuestion += ' ' + line;
       } else {
         currentQuestion = line;
       }
+    } else if (isAnswerSection(line)) {
+      // Hit answer section, break out
+      break;
     }
   }
 
   // Add the last question
-  if (currentQuestion.trim() && isInQuestion) {
+  if (currentQuestion.trim() && (isInQuestion || isInAnswerChoices) && !processedQuestionNumbers.has(questionNumber)) {
     const processedQuestion = createQuestionObject(
       currentQuestion.trim(),
       examName,
       examYear,
       description,
-      questionNumber.toString()
+      questionNumber.toString(),
+      currentAnswerChoices.length > 0 ? currentAnswerChoices : undefined
     );
     if (processedQuestion) {
       questions.push(processedQuestion);
+      processedQuestionNumbers.add(questionNumber);
     }
   }
 
@@ -136,7 +200,8 @@ function createQuestionObject(
   examName: string,
   examYear: string,
   _description: string | undefined,
-  questionNumber: string
+  questionNumber: string,
+  answerChoices?: Array<{letter: string; text: string; isCorrect: boolean}>
 ): ProcessedQuestion | null {
   // Clean up the question text
   const cleanText = questionText.trim();
@@ -168,6 +233,10 @@ function createQuestionObject(
 
   if (subtopic) {
     question.subtopic = subtopic;
+  }
+
+  if (answerChoices && answerChoices.length > 0) {
+    question.answerChoices = answerChoices;
   }
 
   return question;
@@ -293,28 +362,28 @@ function determineDifficulty(_text: string, examName: string, questionNumber: nu
 
   // Advanced/Master level sets are typically harder
   if (lowerExamName.includes('advanced') || lowerExamName.includes('master')) {
-    if (questionNumber <= 5) return 'medium';
-    if (questionNumber <= 10) return 'hard';
-    return 'hard';
+    if (questionNumber <= 5) return 'MEDIUM';
+    if (questionNumber <= 10) return 'HARD';
+    return 'HARD';
   }
 
   // For standard competition problems
   if (lowerExamName.includes('amc 8')) {
-    if (questionNumber <= 8) return 'easy';
-    if (questionNumber <= 16) return 'medium';
-    return 'hard';
+    if (questionNumber <= 8) return 'EASY';
+    if (questionNumber <= 16) return 'MEDIUM';
+    return 'HARD';
   }
 
   if (lowerExamName.includes('amc 10') || lowerExamName.includes('amc 12')) {
-    if (questionNumber <= 5) return 'easy';
-    if (questionNumber <= 15) return 'medium';
-    return 'hard';
+    if (questionNumber <= 5) return 'EASY';
+    if (questionNumber <= 15) return 'MEDIUM';
+    return 'HARD';
   }
 
   // Default difficulty assignment
-  if (questionNumber <= 5) return 'easy';
-  if (questionNumber <= 15) return 'medium';
-  return 'hard';
+  if (questionNumber <= 5) return 'EASY';
+  if (questionNumber <= 15) return 'MEDIUM';
+  return 'HARD';
 }
 
 function getTimeLimit(examName: string): number {

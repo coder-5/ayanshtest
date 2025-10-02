@@ -13,6 +13,21 @@ export interface StandardApiResponse<T = any> {
   };
 }
 
+export interface PaginationParams {
+  page: number;
+  limit: number;
+  skip: number;
+}
+
+export interface PaginatedApiResponse<T> extends StandardApiResponse<T[]> {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export class ApiResponse {
   /**
    * Create a successful API response
@@ -87,5 +102,33 @@ export class ApiResponse {
    */
   static serverError(message: string = 'Internal server error'): NextResponse {
     return this.error(message, 500);
+  }
+
+  /**
+   * Create a rate limit error response
+   */
+  static rateLimit(message: string = 'Too many requests'): NextResponse {
+    return this.error(message, 429);
+  }
+
+  /**
+   * Create a paginated response
+   */
+  static paginated<T>(
+    data: T[],
+    pagination: PaginationParams,
+    total: number
+  ): NextResponse {
+    const response: PaginatedApiResponse<T> = {
+      success: true,
+      data,
+      pagination: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        totalPages: Math.ceil(total / pagination.limit)
+      }
+    };
+    return NextResponse.json(response);
   }
 }

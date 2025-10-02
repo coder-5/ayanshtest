@@ -1,16 +1,12 @@
-import { NextResponse } from 'next/server';
 import { QuestionService } from '@/services/questionService';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET() {
   try {
     const counts = await QuestionService.getQuestionCounts();
 
-    return NextResponse.json(counts);
+    return ApiResponse.success(counts);
   } catch (error) {
-    console.error('Failed to get question counts:', error);
-    return NextResponse.json(
-      { error: 'Failed to get question counts' },
-      { status: 500 }
-    );
+    return ApiResponse.error('Failed to get question counts', 500);
   }
 }

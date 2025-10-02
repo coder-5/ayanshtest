@@ -129,7 +129,6 @@ export class QuestionSelectionService {
       };
 
     } catch (error) {
-      console.error('Error in QuestionSelectionService.getQuestionsWithRoundControl:', error);
       throw error;
     }
   }
@@ -275,7 +274,6 @@ export class QuestionSelectionService {
         progressPercentage: totalQuestions > 0 ? (uniqueQuestionsAttempted / totalQuestions) * 100 : 0
       };
     } catch (error) {
-      console.error('Error in getUserProgressSummary:', error);
       throw error;
     }
   }

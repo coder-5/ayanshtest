@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * COMPREHENSIVE USER WORKFLOW TESTING
@@ -34,7 +34,7 @@ test.describe('👤 Complete User Workflow Testing', () => {
       console.log(`Testing upload with ${file.name}`);
 
       // Select exam type
-      await page.selectOption('[data-testid="exam-select"], select[name="examName"]', 'AMC 8');
+      await page.selectOption('[data-testid="exam-select"], select[name="examName"]', 'AMC8');
       await page.waitForTimeout(humanDelay());
 
       // Fill exam year
@@ -69,7 +69,7 @@ test.describe('👤 Complete User Workflow Testing', () => {
     // Test different practice modes
     const practiceModes = [
       { path: '/practice/quick', name: 'Quick Practice' },
-      { path: '/practice/amc8', name: 'AMC 8 Practice' },
+      { path: '/practice/amc8', name: 'AMC8 Practice' },
       { path: '/practice/topics', name: 'Topics Practice' }
     ];
 
@@ -199,7 +199,7 @@ test.describe('👤 Complete User Workflow Testing', () => {
 
     // Test filter combinations
     const filters = [
-      { type: 'exam', value: 'AMC 8' },
+      { type: 'exam', value: 'AMC8' },
       { type: 'difficulty', value: 'easy' },
       { type: 'topic', value: 'Algebra' }
     ];
@@ -331,25 +331,25 @@ test.describe('👤 Complete User Workflow Testing', () => {
       },
       {
         scenario: 'Invalid exam year',
-        examName: 'AMC 8',
+        examName: 'AMC8',
         examYear: '1999',
         expectError: true
       },
       {
         scenario: 'Future exam year',
-        examName: 'AMC 8',
+        examName: 'AMC8',
         examYear: '2030',
         expectError: true
       },
       {
         scenario: 'Non-numeric year',
-        examName: 'AMC 8',
+        examName: 'AMC8',
         examYear: 'abc',
         expectError: true
       },
       {
         scenario: 'Valid input',
-        examName: 'AMC 8',
+        examName: 'AMC8',
         examYear: '2024',
         expectError: false
       }
@@ -359,7 +359,7 @@ test.describe('👤 Complete User Workflow Testing', () => {
       console.log(`Testing: ${input.scenario}`);
 
       // Clear and fill form
-      await page.selectOption('[data-testid="exam-select"], select[name="examName"]', input.examName || 'AMC 8');
+      await page.selectOption('[data-testid="exam-select"], select[name="examName"]', input.examName || 'AMC8');
       await page.fill('[data-testid="exam-year"], input[name="examYear"]', input.examYear);
 
       // Add a test file

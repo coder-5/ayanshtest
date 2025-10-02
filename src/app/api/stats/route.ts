@@ -1,12 +1,11 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ProgressService } from '@/services/progressService';
-import { ApiResponse } from '@/lib/api-response';
 import { safeUserIdFromParams } from '@/utils/nullSafety';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = req.nextUrl.searchParams;
     const userId = safeUserIdFromParams(searchParams);
 
     const [
@@ -45,10 +44,16 @@ export async function GET(request: NextRequest) {
       competitionStats: await enrichCompetitionStats(attemptStats)
     };
 
-    return ApiResponse.success(statsData);
+    return NextResponse.json({
+      success: true,
+      data: statsData
+    });
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    return ApiResponse.serverError('Failed to fetch stats');
+    console.error('Stats API error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch stats'
+    }, { status: 500 });
   }
 }
 
@@ -87,7 +92,7 @@ async function getWeeklyProgress(userId: string) {
   return dailyProgress;
 }
 
-async function enrichTopicStats(topicStats: any[]) {
+async function enrichTopicStats(topicStats: Array<{questionId: string; _count: {_all: number}; _sum: {timeSpent: number | null}}>) {
   const questionIds = topicStats.map(s => s.questionId);
   const questions = await prisma.question.findMany({
     where: { id: { in: questionIds } },
@@ -110,7 +115,7 @@ async function enrichTopicStats(topicStats: any[]) {
   return topics;
 }
 
-async function enrichCompetitionStats(competitionStats: any[]) {
+async function enrichCompetitionStats(competitionStats: Array<{questionId: string; _count: {_all: number}}>) {
   const questionIds = competitionStats.map(s => s.questionId);
   const questions = await prisma.question.findMany({
     where: { id: { in: questionIds } },

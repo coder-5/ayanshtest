@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getExamName } from '@/constants/examTypes';
+import { getExamName, isValidExamType } from '@/constants/examTypes';
 import { transformQuestion, transformQuestions } from '@/utils/questionTransforms';
 import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { examType: string } }
+  context: { params: Promise<{ examType: string }> }
 ) {
+  const params = await context.params;
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
@@ -15,7 +16,7 @@ export async function GET(
     const { examType } = params;
 
     // Validate exam type
-    if (!examType?.trim()) {
+    if (!examType?.trim() || !isValidExamType(examType)) {
       return ApiResponse.validationError('Invalid exam type');
     }
 
@@ -52,14 +53,13 @@ export async function GET(
 
     return ApiResponse.success(transformedQuestions);
   } catch (error) {
-    console.error(`Error fetching ${params.examType} questions:`, error);
     return ApiResponse.serverError('Failed to fetch questions');
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params: _params }: { params: { examType: string } }
+  _context: { params: Promise<{ examType: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
@@ -75,14 +75,13 @@ export async function DELETE(
 
     return ApiResponse.success({ message: 'Question deleted successfully' });
   } catch (error) {
-    console.error('Error deleting question:', error);
     return ApiResponse.serverError('Failed to delete question');
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params: _params }: { params: { examType: string } }
+  _context: { params: Promise<{ examType: string }> }
 ) {
   try {
     const body = await request.json();
@@ -92,15 +91,18 @@ export async function PUT(
       return ApiResponse.validationError('Question ID is required');
     }
 
+    // Validate boolean type for hasImage
+    const validHasImage = typeof hasImage === 'boolean' ? hasImage : false;
+
     const updatedQuestion = await prisma.question.update({
       where: { id },
       data: {
         questionText: questionText,
-        difficulty: difficulty || 'medium',
+        difficulty: difficulty || 'MEDIUM',
         topic: topic || 'Mixed',
         subtopic: subtopic || 'Problem Solving',
-        hasImage: hasImage || false,
-        imageUrl: hasImage ? (imageUrl || '') : null
+        hasImage: validHasImage,
+        imageUrl: validHasImage ? (imageUrl || '') : null
       },
       include: {
         options: true,
@@ -113,7 +115,6 @@ export async function PUT(
 
     return ApiResponse.success(transformedQuestion);
   } catch (error) {
-    console.error('Error updating question:', error);
     return ApiResponse.serverError('Failed to update question');
   }
 }

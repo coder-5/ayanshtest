@@ -118,7 +118,6 @@ export async function POST(request: NextRequest) {
       count: createdExams.length
     }, { status: 201 })
   } catch (error) {
-    console.error('Error creating recurring exams:', error)
     return NextResponse.json(
       { error: 'Failed to create recurring exams' },
       { status: 500 }

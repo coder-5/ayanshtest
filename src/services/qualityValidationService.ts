@@ -104,7 +104,6 @@ export class QualityValidationService {
       };
 
     } catch (error) {
-      console.error('Error validating question:', error);
       return {
         isValid: false,
         score: 0,
@@ -328,7 +327,6 @@ export class QualityValidationService {
           results.set(questionId, validation);
         }
       } catch (error) {
-        console.error(`Error validating question ${questionId}:`, error);
         results.set(questionId, {
           isValid: false,
           score: 0,
@@ -486,9 +484,9 @@ export class QualityValidationService {
 
   private calculateDifficultyAlignment(difficulty: string, successRate: number): number {
     const expectedSuccessRates: Record<string, [number, number]> = {
-      'easy': [0.7, 0.9],
-      'medium': [0.4, 0.7],
-      'hard': [0.1, 0.4]
+      'EASY': [0.7, 0.9],
+      'MEDIUM': [0.4, 0.7],
+      'HARD': [0.1, 0.4]
     };
 
     const [minRate, maxRate] = expectedSuccessRates[difficulty] || [0, 1];

@@ -1,9 +1,9 @@
+/* Advanced Math Diagram Styles */
+@import '../styles/advanced-diagrams.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Advanced Math Diagram Styles */
-@import '../styles/advanced-diagrams.css';
 
 @layer base {
   :root {

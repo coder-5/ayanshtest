@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { deduplicatedFetch } from '@/lib/request-deduplication';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,60 +54,97 @@ interface PerformanceDashboardProps {
   userId?: string;
 }
 
-export function PerformanceDashboard({ userId = 'ayansh' }: PerformanceDashboardProps) {
+const PerformanceDashboardComponent = ({ userId = 'ayansh' }: PerformanceDashboardProps) => {
   const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('30'); // days
 
-  useEffect(() => {
-    fetchPerformanceData();
-  }, [userId, timeRange]);
-
-  const fetchPerformanceData = async () => {
+  const fetchPerformanceData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch multiple endpoints for comprehensive data with deduplication
-      const [progressData, topicData, dailyData] = await Promise.all([
-        deduplicatedFetch(`/api/progress?userId=${userId}&timeRange=${timeRange}`),
-        deduplicatedFetch(`/api/topic-performance?userId=${userId}`),
-        deduplicatedFetch(`/api/daily-progress?userId=${userId}&days=${timeRange}`)
-      ]);
+      // Fetch comprehensive data from existing progress endpoint
+      const progressResponse = await deduplicatedFetch(`/api/progress?userId=${userId}&timeRange=${timeRange}&force=true`);
 
-      // Process and combine the data
+      // Extract the actual data from the API response structure
+      const progressData = progressResponse?.data || progressResponse;
+
+      // Process and combine the data from single endpoint
       const combined: PerformanceData = {
-        daily: dailyData.daily || [],
-        topicBreakdown: (topicData.topics || topicData || []).map((topic: any) => ({
-          ...topic,
-          topic: topic.topicName || topic.topic,
-          attempted: topic.totalAttempts || topic.attempted,
-          correct: topic.correctAttempts || topic.correct,
-          accuracy: topic.accuracy || 0,
-          avgTime: topic.averageTime || topic.avgTime || 0,
-          trend: topic.improvementTrend || topic.trend || 'stable'
+        daily: progressData.recentSessions || [],
+        topicBreakdown: Object.entries(progressData.topicBreakdown || {}).map(([topicName, data]: [string, any]) => ({
+          topic: topicName,
+          attempted: data.attempted || 0,
+          correct: data.correct || 0,
+          accuracy: data.accuracy || 0,
+          avgTime: data.avgTime || 0,
+          trend: data.trend || 'stable'
         })),
-        difficultyBreakdown: progressData.difficultyBreakdown || [],
+        difficultyBreakdown: Object.entries(progressData.difficultyBreakdown || {}).map(([difficulty, data]: [string, any]) => ({
+          difficulty,
+          attempted: data.attempted || 0,
+          correct: data.correct || 0,
+          accuracy: data.accuracy || 0
+        })),
         overallStats: {
           totalQuestions: progressData.totalAttempts || 0,
           totalCorrect: progressData.correctAnswers || 0,
           overallAccuracy: progressData.accuracy || 0,
           avgTimePerQuestion: progressData.averageTime || 0,
-          practiceStreak: dailyData.currentStreak || 0,
-          weakestTopics: topicData.weakestTopics || [],
-          strongestTopics: topicData.strongestTopics || []
+          practiceStreak: progressData.streakData?.currentStreak || 0,
+          weakestTopics: [],
+          strongestTopics: []
         }
       };
 
       setPerformanceData(combined);
     } catch (error) {
-      console.error('Failed to fetch performance data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load performance data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, timeRange]);
+
+  useEffect(() => {
+    fetchPerformanceData();
+  }, [fetchPerformanceData]);
+
+  // Refresh data when page becomes visible (user returns from practice)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchPerformanceData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Also refresh when component mounts
+    const handleFocus = () => {
+      fetchPerformanceData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchPerformanceData]);
+
+  // Periodic refresh every 2 minutes to ensure data stays fresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only refresh if page is visible to avoid unnecessary API calls
+      if (!document.hidden) {
+        fetchPerformanceData();
+      }
+    }, 2 * 60 * 1000); // 2 minutes
+
+    return () => clearInterval(interval);
+  }, [fetchPerformanceData]);
 
   if (loading) {
     return <Loading text="Loading performance analytics..." />;
@@ -429,4 +466,6 @@ export function PerformanceDashboard({ userId = 'ayansh' }: PerformanceDashboard
       </Tabs>
     </div>
   );
-}
+};
+
+export const PerformanceDashboard = memo(PerformanceDashboardComponent);

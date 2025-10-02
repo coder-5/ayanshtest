@@ -1,11 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { safeUserIdFromParams } from '@/utils/nullSafety';
+// User authentication removed - using hardcoded user for now
+import { UserAttempt, Question, Solution, Option } from '@prisma/client';
+
+interface QuestionWithDetails extends Question {
+  solution?: Solution;
+  options?: Option[];
+}
+
+
+interface QuestionAnalysisData {
+  attempts: UserAttempt[];
+  question: QuestionWithDetails;
+}
+
+interface FailedQuestionItem {
+  question: QuestionWithDetails;
+  lastAttempt: {
+    id: string;
+    selectedAnswer: string | null;
+    timeSpent: number;
+    attemptedAt: Date;
+    hintsUsed: number;
+  };
+  attemptCount: number;
+  totalAttempts: number;
+  successRate: number;
+  needsRetry: string;
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = safeUserIdFromParams(searchParams);
+    // Using default user since auth is removed
+    const user = { id: 'ayansh', name: 'Ayansh' };
     const examType = searchParams.get('examType'); // Optional filter by exam type
     const topic = searchParams.get('topic'); // Optional filter by topic
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -26,7 +54,7 @@ export async function GET(request: NextRequest) {
     // Get all attempts for the user with their questions
     const allAttempts = await prisma.userAttempt.findMany({
       where: {
-        userId,
+        userId: user.id,
         ...dateFilter
       },
       include: {
@@ -41,7 +69,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Analyze each question's attempt history to find those needing retry
-    const questionAnalysis = new Map();
+    const questionAnalysis = new Map<string, QuestionAnalysisData>();
 
     // Group attempts by question
     for (const attempt of allAttempts) {
@@ -49,13 +77,13 @@ export async function GET(request: NextRequest) {
       if (!questionAnalysis.has(questionId)) {
         questionAnalysis.set(questionId, {
           attempts: [],
-          question: attempt.question
+          question: attempt.question as QuestionWithDetails
         });
       }
-      questionAnalysis.get(questionId).attempts.push(attempt);
+      questionAnalysis.get(questionId)!.attempts.push(attempt);
     }
 
-    const uniqueFailedQuestions = new Map();
+    const uniqueFailedQuestions = new Map<string, FailedQuestionItem>();
 
     // Analyze each question's pattern
     for (const [questionId, data] of Array.from(questionAnalysis.entries())) {
@@ -67,15 +95,15 @@ export async function GET(request: NextRequest) {
 
       // Calculate failure patterns
       const totalAttempts = attempts.length;
-      const failedAttempts = attempts.filter((a: any) => !a.isCorrect);
-      const successfulAttempts = attempts.filter((a: any) => a.isCorrect);
+      const failedAttempts = attempts.filter((a: UserAttempt) => !a.isCorrect);
+      const successfulAttempts = attempts.filter((a: UserAttempt) => a.isCorrect);
 
       // Include question if:
       // 1. Most recent attempt was incorrect, OR
       // 2. Has multiple failures with success rate < 70%, OR
       // 3. Last failure was recent (within last 5 attempts) with overall low success
       const successRate = totalAttempts > 0 ? (successfulAttempts.length / totalAttempts) * 100 : 0;
-      const recentFailures = attempts.slice(-5).filter((a: any) => !a.isCorrect).length;
+      const recentFailures = attempts.slice(-5).filter((a: UserAttempt) => !a.isCorrect).length;
 
       const shouldRetry = (
         !mostRecentAttempt.isCorrect || // Last attempt failed
@@ -123,11 +151,11 @@ export async function GET(request: NextRequest) {
 
     // Get summary statistics
     const totalFailedQuestions = uniqueFailedQuestions.size;
-    const totalFailedAttempts = allAttempts.filter((a: any) => !a.isCorrect).length;
+    const totalFailedAttempts = allAttempts.filter((a: UserAttempt) => !a.isCorrect).length;
 
     // Group by topic for insights
     const topicBreakdown: Record<string, number> = {};
-    failedQuestions.forEach((item: any) => {
+    failedQuestions.forEach((item: FailedQuestionItem) => {
       const topic = item.question.topic;
       if (!topicBreakdown[topic]) {
         topicBreakdown[topic] = 0;
@@ -137,8 +165,8 @@ export async function GET(request: NextRequest) {
 
     // Group by exam type
     const examBreakdown: Record<string, number> = {};
-    failedQuestions.forEach((item: any) => {
-      const exam = item.question.examName;
+    failedQuestions.forEach((item: FailedQuestionItem) => {
+      const exam = item.question.examName || 'Topic Practice';
       if (!examBreakdown[exam]) {
         examBreakdown[exam] = 0;
       }
@@ -162,7 +190,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching failed questions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch failed questions' },
       { status: 500 }
@@ -173,7 +200,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId = 'ayansh', questionIds, sessionType = 'retry' } = body;
+    // Using default user since auth is removed
+    const user = { id: 'ayansh', name: 'Ayansh' };
+    const { questionIds, sessionType = 'retry' } = body;
 
     if (!questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
       return NextResponse.json(
@@ -195,16 +224,27 @@ export async function POST(request: NextRequest) {
     // Create a retry session record (optional - for tracking retry sessions)
     const retrySession = await prisma.practiceSession.create({
       data: {
-        userId,
+        userId: user.id,
         sessionType,
         totalQuestions: questions.length,
         startedAt: new Date()
       }
     });
 
+    // Get questions with options for proper typing
+    const questionsWithOptions = await prisma.question.findMany({
+      where: {
+        id: { in: questionIds }
+      },
+      include: {
+        solution: true,
+        options: true
+      }
+    });
+
     return NextResponse.json({
       sessionId: retrySession.id,
-      questions: questions.map(q => ({
+      questions: questionsWithOptions.map(q => ({
         id: q.id,
         questionText: q.questionText,
         examName: q.examName,
@@ -217,13 +257,12 @@ export async function POST(request: NextRequest) {
         hasImage: q.hasImage,
         imageUrl: q.imageUrl,
         solution: q.solution,
-        type: (q as any).options && (q as any).options.length > 0 ? 'multiple-choice' : 'open-ended',
-        options: (q as any).options || []
+        type: q.options && q.options.length > 0 ? 'multiple-choice' : 'open-ended',
+        options: q.options || []
       }))
     });
 
   } catch (error) {
-    console.error('Error creating retry session:', error);
     return NextResponse.json(
       { error: 'Failed to create retry session' },
       { status: 500 }

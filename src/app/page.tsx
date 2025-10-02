@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Target, TrendingUp, Upload, Calendar, RefreshCcw } from "lucide-react";
+import { BookOpen, Target, TrendingUp, Upload, Calendar, RefreshCcw, Edit, Plus, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import RecentActivity from "@/components/RecentActivity";
@@ -55,7 +55,7 @@ async function getStats(userId: string = 'ayansh') {
       }),
       prisma.examSchedule.findMany({
         where: {
-          status: 'upcoming',
+          status: 'UPCOMING',
           examDate: {
             gte: new Date()
           }
@@ -84,7 +84,6 @@ async function getStats(userId: string = 'ayansh') {
       upcomingExams
     };
   } catch (error) {
-    console.error('Error fetching stats:', error);
     return {
       totalQuestions: 0,
       totalAttempts: 0,
@@ -109,7 +108,7 @@ export default async function HomePage() {
           Welcome Back, Ayansh! 🚀
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Ready to tackle some math competition problems? Let's build those problem-solving skills!
+          Ready to tackle some math competition problems? Let&apos;s build those problem-solving skills!
         </p>
       </div>
 
@@ -209,7 +208,7 @@ export default async function HomePage() {
                 </thead>
                 <tbody>
                   {stats.upcomingExams.map((exam: any) => {
-                    const daysUntil = Math.floor((new Date(exam.examDate).getTime() - new Date().getTime()) / 86400000)
+                    const daysUntil = Math.ceil((new Date(exam.examDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
                     const getExamIcon = (examName: string) => {
                       if (examName.includes('AMC')) return '🧮'
                       if (examName.includes('Kangaroo')) return '🦘'
@@ -296,6 +295,23 @@ export default async function HomePage() {
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-green-600" />
+              Add Question Manually
+            </CardTitle>
+            <CardDescription>
+              Create questions directly with multiple choice, text answers, or fill-in-the-blanks
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/add-question">Add Question</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-indigo-600" />
               Question Library
             </CardTitle>
@@ -306,6 +322,40 @@ export default async function HomePage() {
           <CardContent>
             <Button asChild variant="outline" className="w-full">
               <Link href="/library">Browse Library</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-yellow-600" />
+              Solution Management
+            </CardTitle>
+            <CardDescription>
+              Add detailed solutions to help Ayansh when he gets stuck
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/solutions">Manage Solutions</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-green-600" />
+              Edit Questions
+            </CardTitle>
+            <CardDescription>
+              Fix question text, correct answers, and add diagrams
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/edit-questions">Edit Questions</Link>
             </Button>
           </CardContent>
         </Card>
@@ -334,7 +384,7 @@ export default async function HomePage() {
               Retry Failed Questions
             </CardTitle>
             <CardDescription>
-              Master the questions you've struggled with before
+              Master the questions you&apos;ve struggled with before
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -347,7 +397,7 @@ export default async function HomePage() {
 
       {/* Recent Activity */}
       <RecentActivity
-        recentAttempts={stats.recentAttempts}
+        initialRecentAttempts={stats.recentAttempts}
         totalQuestions={stats.totalQuestions}
       />
     </div>

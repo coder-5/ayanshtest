@@ -12,7 +12,7 @@ const createDefaultExam = (): Partial<ExamType> => ({
   examDate: new Date(),
   location: '',
   duration: 120,
-  status: 'upcoming' as const,
+  status: 'UPCOMING' as const,
   notes: null,
   registrationId: null,
   score: null,
@@ -68,7 +68,7 @@ export default function ExamsPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Exam Schedule</h1>
         <p className="text-gray-600">
-          Track Ayansh's upcoming math competitions and view past exam results.
+          Track Ayansh&apos;s upcoming math competitions and view past exam results.
         </p>
       </div>
 

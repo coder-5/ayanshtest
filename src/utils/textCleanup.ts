@@ -65,36 +65,6 @@ const HYPHENATION_FIXES: Array<[RegExp, string]> = [
   [/([a-z])-\s*([a-z])/g, '$1$2'],   // Fix broken words
 ];
 
-// Common formatting issues
-const FORMATTING_FIXES: Array<[RegExp, string]> = [
-  // Fix multiple spaces
-  [/\s{2,}/g, ' '],
-
-  // Fix space before punctuation
-  [/\s+([.!?:;,])/g, '$1'],
-
-  // Fix missing space after punctuation
-  [/([.!?])([A-Z])/g, '$1 $2'],
-
-  // Fix parentheses spacing
-  [/\(\s+/g, '('],
-  [/\s+\)/g, ')'],
-
-  // Fix mathematical notation
-  [/\s*=\s*/g, ' = '],
-  [/\s*\+\s*/g, ' + '],
-  [/\s*-\s*/g, ' - '],
-  [/\s*\*\s*/g, ' × '],
-  [/\s*÷\s*/g, ' ÷ '],
-
-  // Fix common number formatting
-  [/(\d)\s*,\s*(\d)/g, '$1,$2'],  // Fix comma in numbers
-  [/(\d)\s*\.\s*(\d)/g, '$1.$2'], // Fix decimal points
-
-  // Fix degree symbols
-  [/(\d)\s*degrees?/gi, '$1°'],
-  [/(\d)\s*deg/gi, '$1°'],
-];
 
 /**
  * Clean up text extracted from documents
@@ -170,7 +140,13 @@ export function cleanupQuestionText(text: string): string {
     cleaned = cleaned.replace(regex, replacement);
   }
 
-  // Remove excessive whitespace and normalize (but preserve LaTeX structure)
+  // Fix missing spaces between words (common OCR issue)
+  cleaned = cleaned.replace(/([a-z])([A-Z])/g, '$1 $2'); // Add space between lowercase and uppercase
+  cleaned = cleaned.replace(/(\d)([A-Z])/g, '$1 $2');    // Add space between digit and uppercase
+  cleaned = cleaned.replace(/([a-z])(\d)/g, '$1 $2');    // Add space between letter and digit
+  cleaned = cleaned.replace(/([.!?])([A-Z])/g, '$1 $2'); // Add space after punctuation
+
+  // Remove excessive whitespace and normalize (but preserve LaTeX structure and line breaks)
   cleaned = cleaned
     .replace(/\t/g, ' ')           // Convert tabs to spaces
     .replace(/\r\n/g, '\n')       // Normalize line endings
@@ -178,11 +154,12 @@ export function cleanupQuestionText(text: string): string {
     .replace(/\n{3,}/g, '\n\n')   // Limit consecutive newlines
     .replace(/[ \t]+$/gm, '')     // Remove trailing whitespace
     .replace(/^[ \t]+/gm, '')     // Remove leading whitespace
-    .replace(/\s+/g, ' ')         // Normalize internal whitespace
+    .replace(/[ \t]+/g, ' ')      // Normalize spaces and tabs only (preserve line breaks)
     .trim();
 
   // Restore protected LaTeX expressions
-  for (const [placeholder, original] of latexProtection) {
+  const entries = Array.from(latexProtection.entries());
+  for (const [placeholder, original] of entries) {
     cleaned = cleaned.replace(placeholder, original);
   }
 
@@ -269,4 +246,129 @@ export function getCleanupStats(original: string, cleaned: string) {
     spacesReduced: (original.match(/\s/g) || []).length - (cleaned.match(/\s/g) || []).length,
     linesReduced: (original.match(/\n/g) || []).length - (cleaned.match(/\n/g) || []).length
   };
+}
+
+/**
+ * Parse LaTeX answer format and extract options with preserved LaTeX formatting
+ * Format: $\textbf{(A)}\ 40 \qquad \textbf{(B)}\ 50 \qquad \textbf{(C)}\ 60 \qquad \textbf{(D)}\ 75 \qquad \textbf{(E)}\ 80$
+ * Also handles: $\textbf{(A)}\ \frac{1}{2} \qquad \textbf{(B)}\ \sqrt{3} \qquad ...$
+ */
+export function parseLatexAnswers(text: string): Array<{letter: string, text: string}> {
+  if (!text || typeof text !== 'string') {
+    return [];
+  }
+
+  const options: Array<{letter: string, text: string}> = [];
+
+  // Enhanced pattern to capture LaTeX content properly
+  // This pattern captures everything between \textbf{(X)} and the next \textbf or end
+  const latexPattern = /\\textbf\{?\(([A-E])\)\}?\\?\s*((?:[^\\]|\\(?!textbf|qquad))*?)(?:\s*\\qquad\s*|(?=\s*\\textbf)|(?=\s*\$)|$)/g;
+
+  let match;
+  while ((match = latexPattern.exec(text)) !== null) {
+    const letter = match[1];
+    let answerContent = match[2].trim();
+
+    // Clean up the answer content while preserving LaTeX
+    answerContent = answerContent
+      .replace(/^\s*\\?\s*/, '')  // Remove leading backslashes/spaces
+      .replace(/\s*\\qquad\s*$/, '')  // Remove trailing qquad
+      .replace(/\s+/g, ' ')  // Normalize spaces
+      .trim();
+
+    if (letter && answerContent) {
+      // Wrap in LaTeX delimiters if it contains LaTeX commands
+      const hasLatex = /\\[a-zA-Z]+|[{}^_]/.test(answerContent);
+      const formattedText = hasLatex ? `$${answerContent}$` : answerContent;
+
+      options.push({ letter, text: formattedText });
+    }
+  }
+
+  // Fallback: try simpler patterns if the main one didn't work
+  if (options.length === 0) {
+    // Try pattern without \textbf - just look for (A), (B), etc.
+    const simplePattern = /\(([A-E])\)\s*([^(]+?)(?=\s*\([A-E]\)|$)/g;
+
+    while ((match = simplePattern.exec(text)) !== null) {
+      const letter = match[1];
+      let answerContent = match[2].trim()
+        .replace(/\\qquad/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (letter && answerContent) {
+        // Check if content has LaTeX and wrap appropriately
+        const hasLatex = /\\[a-zA-Z]+|[{}^_]/.test(answerContent);
+        const formattedText = hasLatex ? `$${answerContent}$` : answerContent;
+
+        options.push({ letter, text: formattedText });
+      }
+    }
+  }
+
+  // Sort by letter to ensure correct order
+  return options.sort((a, b) => a.letter.localeCompare(b.letter));
+}
+
+/**
+ * Convert LaTeX math to simple readable text for Ayansh
+ * This is specifically designed to make math problems easy to read
+ */
+export function simplifyMathForAyansh(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return text || '';
+  }
+
+  let simplified = text;
+
+  // Convert LaTeX expressions to simple readable text
+  const mathConversions: Array<[RegExp, string]> = [
+    // Fractions - make them clear
+    [/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)'],
+    [/\$\\frac\{([^}]+)\}\{([^}]+)\}\$/g, '($1)/($2)'],
+    [/\$\$\\frac\{([^}]+)\}\{([^}]+)\}\$\$/g, '($1)/($2)'],
+
+    // Exponents and powers
+    [/\^(\d+)/g, '^$1'],
+    [/\^\{([^}]+)\}/g, '^($1)'],
+    [/(\w+)\^\{?(\d+)\}?/g, '$1^$2'],
+
+    // Square roots
+    [/\\sqrt\{([^}]+)\}/g, 'sqrt($1)'],
+    [/\$\\sqrt\{([^}]+)\}\$/g, 'sqrt($1)'],
+
+    // Remove LaTeX delimiters - keep the math content
+    [/\$\$([^$]+)\$\$/g, '$1'],  // Display math
+    [/\$([^$]+)\$/g, '$1'],      // Inline math
+    [/\\\[([^\]]+)\\\]/g, '$1'], // Display math alternative
+    [/\\\(([^)]+)\\\)/g, '$1'],  // Inline math alternative
+
+    // Mathematical symbols to readable text
+    [/\\cdot/g, '×'],
+    [/\\times/g, '×'],
+    [/\\div/g, '÷'],
+    [/\\pi/g, 'π'],
+    [/\\theta/g, 'θ'],
+    [/\\alpha/g, 'α'],
+    [/\\beta/g, 'β'],
+
+    // Clean up remaining LaTeX commands
+    [/\\[a-zA-Z]+\{([^}]*)\}/g, '$1'], // Remove LaTeX commands, keep content
+    [/\\[a-zA-Z]+/g, ''],               // Remove LaTeX commands without braces
+    [/\{([^}]*)\}/g, '$1'],            // Remove remaining braces
+
+    // Fix spacing around operators
+    [/\s*([+\-×÷=<>])\s*/g, ' $1 '],
+
+    // Clean up multiple spaces
+    [/\s+/g, ' ']
+  ];
+
+  // Apply all conversions
+  for (const [regex, replacement] of mathConversions) {
+    simplified = simplified.replace(regex, replacement);
+  }
+
+  return simplified.trim();
 }

@@ -15,7 +15,6 @@ class RequestDeduplicator {
     if (existing) {
       // Check if the request hasn't timed out
       if (Date.now() - existing.timestamp < this.timeout) {
-        console.log(`Request deduplication: using existing request for ${key}`);
         return existing.promise;
       } else {
         // Remove expired request
@@ -24,7 +23,6 @@ class RequestDeduplicator {
     }
 
     // Create new request
-    console.log(`Request deduplication: creating new request for ${key}`);
     const promise = requestFn();
 
     // Store the pending request

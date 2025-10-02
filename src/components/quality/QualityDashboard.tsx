@@ -69,6 +69,7 @@ export default function QualityDashboard() {
     if (selectedExamType !== 'all' || selectedTopic !== 'all') {
       fetchMetrics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedExamType, selectedTopic]);
 
   const fetchDashboardData = async () => {
@@ -80,7 +81,6 @@ export default function QualityDashboard() {
         setData(dashboardData);
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,6 @@ export default function QualityDashboard() {
         setMetrics(metricsData);
       }
     } catch (error) {
-      console.error('Error fetching metrics:', error);
     }
   };
 
@@ -241,8 +240,8 @@ export default function QualityDashboard() {
                   <div className="flex items-center">
                     <Badge
                       variant={
-                        item.difficulty === 'easy' ? 'default' :
-                        item.difficulty === 'medium' ? 'secondary' : 'destructive'
+                        item.difficulty === 'EASY' ? 'default' :
+                        item.difficulty === 'MEDIUM' ? 'secondary' : 'destructive'
                       }
                       className="capitalize mr-2"
                     >
@@ -328,16 +327,18 @@ export default function QualityDashboard() {
                     {question.questionText.slice(0, 100)}...
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs">
-                      {question.examName}
-                    </Badge>
+                    {question.examName && (
+                      <Badge variant="outline" className="text-xs">
+                        {question.examName}
+                      </Badge>
+                    )}
                     <Badge variant="secondary" className="text-xs">
                       {question.topic}
                     </Badge>
                     <Badge
                       variant={
-                        question.difficulty === 'easy' ? 'default' :
-                        question.difficulty === 'medium' ? 'secondary' : 'destructive'
+                        question.difficulty === 'EASY' ? 'default' :
+                        question.difficulty === 'MEDIUM' ? 'secondary' : 'destructive'
                       }
                       className="text-xs"
                     >

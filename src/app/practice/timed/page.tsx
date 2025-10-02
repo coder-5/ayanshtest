@@ -253,8 +253,8 @@ export default function TimedChallengePage() {
                   <div>
                     <h4 className="font-medium text-blue-900">Challenge Preview</h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      You'll have {customConfig.duration} minutes to solve {customConfig.questionCount} {customConfig.examType} questions.
-                      That's an average of {Math.round((customConfig.duration * 60) / customConfig.questionCount)} seconds per question.
+                      You&apos;ll have {customConfig.duration} minutes to solve {customConfig.questionCount} {customConfig.examType} questions.
+                      That&apos;s an average of {Math.round((customConfig.duration * 60) / customConfig.questionCount)} seconds per question.
                     </p>
                   </div>
                 </div>
@@ -274,7 +274,7 @@ export default function TimedChallengePage() {
                     <span className="font-medium">Ready to start?</span>
                   </div>
                   <p className="text-sm text-yellow-700 mt-2">
-                    Once you begin, the timer will start immediately. Make sure you're ready to focus!
+                    Once you begin, the timer will start immediately. Make sure you&apos;re ready to focus!
                   </p>
                 </div>
 

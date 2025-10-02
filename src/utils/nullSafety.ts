@@ -66,3 +66,13 @@ export function safeUserIdFromParams(searchParams: URLSearchParams, defaultUserI
   const userId = searchParams.get('userId');
   return userId?.trim() || defaultUserId;
 }
+
+// Common validation function
+export function validateRequiredFields(data: any, requiredFields: string[]): string | null {
+  for (const field of requiredFields) {
+    if (!data[field] && data[field] !== 0 && data[field] !== false) {
+      return `Missing required field: ${field}`;
+    }
+  }
+  return null;
+}

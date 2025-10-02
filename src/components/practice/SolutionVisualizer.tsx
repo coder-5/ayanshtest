@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { DiagramService } from '@/services/diagramService';
+import { AdvancedMathRenderer } from "@/components/math/AdvancedMathRenderer";
+
 
 interface SolutionVisualizerProps {
   solution: {
@@ -39,7 +39,12 @@ export default function SolutionVisualizer({
                 {index + 1}
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700">{step.trim()}</p>
+                <div className="text-sm text-gray-700">
+                  <AdvancedMathRenderer
+                    expression={step.trim()}
+                    config={{ displayMode: false, interactive: false }}
+                  />
+                </div>
                 {generateMiniDiagramForStep(step, questionText)}
               </div>
             </div>
@@ -107,7 +112,12 @@ export default function SolutionVisualizer({
               <div className="w-6 h-6 bg-yellow-400 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                 💡
               </div>
-              <p className="text-sm text-gray-700">{insight.trim()}.</p>
+              <div className="text-sm text-gray-700">
+                <AdvancedMathRenderer
+                  expression={insight.trim() + "."}
+                  config={{ displayMode: false, interactive: false }}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -155,7 +165,10 @@ export default function SolutionVisualizer({
           📝 Solution Explanation
         </h4>
         <div className="text-sm text-blue-700">
-          {solution.solutionText}
+          <AdvancedMathRenderer
+            expression={solution.solutionText}
+            config={{ displayMode: false, interactive: false }}
+          />
         </div>
       </div>
 
@@ -172,7 +185,10 @@ export default function SolutionVisualizer({
             🎯 Approach
           </h4>
           <div className="text-sm text-green-700">
-            {solution.approach}
+            <AdvancedMathRenderer
+              expression={solution.approach}
+              config={{ displayMode: false, interactive: false }}
+            />
           </div>
         </div>
       )}
@@ -192,7 +208,12 @@ export default function SolutionVisualizer({
                 <div className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                   ✗
                 </div>
-                <p className="text-sm text-red-700">{mistake.trim()}</p>
+                <div className="text-sm text-red-700">
+                  <AdvancedMathRenderer
+                    expression={mistake.trim()}
+                    config={{ displayMode: false, interactive: false }}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -211,27 +232,19 @@ export default function SolutionVisualizer({
                 <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                   {index + 1}
                 </div>
-                <p className="text-sm text-orange-700">{approach.trim()}</p>
+                <div className="text-sm text-orange-700">
+                  <AdvancedMathRenderer
+                    expression={approach.trim()}
+                    config={{ displayMode: false, interactive: false }}
+                  />
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Related diagram */}
-      {DiagramService.needsDiagram(questionText) && (
-        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-          <h4 className="font-semibold text-purple-800 mb-2 flex items-center gap-2">
-            📐 Problem Visualization
-          </h4>
-          <div
-            className="flex justify-center"
-            dangerouslySetInnerHTML={{
-              __html: DiagramService.generateDiagram(questionText) || ''
-            }}
-          />
-        </div>
-      )}
+      {/* Related diagram - DISABLED: User provides diagrams via upload */}
     </div>
   );
 }

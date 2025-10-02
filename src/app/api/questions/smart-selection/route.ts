@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in smart question selection:', error);
     return NextResponse.json(
       {
         success: false,
@@ -94,7 +93,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error adding questions to session:', error);
     return NextResponse.json(
       {
         success: false,

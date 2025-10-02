@@ -1,10 +1,10 @@
 export interface Question {
   id: string;
   questionText: string;
-  examName: string;
-  examYear: number;
+  examName: string | null;
+  examYear: number | null;
   questionNumber: string | null;
-  difficulty: string; // Fixed: should match schema string type (validation happens in app logic)
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD'; // Match schema enum
   topic: string;
   subtopic: string | null;
   hasImage: boolean;
@@ -14,7 +14,7 @@ export interface Question {
   updatedAt: Date;
   // Relations (optional for when populated)
   options?: Option[];
-  solution?: Solution;
+  solution?: Solution | null;
   attempts?: UserAttempt[];
   tags?: QuestionTag[];
   errorReports?: ErrorReport[];
@@ -54,8 +54,10 @@ export interface UserAttempt {
   timeSpent: number;
   hintsUsed: number;
   excludeFromScoring: boolean;
-  attemptedAt: Date;
+  attemptedAt: Date | string; // Allow string for JSON serialized dates
   sessionId: string | null; // Track which session this belongs to
+  // Relations (optional for when populated)
+  question?: Question;
 }
 
 export interface PracticeSession {
@@ -94,6 +96,7 @@ export interface QuestionCounts {
   moems: number;
   kangaroo: number;
   mathcounts: number;
+  cml: number;
 }
 
 export interface ProgressData {
@@ -140,7 +143,7 @@ export interface ExamSchedule {
   examDate: Date;
   location: string;
   duration: number | null;
-  status: string; // Fixed: should match schema string type (validation happens in app logic)
+  status: 'UPCOMING' | 'COMPLETED' | 'MISSED' | 'CANCELLED'; // Match schema enum
   notes: string | null;
   availableFromDate: Date | null;
   availableToDate: Date | null;
@@ -156,8 +159,51 @@ export interface ExamSchedule {
   updatedAt: Date;
 }
 
+// Additional TypeScript interfaces to replace 'any' usage
+
+// Question with populated relations
+export interface PopulatedQuestion extends Question {
+  options: Option[];
+  solution: Solution | null;
+}
+
+// Raw option data from forms/API
+export interface OptionInput {
+  optionLetter: string;
+  optionText: string;
+  isCorrect: boolean;
+}
+
+// Update request body types
+export interface QuestionUpdateData {
+  questionText?: string;
+  examName?: string | null;
+  examYear?: number | null;
+  topic?: string;
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
+  options?: OptionInput[];
+  solution?: Partial<Solution> | null;
+}
+
+// Batch operation results
+export interface BatchQuestionResult {
+  questions: PopulatedQuestion[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// Save operation states
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+// Generic error with details
+export interface AppError extends Error {
+  statusCode?: number;
+  details?: Record<string, unknown>;
+}
+
 export interface DifficultyLevel {
-  value: 'easy' | 'medium' | 'hard';
+  value: 'EASY' | 'MEDIUM' | 'HARD';
   label: string;
   color: string;
 }
@@ -171,8 +217,8 @@ export interface PracticeQuestion extends Omit<Question, 'options'> {
     text: string;  // Maps to optionText from database
     isCorrect: boolean;
   }>;
-  type: 'multiple-choice' | 'open-ended';
-  solution?: Solution; // Use full Solution interface
+  type?: 'multiple-choice' | 'open-ended'; // Make optional to match Question
+  solution?: Solution | null; // Use full Solution interface
   solutions?: Array<{
     id: string;
     text: string;
@@ -204,11 +250,11 @@ export interface ErrorReport {
   userId: string | null;
   reportType: string; // WRONG_ANSWER, INCORRECT_SOLUTION, UNCLEAR_QUESTION, MISSING_DIAGRAM, BROKEN_IMAGE, etc.
   description: string;
-  severity: string; // Fixed: should match schema string type (validation happens in app logic)
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; // Match schema enum
   evidence: string | null; // Screenshot, explanation
   suggestedFix: string | null;
   confidence: number; // 1-10 how confident reporter is
-  status: string; // Fixed: should match schema string type (validation happens in app logic)
+  status: 'PENDING' | 'INVESTIGATING' | 'CONFIRMED' | 'FIXED' | 'REJECTED'; // Match schema enum
   reviewedBy: string | null;
   reviewNotes: string | null;
   resolution: string | null;
@@ -333,3 +379,49 @@ export interface Achievement {
   unlockedAt: Date;
   category: string; // streak, accuracy, volume, speed
 }
+
+// UserDiagram interface is defined in @/types/diagram to prevent circular dependencies
+
+// Additional types for better type safety in components
+
+// For option handling in forms and components
+export interface OptionData {
+  optionLetter: string;
+  optionText: string;
+  isCorrect: boolean;
+}
+
+// For API error handling
+export interface ApiError {
+  message: string;
+  statusCode?: number;
+  details?: Record<string, unknown>;
+}
+
+// For generic value normalization
+export type NormalizableValue = string | number | null | undefined;
+
+// For question editing in PracticeSession
+export interface EditableQuestion extends Omit<PracticeQuestion, 'options'> {
+  id: string;
+  questionText: string;
+  examName: string | null;
+  examYear: number | null;
+  topic: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  type?: 'multiple-choice' | 'open-ended'; // Make optional to match Question interface
+  options?: Array<{
+    id: string;
+    questionId: string;
+    label: string; // Maps to optionLetter from database
+    text: string;  // Maps to optionText from database
+    isCorrect: boolean;
+    optionLetter: string;
+    optionText: string;
+  }>;
+  solution?: Solution | null;
+}
+
+// For save queue management
+export type SavePromise = Promise<Response>;
+export type SaveQueue = Map<string, SavePromise>;

@@ -1,29 +1,82 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, RotateCcw } from "lucide-react"
-import { useUser } from "@/lib/user"
+import { BookOpen, RotateCcw, RefreshCw } from "lucide-react"
 
 interface UserAttempt {
   id: string
   isCorrect: boolean
   attemptedAt: string
   question: {
-    examName: string
+    examName: string | null
     topic: string
   }
 }
 
 interface RecentActivityProps {
-  recentAttempts: UserAttempt[]
+  initialRecentAttempts?: UserAttempt[]
   totalQuestions: number
 }
 
-export default function RecentActivity({ recentAttempts, totalQuestions }: RecentActivityProps) {
+export default function RecentActivity({ initialRecentAttempts = [], totalQuestions }: RecentActivityProps) {
+  const [recentAttempts, setRecentAttempts] = useState<UserAttempt[]>(initialRecentAttempts)
   const [loading, setLoading] = useState(false)
-  const { getCurrentUserId } = useUser()
+  const [refreshing, setRefreshing] = useState(false)
+
+  const fetchRecentAttempts = useCallback(async () => {
+    try {
+      setRefreshing(true)
+      // Use fixed user ID since we're in standalone mode
+      const response = await fetch(`/api/user-attempts?limit=3&sort=desc`)
+      if (response.ok) {
+        const data = await response.json()
+        setRecentAttempts(data.attempts || [])
+      }
+    } catch (error) {
+      // Silently handle error - component will show empty state
+    } finally {
+      setRefreshing(false)
+    }
+  }, []) // No dependencies needed since we're using fixed user
+
+  // Auto-refresh when component mounts and when page becomes visible
+  useEffect(() => {
+    // Initial fetch if no initial data
+    if (initialRecentAttempts.length === 0) {
+      fetchRecentAttempts()
+    }
+  }, []) // Only run once on mount
+
+  // Separate effect for event listeners to avoid infinite loops
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchRecentAttempts()
+      }
+    }
+
+    const handleFocus = () => {
+      fetchRecentAttempts()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    // Periodic refresh every 5 minutes (increased to reduce server load)
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchRecentAttempts()
+      }
+    }, 300000) // 5 minutes
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+      clearInterval(interval)
+    }
+  }, [fetchRecentAttempts])
 
   const clearActivity = async () => {
     if (!confirm('Are you sure you want to clear all recent activity? This action cannot be undone.')) {
@@ -32,29 +85,19 @@ export default function RecentActivity({ recentAttempts, totalQuestions }: Recen
 
     setLoading(true)
     try {
-      const userId = getCurrentUserId() || 'ayansh' // Fallback to default user
-
-      if (!userId || userId === 'all' || userId === '*') {
-        alert('Unable to identify user. Please refresh the page and try again.')
-        return
-      }
-
-      const requestUrl = `/api/user-attempts?userId=${encodeURIComponent(userId)}`
-
-      const response = await fetch(requestUrl, {
+      // Use fixed user ID since we're in standalone mode
+      const response = await fetch('/api/user-attempts', {
         method: 'DELETE'
       })
 
       if (response.ok) {
-        // Force a hard refresh to show updated data
-        window.location.reload()
+        // Refresh the recent attempts instead of hard reload
+        await fetchRecentAttempts()
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.error('Clear activity failed:', response.status, errorData)
         alert(`Failed to clear activity: ${errorData.error || 'Unknown error'}. Please try again.`)
       }
     } catch (error) {
-      console.error('Error clearing activity:', error)
       alert('Error clearing activity. Please try again.')
     } finally {
       setLoading(false)
@@ -69,18 +112,30 @@ export default function RecentActivity({ recentAttempts, totalQuestions }: Recen
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Your recent practice sessions</CardDescription>
           </div>
-          {recentAttempts.length > 0 && (
+          <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={clearActivity}
-              disabled={loading}
+              onClick={fetchRecentAttempts}
+              disabled={refreshing}
               className="flex items-center gap-2"
             >
-              <RotateCcw className="h-4 w-4" />
-              {loading ? 'Clearing...' : 'Clear All'}
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
-          )}
+            {recentAttempts.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearActivity}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                {loading ? 'Clearing...' : 'Clear All'}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -97,7 +152,7 @@ export default function RecentActivity({ recentAttempts, totalQuestions }: Recen
                     {attempt.isCorrect ? '✓' : '✗'}
                   </div>
                   <div>
-                    <p className="font-medium">{attempt.question.examName} - {attempt.question.topic}</p>
+                    <p className="font-medium">{attempt.question.examName ? `${attempt.question.examName} - ` : ''}{attempt.question.topic}</p>
                     <p className="text-sm text-gray-600">
                       {new Date(attempt.attemptedAt).toLocaleDateString()} at {new Date(attempt.attemptedAt).toLocaleTimeString()}
                     </p>

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileText, Image, BookOpen, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -33,9 +32,8 @@ export default function UploadPage() {
         const competitions = result.success ? result.data : result;
         setDynamicExamTypes([...competitions, 'Other']);
       } catch (error) {
-        console.error('Failed to fetch exam types:', error);
         // Fallback to static list
-        setDynamicExamTypes(['AMC 8', 'AMC 10', 'AMC 12', 'AIME', 'Math Kangaroo', 'MathCounts', 'MOEMS', 'Other']);
+        setDynamicExamTypes(['AMC8', 'AMC10', 'AMC12', 'AIME', 'Math Kangaroo', 'MathCounts', 'MOEMS', 'Other']);
       } finally {
         setLoadingExamTypes(false);
       }
@@ -110,7 +108,7 @@ export default function UploadPage() {
   const getFileIcon = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
-      return <Image className="h-5 w-5 text-blue-600" />;
+      return <Image className="h-5 w-5 text-blue-600" aria-label="Image file icon" />;
     }
     return <FileText className="h-5 w-5 text-green-600" />;
   };
@@ -216,18 +214,6 @@ export default function UploadPage() {
               </div>
             </div>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Additional notes about this document or question set"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-              />
-            </div>
-
             {/* Status Messages */}
             {uploadStatus !== 'idle' && (
               <Alert className={
@@ -292,7 +278,7 @@ export default function UploadPage() {
                   Word documents (.doc, .docx)
                 </li>
                 <li className="flex items-center gap-2">
-                  <Image className="h-4 w-4" />
+                  <Image className="h-4 w-4" aria-label="Image file type" />
                   Image files (.jpg, .png, .gif)
                 </li>
                 <li className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { DiagramService } from '@/services/diagramService';
 import dynamic from 'next/dynamic';
 import 'katex/dist/katex.min.css';
@@ -41,46 +41,31 @@ function MathLoadingSkeleton() {
 
 export default function DiagramDisplay({
   questionText,
-  className = '',
-  enhanced = true,
-  interactive = true
+  className = ''
 }: DiagramDisplayProps) {
   const [needsDiagram, setNeedsDiagram] = useState(false);
   const [diagramType, setDiagramType] = useState<'basic' | 'interactive' | 'math'>('basic');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      // Determine if diagram is needed and what type
-      const requires = DiagramService.needsDiagram(questionText);
-      setNeedsDiagram(requires);
+    // Debounce the analysis to prevent rapid re-renders causing flickering
+    const timeoutId = setTimeout(() => {
+      try {
+        // Simple check for diagram needs - avoid complex analysis
+        const requiresBasicDiagram = /triangle|circle|rectangle|polygon|angle|coordinate|graph|diagram|figure|shape|draw|plot/.test(questionText.toLowerCase());
+        setNeedsDiagram(requiresBasicDiagram);
 
-      if (requires) {
-        // Determine diagram type based on content analysis
-        const hasAdvancedMath = /\$.*?\$|\\[a-zA-Z]+|[a-zA-Z]\s*=\s*[0-9]+|\b(?:sin|cos|tan|log|ln|sqrt|sum|int)\b/.test(questionText);
-        const hasGeometry = /triangle|circle|rectangle|polygon|angle|coordinate|graph/.test(questionText.toLowerCase());
-
-        if (hasAdvancedMath && enhanced) {
-          setDiagramType('math');
-        } else if (hasGeometry && enhanced && interactive) {
-          setDiagramType('interactive');
-        } else {
-          setDiagramType('basic');
-        }
+        // For Ayansh, keep it simple - always use basic diagrams (no complex interactive or math ones)
+        setDiagramType('basic');
+        setError(null);
+      } catch (err) {
+        setError(null); // Don't show errors to avoid confusion for Ayansh
+        setNeedsDiagram(false);
       }
+    }, 50); // 50ms debounce to prevent flickering
 
-      // Load KaTeX CSS if not already loaded
-      if (!document.querySelector('link[href*="katex"]')) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
-        document.head.appendChild(link);
-      }
-    } catch (err) {
-      console.error('Error analyzing diagram requirements:', err);
-      setError('Failed to analyze diagram requirements');
-    }
-  }, [questionText, enhanced, interactive]);
+    return () => clearTimeout(timeoutId);
+  }, [questionText]);
 
   if (error) {
     return (
@@ -143,10 +128,9 @@ export default function DiagramDisplay({
                   functions: '#cc0066'
                 }
               }}
-              onExpressionClick={(element) => {
+              onExpressionClick={(_element) => {
               }}
-              onError={(error) => {
-                console.error('Math rendering error:', error);
+              onError={(_error) => {
                 setError('Failed to render mathematical expression');
               }}
             />

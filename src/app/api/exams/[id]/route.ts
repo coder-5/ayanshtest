@@ -4,8 +4,9 @@ import { prisma } from '@/lib/prisma'
 // GET /api/exams/[id] - Get specific exam
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const exam = await prisma.examSchedule.findUnique({
       where: { id: params.id }
@@ -37,7 +38,6 @@ export async function GET(
 
     return NextResponse.json(transformedExam)
   } catch (error) {
-    console.error('Error fetching exam:', error)
     return NextResponse.json(
       { error: 'Failed to fetch exam' },
       { status: 500 }
@@ -48,8 +48,9 @@ export async function GET(
 // PUT /api/exams/[id] - Update exam
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const body = await request.json()
 
@@ -119,7 +120,6 @@ export async function PUT(
 
     return NextResponse.json(transformedExam)
   } catch (error) {
-    console.error('Error updating exam:', error)
     return NextResponse.json(
       { error: 'Failed to update exam' },
       { status: 500 }
@@ -130,14 +130,13 @@ export async function PUT(
 // DELETE /api/exams/[id] - Delete exam
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  console.log(`DELETE /api/exams/${params.id} - Starting deletion process`)
+  const params = await context.params;
 
   try {
     // Validate the ID parameter
     if (!params.id || typeof params.id !== 'string' || params.id.trim() === '') {
-      console.error('DELETE /api/exams - Invalid ID parameter:', params.id)
       return NextResponse.json(
         { error: 'Invalid exam ID provided' },
         { status: 400 }
@@ -145,33 +144,26 @@ export async function DELETE(
     }
 
     // First check if the exam exists
-    console.log(`DELETE /api/exams/${params.id} - Checking if exam exists`)
     const existingExam = await prisma.examSchedule.findUnique({
       where: { id: params.id }
     })
 
     if (!existingExam) {
-      console.error(`DELETE /api/exams/${params.id} - Exam not found`)
       return NextResponse.json(
         { error: 'Exam not found' },
         { status: 404 }
       )
     }
 
-    console.log(`DELETE /api/exams/${params.id} - Exam found, proceeding with deletion`)
     await prisma.examSchedule.delete({
       where: { id: params.id }
     })
 
-    console.log(`DELETE /api/exams/${params.id} - Exam deleted successfully`)
     return NextResponse.json({ message: 'Exam deleted successfully' })
   } catch (error) {
-    console.error(`DELETE /api/exams/${params.id} - Error:`, error)
 
     // More specific error handling
     if (error instanceof Error) {
-      console.error(`DELETE /api/exams/${params.id} - Error message:`, error.message)
-      console.error(`DELETE /api/exams/${params.id} - Error stack:`, error.stack)
 
       return NextResponse.json(
         { error: `Failed to delete exam: ${error.message}` },
@@ -179,7 +171,6 @@ export async function DELETE(
       )
     }
 
-    console.error(`DELETE /api/exams/${params.id} - Unknown error type:`, typeof error)
     return NextResponse.json(
       { error: 'Failed to delete exam: Unknown error' },
       { status: 500 }

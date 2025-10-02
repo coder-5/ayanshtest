@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MathRenderer } from './MathRenderer';
+import { AdvancedMathRenderer } from './AdvancedMathRenderer';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface MathInputProps {
@@ -78,7 +78,7 @@ export function MathInput({
             className="text-xs h-8"
             title={symbol.label}
           >
-            <MathRenderer content={`$${symbol.symbol.replace(/\{\}/g, '{a}')}$`} />
+            <AdvancedMathRenderer expression={`$${symbol.symbol.replace(/\{\}/g, '{a}')}$`} />
           </Button>
         ))}
       </div>
@@ -89,7 +89,7 @@ export function MathInput({
           <CardContent className="p-3">
             <div className="text-sm text-gray-600 mb-2">Preview:</div>
             <div className="min-h-[2rem] bg-white p-2 rounded border">
-              <MathRenderer content={`$${value}$`} />
+              <AdvancedMathRenderer expression={`$${value}$`} />
             </div>
           </CardContent>
         </Card>
@@ -147,7 +147,7 @@ export function FractionInput({
       </div>
       {numerator && denominator && (
         <div className="text-center">
-          <MathRenderer content={`$\\frac{${numerator}}{${denominator}}$`} />
+          <AdvancedMathRenderer expression={`$\\frac{${numerator}}{${denominator}}$`} />
         </div>
       )}
     </div>
