@@ -183,4 +183,23 @@ export function getRateLimiterForUser(request: NextRequest) {
   }
 }
 
+// Simple check rate limit function for inline usage
+export function checkRateLimit(identifier: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now()
+  const key = identifier
+  const entry = rateLimitStore.get(key)
+
+  if (!entry || entry.resetTime < now) {
+    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs })
+    return true
+  }
+
+  if (entry.count >= maxRequests) {
+    return false
+  }
+
+  entry.count++
+  return true
+}
+
 export default rateLimiters

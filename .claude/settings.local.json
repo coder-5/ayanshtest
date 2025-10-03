@@ -36,7 +36,18 @@
       "Bash(npx playwright test:*)",
       "Bash(del scriptsmassive-data-generator.js scriptsmanual-stress-test.js scriptsquick-fix-test.js clear-questions.js clear-amc8.js upload-authentic-amc8.js)",
       "Bash(find:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(set DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ayansh_math_prep)",
+      "Bash($env:DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/ayansh_math_prep\")",
+      "Bash(pg_isready:*)",
+      "Bash(pg_config:*)",
+      "Bash(net start:*)",
+      "Bash(sc query:*)",
+      "Bash(pg_ctl:*)",
+      "Bash(powershell:*)",
+      "Bash(psql:*)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "ask": []
