@@ -19,6 +19,7 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "dist/**",
+      "coverage/**",
       "next-env.d.ts",
       "scripts/**",
       "*.config.js",
@@ -36,8 +37,8 @@ const eslintConfig = [
       "@typescript-eslint/no-unused-vars": "off",
       "no-console": "off",
       "@typescript-eslint/no-explicit-any": "off",
-    }
-  }
+    },
+  },
 ];
 
 export default eslintConfig;

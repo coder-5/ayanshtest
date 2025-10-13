@@ -14,33 +14,6 @@ export function useVideoTracking({ questionId, videoUrl, onComplete }: VideoTrac
   const hasTrackedRef = useRef<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Track video view on mount
-  useEffect(() => {
-    startTimeRef.current = Date.now();
-    hasTrackedRef.current = false;
-
-    // Track progress every 10 seconds
-    intervalRef.current = setInterval(() => {
-      const currentDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      watchDurationRef.current = currentDuration;
-
-      // Auto-save progress every 30 seconds
-      if (currentDuration % 30 === 0 && currentDuration > 0) {
-        trackVideoView(false);
-      }
-    }, 10000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      // Save final watch duration on unmount
-      if (watchDurationRef.current > 0) {
-        trackVideoView(false);
-      }
-    };
-  }, [questionId, videoUrl]);
-
   const trackVideoView = useCallback(
     async (completed: boolean = false) => {
       const watchDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -68,6 +41,33 @@ export function useVideoTracking({ questionId, videoUrl, onComplete }: VideoTrac
     },
     [questionId, videoUrl, onComplete]
   );
+
+  // Track video view on mount
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+    hasTrackedRef.current = false;
+
+    // Track progress every 10 seconds
+    intervalRef.current = setInterval(() => {
+      const currentDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      watchDurationRef.current = currentDuration;
+
+      // Auto-save progress every 30 seconds
+      if (currentDuration % 30 === 0 && currentDuration > 0) {
+        trackVideoView(false);
+      }
+    }, 10000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      // Save final watch duration on unmount
+      if (watchDurationRef.current > 0) {
+        trackVideoView(false);
+      }
+    };
+  }, [questionId, videoUrl, trackVideoView]);
 
   const markAsCompleted = useCallback(() => {
     trackVideoView(true);
