@@ -93,7 +93,9 @@
       "Bash(npm test:*)",
       "Bash(npx prettier:*)",
       "Bash(npm outdated)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

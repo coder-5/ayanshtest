@@ -63,4 +63,25 @@ Thumbs.db
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.dbnul
+ehthumbs.db
+nul
+
+# Data and extraction files
+/data/
+*.traineddata
+*.pdf
+!prisma/*.pdf
+moems-pdfs/
+ocr-debug-images/
+build-output.txt
+mathcon-*.txt
+mathcon-*.json
+moems-*.json
+amc8-*.json
+
+# Zip files
+*.zip
+
+# Python cache
+__pycache__/
+*.pyc
