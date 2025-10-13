@@ -1,95 +1,84 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 import { getCurrentUserId } from '@/lib/userContext';
-import { logger } from '@/lib/logger';
 import { Prisma } from '@prisma/client';
-import { userAttemptSchema } from '@/lib/validations';
+import { userAttemptSchema } from '@/lib/validation';
 import {
   determineStrengthLevel,
   needsPractice as calculateNeedsPractice,
 } from '@/lib/config/thresholds';
 
-export async function POST(request: Request) {
-  try {
-    const userId = getCurrentUserId();
-    const body = await request.json();
+export const POST = withErrorHandler(async (request: Request) => {
+  const userId = getCurrentUserId();
+  const body = await request.json();
 
-    // Validate request body
-    const validation = userAttemptSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.format() },
-        { status: 400 }
-      );
-    }
+  // Validate request body
+  const validation = userAttemptSchema.safeParse(body);
+  if (!validation.success) {
+    return successResponse({ error: 'Validation failed', details: validation.error.format() }, 400);
+  }
 
-    const { questionId, selectedAnswer, timeSpent, sessionId } = validation.data;
+  const { questionId, selectedAnswer, timeSpent, sessionId } = validation.data;
 
-    // SERVER-SIDE VALIDATION: Calculate correctness instead of trusting client
-    const question = await prisma.question.findUnique({
-      where: { id: questionId, deletedAt: null },
-      include: {
-        options: true,
+  // SERVER-SIDE VALIDATION: Calculate correctness instead of trusting client
+  const question = await prisma.question.findUnique({
+    where: { id: questionId, deletedAt: null },
+    include: {
+      options: true,
+    },
+  });
+
+  if (!question) {
+    return successResponse({ error: 'Question not found' }, 404);
+  }
+
+  // Calculate if the answer is correct
+  let isCorrect = false;
+
+  if (question.options.length > 0) {
+    // Multiple choice question - check if selected option is correct
+    const selectedOption = question.options.find((opt) => opt.optionLetter === selectedAnswer);
+    isCorrect = selectedOption?.isCorrect || false;
+  } else if (question.correctAnswer) {
+    // Fill-in-the-blank question - compare with correctAnswer (case-insensitive)
+    isCorrect =
+      selectedAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+  } else {
+    return successResponse({ error: 'Question has no correct answer configured' }, 400);
+  }
+
+  // Use transaction to ensure all updates succeed or none do
+  const result = await prisma.$transaction(async (tx) => {
+    // Create attempt
+    const attempt = await tx.userAttempt.create({
+      data: {
+        userId,
+        questionId,
+        selectedAnswer: selectedAnswer || null,
+        isCorrect,
+        timeSpent: timeSpent || 0,
+        sessionId: sessionId || null,
       },
     });
 
-    if (!question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
-    }
+    // Update daily progress
+    await updateDailyProgress(userId, tx);
 
-    // Calculate if the answer is correct
-    let isCorrect = false;
+    // Update topic performance
+    await updateTopicPerformance(userId, questionId, tx);
 
-    if (question.options.length > 0) {
-      // Multiple choice question - check if selected option is correct
-      const selectedOption = question.options.find((opt) => opt.optionLetter === selectedAnswer);
-      isCorrect = selectedOption?.isCorrect || false;
-    } else if (question.correctAnswer) {
-      // Fill-in-the-blank question - compare with correctAnswer (case-insensitive)
-      isCorrect =
-        selectedAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
-    } else {
-      return NextResponse.json(
-        { error: 'Question has no correct answer configured' },
-        { status: 400 }
-      );
-    }
+    // Check and grant achievements
+    await checkAchievements(userId, tx);
 
-    // Use transaction to ensure all updates succeed or none do
-    const result = await prisma.$transaction(async (tx) => {
-      // Create attempt
-      const attempt = await tx.userAttempt.create({
-        data: {
-          userId,
-          questionId,
-          selectedAnswer: selectedAnswer || null,
-          isCorrect,
-          timeSpent: timeSpent || 0,
-          sessionId: sessionId || null,
-        },
-      });
+    // Update weekly analysis if it's Sunday or if the week is complete
+    await updateWeeklyAnalysis(userId, tx);
 
-      // Update daily progress
-      await updateDailyProgress(userId, tx);
+    return attempt;
+  });
 
-      // Update topic performance
-      await updateTopicPerformance(userId, questionId, tx);
-
-      // Check and grant achievements
-      await checkAchievements(userId, tx);
-
-      // Update weekly analysis if it's Sunday or if the week is complete
-      await updateWeeklyAnalysis(userId, tx);
-
-      return attempt;
-    });
-
-    return NextResponse.json({ success: true, attempt: result });
-  } catch (error) {
-    logger.error('Error creating user attempt:', error);
-    return NextResponse.json({ error: 'Failed to create user attempt' }, { status: 500 });
-  }
-}
+  return successResponse({ success: true, attempt: result });
+});
 
 async function updateDailyProgress(userId: string, tx: Prisma.TransactionClient) {
   // Use UTC to avoid timezone issues

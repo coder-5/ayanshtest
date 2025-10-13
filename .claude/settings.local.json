@@ -100,7 +100,11 @@
       "Bash(do)",
       "Bash(if [ -f \"$file\" ])",
       "Bash(then)",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(if grep -q \"withErrorHandler\" \"$file\")",
+      "Bash(echo:*)",
+      "Bash(else)",
+      "Bash(do echo \"❌ $file\")"
     ],
     "deny": [],
     "ask": []

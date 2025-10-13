@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 import { getCurrentUserId } from '@/lib/userContext';
 import {
   determineStrengthLevel,
   needsPractice as calculateNeedsPractice,
 } from '@/lib/config/thresholds';
 
-export async function GET(request: Request) {
-  try {
+export const GET = withErrorHandler(async (request: Request) => {
     const userId = getCurrentUserId();
 
     // Pagination parameters
@@ -36,15 +36,9 @@ export async function GET(request: Request) {
         offset,
         hasMore: offset + limit < totalCount,
       },
-    });
-  } catch (error) {
-    console.error('Error fetching topic performance:', error);
-    return NextResponse.json({ error: 'Failed to fetch topic performance' }, { status: 500 });
-  }
-}
+    });});
 
-export async function POST() {
-  try {
+export const POST = withErrorHandler(async () => {
     const userId = getCurrentUserId();
 
     // Get all user attempts grouped by topic
@@ -144,12 +138,7 @@ export async function POST() {
 
     await Promise.all(updates);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       topicsUpdated: topicMap.size,
-    });
-  } catch (error) {
-    console.error('Error updating topic performance:', error);
-    return NextResponse.json({ error: 'Failed to update topic performance' }, { status: 500 });
-  }
-}
+    });});

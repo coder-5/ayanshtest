@@ -1,40 +1,30 @@
-import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    const { status, reviewNotes, resolvedBy } = body;
+export const PUT = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  const body = await request.json();
+  const { status, reviewNotes, resolvedBy } = body;
 
-    const report = await prisma.errorReport.update({
-      where: { id },
-      data: {
-        ...(status && { status }),
-        ...(reviewNotes && { reviewNotes }),
-        ...(resolvedBy && { resolvedBy }),
-        ...(status === 'RESOLVED' && { resolvedAt: new Date() }),
-      },
-    });
+  const report = await prisma.errorReport.update({
+    where: { id },
+    data: {
+      ...(status && { status }),
+      ...(reviewNotes && { reviewNotes }),
+      ...(resolvedBy && { resolvedBy }),
+      ...(status === 'RESOLVED' && { resolvedAt: new Date() }),
+    },
+  });
 
-    return NextResponse.json({ success: true, report });
-  } catch (error) {
-    console.error('Error updating error report:', error);
-    return NextResponse.json({ error: 'Failed to update error report' }, { status: 500 });
-  }
-}
+  return successResponse({ success: true, report });
+});
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
+export const DELETE = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
 
-    await prisma.errorReport.delete({
-      where: { id },
-    });
+  await prisma.errorReport.delete({
+    where: { id },
+  });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting error report:', error);
-    return NextResponse.json({ error: 'Failed to delete error report' }, { status: 500 });
-  }
-}
+  return successResponse({ success: true });
+});

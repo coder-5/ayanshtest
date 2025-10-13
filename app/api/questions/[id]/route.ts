@@ -1,25 +1,19 @@
 import { NextResponse } from 'next/server';
 import { questionUpdateSchema, validatePayloadSize } from '@/lib/validation';
 import { QuestionService } from '@/lib/services/questionService';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const GET = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const question = await QuestionService.getById(id);
 
     if (!question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+      return successResponse({ error: 'Question not found' }, 404);
     }
 
-    return NextResponse.json({ question });
-  } catch (error) {
-    console.error('Error fetching question:', error);
-    return NextResponse.json({ error: 'Failed to fetch question' }, { status: 500 });
-  }
-}
+    return successResponse({ question });});
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const PUT = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const body = await request.json();
 
@@ -36,29 +30,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Validate input
     const validationResult = questionUpdateSchema.safeParse(body);
     if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.format() },
-        { status: 400 }
-      );
+      return successResponse({ error: 'Invalid input', details: validationResult.error.format() }, 400);
     }
 
     const question = await QuestionService.update(id, validationResult.data);
 
-    return NextResponse.json({ success: true, question });
-  } catch (error) {
-    console.error('Error updating question:', error);
-    return NextResponse.json({ error: 'Failed to update question' }, { status: 500 });
-  }
-}
+    return successResponse({ success: true, question });});
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const DELETE = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const question = await QuestionService.delete(id);
 
-    return NextResponse.json({ success: true, question });
-  } catch (error) {
-    console.error('Error deleting question:', error);
-    return NextResponse.json({ error: 'Failed to delete question' }, { status: 500 });
-  }
-}
+    return successResponse({ success: true, question });});

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const PUT = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const body = await request.json();
     const { totalQuestions, correctAnswers, totalTime, achievedScore } = body;
@@ -18,15 +18,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       },
     });
 
-    return NextResponse.json({ success: true, session });
-  } catch (error) {
-    console.error('Error updating practice session:', error);
-    return NextResponse.json({ error: 'Failed to update practice session' }, { status: 500 });
-  }
-}
+    return successResponse({ success: true, session });});
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
+export const GET = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
 
     const session = await prisma.practiceSession.findUnique({
@@ -50,12 +44,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return successResponse({ error: 'Session not found' }, 404);
     }
 
-    return NextResponse.json({ session });
-  } catch (error) {
-    console.error('Error fetching practice session:', error);
-    return NextResponse.json({ error: 'Failed to fetch practice session' }, { status: 500 });
-  }
-}
+    return successResponse({ session });});

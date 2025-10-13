@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
-import { sessionSchema } from '@/lib/validations';
+import { sessionSchema } from '@/lib/validation';
 import { z } from 'zod';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 

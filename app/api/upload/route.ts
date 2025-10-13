@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 import { nanoid } from 'nanoid';
 
-export async function POST(request: Request) {
-
-  try {
+export const POST = withErrorHandler(async (request: Request) => {
     const body = await request.json();
     const { questions } = body;
 
     if (!questions || !Array.isArray(questions)) {
-      return NextResponse.json(
-        { error: 'Invalid input: questions array is required' },
-        { status: 400 }
-      );
+      return successResponse({ error: 'Invalid input: questions array is required' }, 400);
     }
 
     let successCount = 0;
@@ -96,22 +92,16 @@ export async function POST(request: Request) {
 
         successCount++;
       } catch (error) {
-        console.error(`Error uploading question ${i}:`, error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         errors.push({ index: i, error: errorMessage });
         errorCount++;
       }
     }
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       uploaded: successCount,
       failed: errorCount,
       total: questions.length,
       errors: errors.length > 0 ? errors : undefined,
-    });
-  } catch (error) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Failed to process upload' }, { status: 500 });
-  }
-}
+    });});

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 import { getCurrentUserId } from '@/lib/userContext';
 
 function getWeekStartDate(date: Date): Date {
@@ -15,8 +16,7 @@ function getWeekEndDate(weekStart: Date): Date {
   return d;
 }
 
-export async function GET(request: Request) {
-  try {
+export const GET = withErrorHandler(async (request: Request) => {
     const userId = getCurrentUserId();
     const { searchParams } = new URL(request.url);
     const weeks = parseInt(searchParams.get('weeks') || '12');
@@ -36,15 +36,10 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json({ weeklyAnalysis });
-  } catch (error) {
-    console.error('Error fetching weekly analysis:', error);
-    return NextResponse.json({ error: 'Failed to fetch weekly analysis' }, { status: 500 });
-  }
-}
+    return successResponse({ weeklyAnalysis });
+});
 
-export async function POST() {
-  try {
+export const POST = withErrorHandler(async () => {
     const userId = getCurrentUserId();
     const today = new Date();
     const weekStart = getWeekStartDate(today);
@@ -180,9 +175,5 @@ export async function POST() {
       },
     });
 
-    return NextResponse.json({ success: true, analysis });
-  } catch (error) {
-    console.error('Error updating weekly analysis:', error);
-    return NextResponse.json({ error: 'Failed to update weekly analysis' }, { status: 500 });
-  }
-}
+    return successResponse({ success: true, analysis });
+});

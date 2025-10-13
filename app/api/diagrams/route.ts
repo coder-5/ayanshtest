@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
+import { withErrorHandler, successResponse, errorResponse } from '@/lib/error-handler';
 
 // Magic number validation for image files
 function validateImageMagicNumber(buffer: Buffer): boolean {
@@ -32,162 +33,140 @@ function sanitizeFilename(filename: string): string {
     .slice(0, 100); // Limit filename length
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withErrorHandler(async (request: NextRequest) => {
+  const userId = getCurrentUserId();
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+  const questionId = formData.get('questionId') as string;
 
-  try {
-    const userId = getCurrentUserId();
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const questionId = formData.get('questionId') as string;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
-    }
-
-    if (!questionId) {
-      return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
-    }
-
-    // Validate file size FIRST to prevent processing large files
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File size exceeds 10MB limit' }, { status: 400 });
-    }
-
-    // Validate file type (MIME type check)
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only PNG, JPG, and GIF are allowed.' },
-        { status: 400 }
-      );
-    }
-
-    // Read file buffer for magic number validation
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Validate magic number (actual file content)
-    if (!validateImageMagicNumber(buffer)) {
-      return NextResponse.json(
-        { error: 'File content does not match declared type' },
-        { status: 400 }
-      );
-    }
-
-    // Generate secure filename
-    const randomId = randomBytes(16).toString('hex');
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
-    const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif'];
-    const safeExt = allowedExtensions.includes(ext) ? ext : 'png';
-    const filename = `question-${sanitizeFilename(questionId)}-${randomId}.${safeExt}`;
-    const imageUrl = `/images/questions/${filename}`;
-
-    // TRANSACTION: Create DB records FIRST, then write file
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Create diagram record
-      const diagram = await tx.userDiagram.create({
-        data: {
-          id: `diagram-${randomId}`,
-          questionId,
-          userId,
-          imageUrl,
-          filename,
-          fileSize: file.size,
-          mimeType: file.type,
-          status: 'ACTIVE',
-          isApproved: true,
-          isPreferred: true,
-        },
-      });
-
-      // 2. Update question to mark it has an image
-      await tx.question.update({
-        where: { id: questionId },
-        data: {
-          hasImage: true,
-          imageUrl,
-          updatedAt: new Date(),
-        },
-      });
-
-      return diagram;
-    });
-
-    // 3. Write file ONLY after DB transaction succeeds
-    const dir = join(process.cwd(), 'public', 'images', 'questions');
-    await mkdir(dir, { recursive: true }); // Ensure directory exists
-    const filepath = join(dir, filename);
-    await writeFile(filepath, buffer);
-
-    return NextResponse.json({
-      success: true,
-      diagram: result,
-      imageUrl,
-    });
-  } catch (error) {
-    console.error('Error uploading diagram:', error);
-    return NextResponse.json({ error: 'Failed to upload diagram' }, { status: 500 });
+  if (!file) {
+    return errorResponse('No file uploaded', 400);
   }
-}
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const questionId = searchParams.get('questionId');
+  if (!questionId) {
+    return errorResponse('Question ID is required', 400);
+  }
 
-    if (!questionId) {
-      return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
-    }
+  // Validate file size FIRST to prevent processing large files
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return errorResponse('File size exceeds 10MB limit', 400);
+  }
 
-    const diagrams = await prisma.userDiagram.findMany({
-      where: {
+  // Validate file type (MIME type check)
+  const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+  if (!validTypes.includes(file.type)) {
+    return errorResponse('Invalid file type. Only PNG, JPG, and GIF are allowed.', 400);
+  }
+
+  // Read file buffer for magic number validation
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  // Validate magic number (actual file content)
+  if (!validateImageMagicNumber(buffer)) {
+    return errorResponse('File content does not match declared type', 400);
+  }
+
+  // Generate secure filename
+  const randomId = randomBytes(16).toString('hex');
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+  const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif'];
+  const safeExt = allowedExtensions.includes(ext) ? ext : 'png';
+  const filename = `question-${sanitizeFilename(questionId)}-${randomId}.${safeExt}`;
+  const imageUrl = `/images/questions/${filename}`;
+
+  // TRANSACTION: Create DB records FIRST, then write file
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Create diagram record
+    const diagram = await tx.userDiagram.create({
+      data: {
+        id: `diagram-${randomId}`,
         questionId,
+        userId,
+        imageUrl,
+        filename,
+        fileSize: file.size,
+        mimeType: file.type,
         status: 'ACTIVE',
-      },
-      orderBy: {
-        uploadedAt: 'desc',
+        isApproved: true,
+        isPreferred: true,
       },
     });
 
-    return NextResponse.json({ diagrams });
-  } catch (error) {
-    console.error('Error fetching diagrams:', error);
-    return NextResponse.json({ error: 'Failed to fetch diagrams' }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const questionId = searchParams.get('questionId');
-
-    if (!questionId) {
-      return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
-    }
-
-    // Use transaction to update both diagram and question
-    await prisma.$transaction(async (tx) => {
-      // Mark diagram as deleted (soft delete)
-      await tx.userDiagram.updateMany({
-        where: { questionId, status: 'ACTIVE' },
-        data: { status: 'DELETED' },
-      });
-
-      // Update question to remove image reference
-      await tx.question.update({
-        where: { id: questionId },
-        data: {
-          hasImage: false,
-          imageUrl: null,
-          updatedAt: new Date(),
-        },
-      });
+    // 2. Update question to mark it has an image
+    await tx.question.update({
+      where: { id: questionId },
+      data: {
+        hasImage: true,
+        imageUrl,
+        updatedAt: new Date(),
+      },
     });
 
-    return NextResponse.json({ success: true, message: 'Diagram deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting diagram:', error);
-    return NextResponse.json({ error: 'Failed to delete diagram' }, { status: 500 });
+    return diagram;
+  });
+
+  // 3. Write file ONLY after DB transaction succeeds
+  const dir = join(process.cwd(), 'public', 'images', 'questions');
+  await mkdir(dir, { recursive: true }); // Ensure directory exists
+  const filepath = join(dir, filename);
+  await writeFile(filepath, buffer);
+
+  return successResponse({
+    success: true,
+    diagram: result,
+    imageUrl,
+  });
+});
+
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const questionId = searchParams.get('questionId');
+
+  if (!questionId) {
+    return errorResponse('Question ID is required', 400);
   }
-}
+
+  const diagrams = await prisma.userDiagram.findMany({
+    where: {
+      questionId,
+      status: 'ACTIVE',
+    },
+    orderBy: {
+      uploadedAt: 'desc',
+    },
+  });
+
+  return successResponse({ diagrams });
+});
+
+export const DELETE = withErrorHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const questionId = searchParams.get('questionId');
+
+  if (!questionId) {
+    return errorResponse('Question ID is required', 400);
+  }
+
+  // Use transaction to update both diagram and question
+  await prisma.$transaction(async (tx) => {
+    // Mark diagram as deleted (soft delete)
+    await tx.userDiagram.updateMany({
+      where: { questionId, status: 'ACTIVE' },
+      data: { status: 'DELETED' },
+    });
+
+    // Update question to remove image reference
+    await tx.question.update({
+      where: { id: questionId },
+      data: {
+        hasImage: false,
+        imageUrl: null,
+        updatedAt: new Date(),
+      },
+    });
+  });
+
+  return successResponse({ success: true, message: 'Diagram deleted successfully' });
+});

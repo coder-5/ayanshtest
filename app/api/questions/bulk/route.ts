@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 /**
  * POST /api/questions/bulk
@@ -29,33 +30,28 @@ const bulkDeleteSchema = z.object({
 
 const bulkActionSchema = z.discriminatedUnion('action', [bulkUpdateSchema, bulkDeleteSchema]);
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+export const POST = withErrorHandler(async (request: Request) => {
+  const body = await request.json();
 
-    // Validate request
-    const validation = bulkActionSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.format() },
-        { status: 400 }
-      );
-    }
-
-    const data = validation.data;
-
-    if (data.action === 'update') {
-      return await handleBulkUpdate(data);
-    } else if (data.action === 'delete') {
-      return await handleBulkDelete(data);
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-  } catch (error) {
-    console.error('Bulk operation error:', error);
-    return NextResponse.json({ error: 'Bulk operation failed' }, { status: 500 });
+  // Validate request
+  const validation = bulkActionSchema.safeParse(body);
+  if (!validation.success) {
+    return successResponse(
+      { error: 'Invalid request', details: validation.error.format() },
+      400
+    );
   }
-}
+
+  const data = validation.data;
+
+  if (data.action === 'update') {
+    return await handleBulkUpdate(data);
+  } else if (data.action === 'delete') {
+    return await handleBulkDelete(data);
+  }
+
+  return successResponse({ error: 'Invalid action' }, 400);
+});
 
 async function handleBulkUpdate(data: z.infer<typeof bulkUpdateSchema>) {
   const { questionIds, updates } = data;
@@ -72,12 +68,12 @@ async function handleBulkUpdate(data: z.infer<typeof bulkUpdateSchema>) {
   if (questions.length !== questionIds.length) {
     const foundIds = new Set(questions.map((q) => q.id));
     const missingIds = questionIds.filter((id) => !foundIds.has(id));
-    return NextResponse.json(
+    return successResponse(
       {
         error: 'Some questions not found or already deleted',
         missingIds,
       },
-      { status: 404 }
+      404
     );
   }
 
@@ -93,7 +89,7 @@ async function handleBulkUpdate(data: z.infer<typeof bulkUpdateSchema>) {
     },
   });
 
-  return NextResponse.json({
+  return successResponse({
     success: true,
     action: 'update',
     updatedCount: result.count,
@@ -126,7 +122,7 @@ async function handleBulkDelete(data: z.infer<typeof bulkDeleteSchema>) {
   });
 
   if (questionsWithAttempts.length > 0) {
-    return NextResponse.json(
+    return successResponse(
       {
         error: 'Cannot delete questions with user attempts',
         questionsWithAttempts: questionsWithAttempts.map((q) => ({
@@ -136,7 +132,7 @@ async function handleBulkDelete(data: z.infer<typeof bulkDeleteSchema>) {
         message:
           'Questions with attempts can only be soft-deleted to preserve history. They already have deletedAt set.',
       },
-      { status: 400 }
+      400
     );
   }
 
@@ -151,7 +147,7 @@ async function handleBulkDelete(data: z.infer<typeof bulkDeleteSchema>) {
     },
   });
 
-  return NextResponse.json({
+  return successResponse({
     success: true,
     action: 'delete',
     deletedCount: result.count,

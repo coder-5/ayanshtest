@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { QuestionService } from '@/lib/services/questionService';
 import { questionCreateSchema, questionFiltersSchema, validatePayloadSize } from '@/lib/validation';
 import { z } from 'zod';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 // Query parameters schema with pagination - Max 1000 records per request
 const getQuerySchema = questionFiltersSchema.extend({
@@ -21,9 +22,7 @@ const getQuerySchema = questionFiltersSchema.extend({
     }),
 });
 
-export async function GET(request: Request) {
-
-  try {
+export const GET = withErrorHandler(async (request: Request) => {
     const { searchParams } = new URL(request.url);
 
     // Convert searchParams to object for validation
@@ -32,10 +31,7 @@ export async function GET(request: Request) {
     // Validate query parameters
     const validationResult = getQuerySchema.safeParse(rawParams);
     if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid query parameters', details: validationResult.error.format() },
-        { status: 400 }
-      );
+      return successResponse({ error: 'Invalid query parameters', details: validationResult.error.format() }, 400);
     }
 
     const { examName, topic, difficulty, examYear, search, limit, offset } = validationResult.data;
@@ -50,15 +46,9 @@ export async function GET(request: Request) {
       offset,
     });
 
-    return NextResponse.json(result);
-  } catch (_error) {
-    return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 });
-  }
-}
+    return NextResponse.json(result);});
 
-export async function POST(request: Request) {
-
-  try {
+export const POST = withErrorHandler(async (request: Request) => {
     const body = await request.json();
 
     // Validate payload size to prevent DoS attacks (max 1MB)
@@ -74,16 +64,9 @@ export async function POST(request: Request) {
     // Validate input using CREATE schema (strict validation for new questions)
     const validationResult = questionCreateSchema.safeParse(body);
     if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.format() },
-        { status: 400 }
-      );
+      return successResponse({ error: 'Invalid input', details: validationResult.error.format() }, 400);
     }
 
     const question = await QuestionService.create(validationResult.data);
 
-    return NextResponse.json({ question }, { status: 201 });
-  } catch (_error) {
-    return NextResponse.json({ error: 'Failed to create question' }, { status: 500 });
-  }
-}
+    return successResponse({ question }, 201);});

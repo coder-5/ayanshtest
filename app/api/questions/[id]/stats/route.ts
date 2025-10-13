@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 /**
  * GET /api/questions/[id]/stats
@@ -12,13 +13,12 @@ import { getCurrentUserId } from '@/lib/userContext';
  * - Last attempted date
  * - Auto-calculated difficulty based on performance
  */
-export async function GET(
+export const GET = withErrorHandler(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const userId = getCurrentUserId();
+) => {
+  const { id } = await params;
+  const userId = getCurrentUserId();
 
     // Get question to verify it exists
     const question = await prisma.question.findUnique({
@@ -32,7 +32,7 @@ export async function GET(
     });
 
     if (!question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+      return successResponse({ error: 'Question not found' }, 404);
     }
 
     // Get all attempts for this question by this user
@@ -110,8 +110,4 @@ export async function GET(
         timeSpent: a.timeSpent,
       })),
     });
-  } catch (error) {
-    console.error('Error fetching question stats:', error);
-    return NextResponse.json({ error: 'Failed to fetch question statistics' }, { status: 500 });
-  }
-}
+});
