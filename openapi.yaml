@@ -1,0 +1,1070 @@
+openapi: 3.0.0
+info:
+  title: Ayansh Math Prep API
+  description: API for managing math practice questions, user progress, and achievements
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Questions
+    description: Question management endpoints
+  - name: User Progress
+    description: User progress tracking endpoints
+  - name: Sessions
+    description: Practice session management
+  - name: Achievements
+    description: User achievements and badges
+  - name: Analytics
+    description: Analytics and reporting endpoints
+  - name: Exams
+    description: Exam scheduling and management
+
+paths:
+  /api/questions:
+    get:
+      tags:
+        - Questions
+      summary: Get all questions with filters
+      parameters:
+        - name: examName
+          in: query
+          schema:
+            type: string
+        - name: topic
+          in: query
+          schema:
+            type: string
+        - name: difficulty
+          in: query
+          schema:
+            type: string
+            enum: [EASY, MEDIUM, HARD, EXPERT]
+        - name: examYear
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 1000
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Question'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Questions
+      summary: Create a new question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionCreate'
+      responses:
+        '201':
+          description: Question created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    $ref: '#/components/schemas/Question'
+
+  /api/questions/{id}:
+    get:
+      tags:
+        - Questions
+      summary: Get question by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Question details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    $ref: '#/components/schemas/Question'
+        '404':
+          description: Question not found
+    put:
+      tags:
+        - Questions
+      summary: Update question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionUpdate'
+      responses:
+        '200':
+          description: Question updated
+    delete:
+      tags:
+        - Questions
+      summary: Soft delete question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Question deleted
+
+  /api/questions/{id}/stats:
+    get:
+      tags:
+        - Questions
+      summary: Get question statistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Question statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionStats'
+
+  /api/questions/failed:
+    get:
+      tags:
+        - Questions
+      summary: Get questions user answered incorrectly
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Failed questions with statistics
+
+  /api/questions/exams:
+    get:
+      tags:
+        - Questions
+      summary: Get list of available exams
+      responses:
+        '200':
+          description: List of exams with question counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exams:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        years:
+                          type: array
+                          items:
+                            type: integer
+                        totalQuestions:
+                          type: integer
+
+  /api/questions/exam/{examType}/years:
+    get:
+      tags:
+        - Questions
+      summary: Get years available for specific exam
+      parameters:
+        - name: examType
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of years
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  years:
+                    type: array
+                    items:
+                      type: integer
+
+  /api/questions/bulk:
+    post:
+      tags:
+        - Questions
+      summary: Bulk update or delete questions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum: [update]
+                    questionIds:
+                      type: array
+                      items:
+                        type: string
+                      minItems: 1
+                      maxItems: 100
+                    updates:
+                      type: object
+                      properties:
+                        topic:
+                          type: string
+                        difficulty:
+                          type: string
+                          enum: [EASY, MEDIUM, HARD, EXPERT]
+                        examName:
+                          type: string
+                        examYear:
+                          type: integer
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum: [delete]
+                    questionIds:
+                      type: array
+                      items:
+                        type: string
+                      minItems: 1
+                      maxItems: 100
+      responses:
+        '200':
+          description: Bulk operation completed
+
+  /api/upload:
+    post:
+      tags:
+        - Questions
+      summary: Bulk upload questions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/QuestionCreate'
+      responses:
+        '200':
+          description: Upload results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  uploaded:
+                    type: integer
+                  failed:
+                    type: integer
+                  total:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: object
+
+  /api/user-attempts:
+    post:
+      tags:
+        - User Progress
+      summary: Record a user attempt on a question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - questionId
+                - selectedAnswer
+              properties:
+                questionId:
+                  type: string
+                selectedAnswer:
+                  type: string
+                timeSpent:
+                  type: integer
+                sessionId:
+                  type: string
+      responses:
+        '200':
+          description: Attempt recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  attempt:
+                    $ref: '#/components/schemas/UserAttempt'
+
+  /api/progress:
+    get:
+      tags:
+        - User Progress
+      summary: Get user progress summary
+      responses:
+        '200':
+          description: Progress summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressSummary'
+
+  /api/daily-progress:
+    get:
+      tags:
+        - User Progress
+      summary: Get daily progress
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Daily progress records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dailyProgress:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DailyProgress'
+
+  /api/weekly-analysis:
+    get:
+      tags:
+        - Analytics
+      summary: Get weekly analysis
+      parameters:
+        - name: weeks
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        '200':
+          description: Weekly analysis data
+    post:
+      tags:
+        - Analytics
+      summary: Trigger weekly analysis update
+      responses:
+        '200':
+          description: Analysis updated
+
+  /api/topic-performance:
+    get:
+      tags:
+        - Analytics
+      summary: Get topic performance
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Topic performance data
+    post:
+      tags:
+        - Analytics
+      summary: Recalculate topic performance
+      responses:
+        '200':
+          description: Topic performance updated
+
+  /api/achievements:
+    get:
+      tags:
+        - Achievements
+      summary: Get user achievements
+      responses:
+        '200':
+          description: List of achievements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  achievements:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Achievement'
+
+  /api/sessions:
+    post:
+      tags:
+        - Sessions
+      summary: Create a practice session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionType:
+                  type: string
+                  enum: [QUICK, TIMED, EXAM, TOPIC, RETRY]
+                targetQuestions:
+                  type: integer
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/PracticeSession'
+
+  /api/sessions/{id}:
+    get:
+      tags:
+        - Sessions
+      summary: Get session details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/PracticeSession'
+    put:
+      tags:
+        - Sessions
+      summary: Update session (complete)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                totalQuestions:
+                  type: integer
+                correctAnswers:
+                  type: integer
+                totalTime:
+                  type: integer
+                achievedScore:
+                  type: number
+      responses:
+        '200':
+          description: Session updated
+
+  /api/exams:
+    get:
+      tags:
+        - Exams
+      summary: Get scheduled exams
+      responses:
+        '200':
+          description: List of exams
+    post:
+      tags:
+        - Exams
+      summary: Schedule a new exam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamCreate'
+      responses:
+        '201':
+          description: Exam scheduled
+
+  /api/exams/{id}:
+    get:
+      tags:
+        - Exams
+      summary: Get exam details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exam details
+    put:
+      tags:
+        - Exams
+      summary: Update exam
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exam updated
+    delete:
+      tags:
+        - Exams
+      summary: Delete exam
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exam deleted
+
+  /api/question-counts:
+    get:
+      tags:
+        - Analytics
+      summary: Get question count statistics
+      responses:
+        '200':
+          description: Question counts by various dimensions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  byExam:
+                    type: array
+                    items:
+                      type: object
+                  byDifficulty:
+                    type: array
+                    items:
+                      type: object
+                  byTopic:
+                    type: array
+                    items:
+                      type: object
+
+  /api/error-reports:
+    get:
+      tags:
+        - Quality
+      summary: Get error reports
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, RESOLVED, DISMISSED]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      responses:
+        '200':
+          description: List of error reports
+    post:
+      tags:
+        - Quality
+      summary: Submit an error report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - questionId
+                - errorType
+                - description
+              properties:
+                questionId:
+                  type: string
+                errorType:
+                  type: string
+                description:
+                  type: string
+                severity:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      responses:
+        '201':
+          description: Error report created
+
+  /api/error-reports/{id}:
+    put:
+      tags:
+        - Quality
+      summary: Update error report status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, RESOLVED, DISMISSED]
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Error report updated
+
+  /api/topics:
+    get:
+      tags:
+        - Questions
+      summary: Get all topics
+      responses:
+        '200':
+          description: List of topics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  topics:
+                    type: array
+                    items:
+                      type: string
+
+  /api/video-views:
+    post:
+      tags:
+        - Analytics
+      summary: Track video view
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questionId:
+                  type: string
+                videoUrl:
+                  type: string
+                watchDuration:
+                  type: integer
+                completedVideo:
+                  type: boolean
+      responses:
+        '200':
+          description: Video view tracked
+
+  /api/diagrams:
+    post:
+      tags:
+        - Questions
+      summary: Upload diagram for question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questionId:
+                  type: string
+                diagramData:
+                  type: string
+      responses:
+        '201':
+          description: Diagram uploaded
+
+  /api/tutor-dashboard:
+    get:
+      tags:
+        - Analytics
+      summary: Get tutor dashboard data
+      responses:
+        '200':
+          description: Dashboard statistics and insights
+
+components:
+  schemas:
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+        questionText:
+          type: string
+        examName:
+          type: string
+        examYear:
+          type: integer
+        questionNumber:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [EASY, MEDIUM, HARD, EXPERT]
+        hasImage:
+          type: boolean
+        imageUrl:
+          type: string
+        correctAnswer:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/Option'
+        solution:
+          $ref: '#/components/schemas/Solution'
+
+    QuestionCreate:
+      type: object
+      required:
+        - questionText
+      properties:
+        questionText:
+          type: string
+          minLength: 1
+        examName:
+          type: string
+        examYear:
+          type: integer
+        questionNumber:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [EASY, MEDIUM, HARD, EXPERT]
+          default: MEDIUM
+        hasImage:
+          type: boolean
+        imageUrl:
+          type: string
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              optionLetter:
+                type: string
+              optionText:
+                type: string
+              isCorrect:
+                type: boolean
+        solution:
+          type: string
+        videoLinks:
+          type: string
+
+    QuestionUpdate:
+      type: object
+      properties:
+        questionText:
+          type: string
+        examName:
+          type: string
+        examYear:
+          type: integer
+        questionNumber:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [EASY, MEDIUM, HARD, EXPERT]
+        imageUrl:
+          type: string
+
+    Option:
+      type: object
+      properties:
+        id:
+          type: string
+        optionLetter:
+          type: string
+        optionText:
+          type: string
+        isCorrect:
+          type: boolean
+
+    Solution:
+      type: object
+      properties:
+        id:
+          type: string
+        solutionText:
+          type: string
+        videoLinks:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    UserAttempt:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        questionId:
+          type: string
+        selectedAnswer:
+          type: string
+        isCorrect:
+          type: boolean
+        timeSpent:
+          type: integer
+        attemptedAt:
+          type: string
+          format: date-time
+
+    PracticeSession:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        sessionType:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        totalQuestions:
+          type: integer
+        correctAnswers:
+          type: integer
+        totalTime:
+          type: integer
+        achievedScore:
+          type: number
+
+    Achievement:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        category:
+          type: string
+        criteria:
+          type: object
+        progress:
+          type: integer
+        earnedAt:
+          type: string
+          format: date-time
+
+    DailyProgress:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        questionsAttempted:
+          type: integer
+        correctAnswers:
+          type: integer
+        totalTimeSpent:
+          type: integer
+        averageAccuracy:
+          type: number
+        topicsStudied:
+          type: string
+        streakDays:
+          type: integer
+        isStreakDay:
+          type: boolean
+
+    ProgressSummary:
+      type: object
+      properties:
+        totalQuestions:
+          type: integer
+        correctAnswers:
+          type: integer
+        accuracy:
+          type: number
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        totalTimeSpent:
+          type: integer
+        topicsStudied:
+          type: integer
+
+    QuestionStats:
+      type: object
+      properties:
+        questionId:
+          type: string
+        totalAttempts:
+          type: integer
+        correctAttempts:
+          type: integer
+        incorrectAttempts:
+          type: integer
+        accuracy:
+          type: number
+        avgTimeSeconds:
+          type: integer
+        firstAttemptedAt:
+          type: string
+          format: date-time
+        lastAttemptedAt:
+          type: string
+          format: date-time
+        currentDifficulty:
+          type: string
+        calculatedDifficulty:
+          type: string
+        difficultyMismatch:
+          type: boolean
+
+    ExamCreate:
+      type: object
+      required:
+        - name
+        - scheduledDate
+      properties:
+        name:
+          type: string
+        scheduledDate:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        totalQuestions:
+          type: integer
+        notes:
+          type: string
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
