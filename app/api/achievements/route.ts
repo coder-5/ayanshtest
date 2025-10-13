@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
+import { cache, CacheKeys, CacheTTL } from '@/lib/cache';
+import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
-export async function GET() {
+export const GET = withErrorHandler(async () => {
+  const userId = getCurrentUserId();
 
-  try {
-    const userId = getCurrentUserId();
-
-    // Get all achievements
-    const allAchievements = await prisma.achievement.findMany({
-      orderBy: [{ tier: 'asc' }, { points: 'desc' }],
-    });
+  // Cache achievements list (rarely changes)
+  const allAchievements = await cache.getOrFetch(
+    CacheKeys.achievements,
+    async () => {
+      return prisma.achievement.findMany({
+        orderBy: [{ tier: 'asc' }, { points: 'desc' }],
+      });
+    },
+    CacheTTL.achievements
+  );
 
     // Get user's earned achievements
     const userAchievements = await prisma.userAchievement.findMany({
@@ -77,14 +83,10 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({
-      achievements: achievementsWithProgress,
-      totalPoints: userAchievements.reduce((sum, ua) => sum + (ua.achievement.points || 0), 0),
-      earnedCount: userAchievements.length,
-      totalCount: allAchievements.length,
-    });
-  } catch (error) {
-    console.error('Error fetching achievements:', error);
-    return NextResponse.json({ error: 'Failed to fetch achievements' }, { status: 500 });
-  }
-}
+  return successResponse({
+    achievements: achievementsWithProgress,
+    totalPoints: userAchievements.reduce((sum, ua) => sum + (ua.achievement.points || 0), 0),
+    earnedCount: userAchievements.length,
+    totalCount: allAchievements.length,
+  });
+});
