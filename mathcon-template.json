@@ -1,0 +1,34 @@
+[
+  {
+    "examName": "MathCON",
+    "examYear": 2024,
+    "questionNumber": "1",
+    "questionText": "[Copy question text here]",
+    "options": [
+      {"letter": "A", "text": "[Option A text]", "isCorrect": false},
+      {"letter": "B", "text": "[Option B text]", "isCorrect": false},
+      {"letter": "C", "text": "[Option C text - CORRECT]", "isCorrect": true},
+      {"letter": "D", "text": "[Option D text]", "isCorrect": false},
+      {"letter": "E", "text": "[Option E text]", "isCorrect": false}
+    ],
+    "topic": "Arithmetic",
+    "difficulty": "EASY",
+    "hasImage": false
+  },
+  {
+    "examName": "MathCON",
+    "examYear": 2024,
+    "questionNumber": "2",
+    "questionText": "[Copy question text here]",
+    "options": [
+      {"letter": "A", "text": "[Option A text]", "isCorrect": false},
+      {"letter": "B", "text": "[Option B text - CORRECT]", "isCorrect": true},
+      {"letter": "C", "text": "[Option C text]", "isCorrect": false},
+      {"letter": "D", "text": "[Option D text]", "isCorrect": false},
+      {"letter": "E", "text": "[Option E text]", "isCorrect": false}
+    ],
+    "topic": "Geometry",
+    "difficulty": "MEDIUM",
+    "hasImage": false
+  }
+]

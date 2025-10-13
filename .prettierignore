@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# Generated files
+prisma/generated/
+.prisma/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OCR outputs
+*.txt
+mathcon-*.json
+*.png
+*.jpg
+*.jpeg
+*.pdf
+
+# Python
+__pycache__/
+*.pyc

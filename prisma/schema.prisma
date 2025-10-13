@@ -7,18 +7,360 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums for better type safety and performance
+model UserAttempt {
+  id                 String           @id @default(cuid())
+  userId             String
+  questionId         String
+  selectedAnswer     String?
+  isCorrect          Boolean
+  timeSpent          Int
+  hintsUsed          Int              @default(0)
+  excludeFromScoring Boolean          @default(false)
+  attemptedAt        DateTime         @default(now())
+  deletedAt          DateTime?
+  sessionId          String?
+  question           Question         @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  session            PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, questionId])
+  @@index([userId, attemptedAt])
+  @@index([questionId, isCorrect])
+  @@map("user_attempts")
+}
+
+model Achievement {
+  id                String            @id
+  name              String            @unique
+  description       String
+  type              AchievementType
+  icon              String?
+  criteria          Json
+  points            Int               @default(0)
+  tier              String?
+  isHidden          Boolean           @default(false)
+  user_achievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model DailyProgress {
+  id                 String   @id
+  userId             String
+  date               DateTime @db.Date
+  questionsAttempted Int      @default(0)
+  correctAnswers     Int      @default(0)
+  totalTimeSpent     Int      @default(0)
+  averageAccuracy    Float    @default(0)
+  topicsStudied      String?
+  streakDays         Int      @default(0)
+  isStreakDay        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_progress")
+}
+
+model ErrorReport {
+  id          String         @id
+  questionId  String
+  userId      String?
+  reportType  String         @db.VarChar(100)
+  description String
+  severity    ReportSeverity
+  evidence    String?
+  confidence  Int
+  status      ReportStatus   @default(PENDING)
+  reviewNotes String?
+  createdAt   DateTime       @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  question    Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([questionId, status])
+  @@index([status, severity])
+  @@map("error_reports")
+}
+
+model ExamSchedule {
+  id           String     @id
+  userId       String
+  examName     String     @db.VarChar(100)
+  examDate     DateTime
+  registeredAt DateTime?
+  location     String?
+  status       ExamStatus @default(UPCOMING)
+  score        Int?
+  percentile   Float?
+  notes        String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([examName, examDate])
+  @@index([userId, examDate])
+  @@index([deletedAt])
+  @@map("exam_schedules")
+}
+
+model Option {
+  id           String   @id
+  questionId   String
+  optionLetter String   @db.VarChar(10)
+  optionText   String   @db.VarChar(1000)
+  isCorrect    Boolean  @default(false)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, optionLetter])
+  @@index([questionId])
+  @@map("options")
+}
+
+model PracticeSession {
+  id             String        @id
+  userId         String
+  sessionType    SessionType
+  startedAt      DateTime      @default(now())
+  completedAt    DateTime?
+  totalQuestions Int           @default(0)
+  correctAnswers Int           @default(0)
+  totalTime      Int?
+  focusTopics    String?
+  examSimulation String?
+  achievedScore  Int?
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts       UserAttempt[]
+
+  @@index([userId, startedAt])
+  @@map("practice_sessions")
+}
+
+model Question {
+  id             String          @id
+  questionText   String          @db.VarChar(5000)
+  examName       String?         @db.VarChar(50)
+  examYear       Int?
+  questionNumber String?         @db.VarChar(50)
+  difficulty     DifficultyLevel @default(MEDIUM)
+  topic          String?         @db.VarChar(200)
+  subtopic       String?         @db.VarChar(200)
+  hasImage       Boolean         @default(false)
+  imageUrl       String?
+  videoUrl       String?
+  qualityScore   Int             @default(100)
+  correctAnswer  String?         @db.VarChar(200)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+  errorReports   ErrorReport[]
+  options        Option[]
+  solution       Solution?
+  attempts       UserAttempt[]
+  userDiagrams   UserDiagram[]
+  videoViews     VideoView[]
+
+  @@unique([examName, examYear, questionNumber])
+  @@index([deletedAt])
+  @@index([examName, examYear])
+  @@index([qualityScore])
+  @@index([topic, difficulty])
+  @@map("questions")
+}
+
+model Solution {
+  id                    String   @id
+  questionId            String   @unique
+  solutionText          String   @db.Text
+  approach              String?  @db.Text
+  keyInsights           String?  @db.Text
+  commonMistakes        String?  @db.Text
+  alternativeApproaches String?  @db.Text
+  videoUrl              String?
+  videoLinks            Json?
+  hints                 Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  question              Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("solutions")
+}
+
+model TopicPerformance {
+  id              String    @id
+  userId          String
+  topic           String    @db.VarChar(200)
+  totalAttempts   Int       @default(0)
+  correctAttempts Int       @default(0)
+  accuracy        Float     @default(0)
+  averageTime     Int       @default(0)
+  lastPracticed   DateTime?
+  strengthLevel   String?
+  needsPractice   Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topic])
+  @@index([userId, accuracy])
+  @@map("topic_performance")
+}
+
+model UserAchievement {
+  id            String      @id
+  userId        String
+  achievementId String
+  earnedAt      DateTime    @default(now())
+  progress      Int         @default(100)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, earnedAt])
+  @@map("user_achievements")
+}
+
+model UserDiagram {
+  id          String        @id
+  questionId  String
+  userId      String?
+  imageUrl    String
+  filename    String
+  fileSize    Int
+  mimeType    String
+  status      DiagramStatus @default(ACTIVE)
+  isApproved  Boolean       @default(false)
+  isPreferred Boolean       @default(false)
+  uploadedAt  DateTime      @default(now())
+  question    Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([questionId, status])
+  @@index([userId])
+  @@map("user_diagrams")
+}
+
+model VideoView {
+  id             String   @id
+  userId         String
+  questionId     String
+  videoUrl       String
+  watchedAt      DateTime @default(now())
+  watchDuration  Int      @default(0) // in seconds
+  completedVideo Boolean  @default(false)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question       Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId, videoUrl])
+  @@index([userId, watchedAt])
+  @@index([questionId])
+  @@map("video_views")
+}
+
+model User {
+  id               String             @id @default(cuid())
+  name             String?
+  email            String?            @unique
+  emailVerified    DateTime?
+  image            String?
+  grade            Int?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  preferences      Json?
+  accounts         Account[]
+  sessions         Session[]
+  dailyProgress    DailyProgress[]
+  errorReports     ErrorReport[]
+  examSchedules    ExamSchedule[]
+  practiceSessions PracticeSession[]
+  topicPerformance TopicPerformance[]
+  userAchievements UserAchievement[]
+  attempts         UserAttempt[]
+  userDiagrams     UserDiagram[]
+  videoViews       VideoView[]
+  weeklyAnalysis   WeeklyAnalysis[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model WeeklyAnalysis {
+  id              String   @id
+  userId          String
+  weekStartDate   DateTime @db.Date
+  weekEndDate     DateTime @db.Date
+  totalQuestions  Int      @default(0)
+  correctAnswers  Int      @default(0)
+  averageAccuracy Float    @default(0)
+  totalTimeSpent  Int      @default(0)
+  topicsStudied   String?
+  weakTopics      String?
+  strongTopics    String?
+  improvementRate Float?
+  longestStreak   Int      @default(0)
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStartDate])
+  @@index([userId, weekStartDate])
+  @@map("weekly_analysis")
+}
+
 enum DifficultyLevel {
   EASY
   MEDIUM
   HARD
+  EXPERT
 }
 
 enum ExamStatus {
   UPCOMING
+  REGISTERED
   COMPLETED
-  MISSED
-  CANCELLED
+  SCORED
 }
 
 enum ReportSeverity {
@@ -33,7 +375,7 @@ enum ReportStatus {
   INVESTIGATING
   CONFIRMED
   FIXED
-  REJECTED
+  DISMISSED
 }
 
 enum DiagramStatus {
@@ -42,386 +384,18 @@ enum DiagramStatus {
   DELETED
 }
 
-model Question {
-  id          String   @id @default(cuid())
-  questionText String  // Mathematical content in MathJax/LaTeX format
-  examName    String?  // AMC8, Kangaroo, MOEMS, MathCounts, CML (optional for topic-based questions)
-  examYear    Int?     // Year of the exam (2020, 2021, etc.) (optional for topic-based questions)
-  questionNumber String?  // Original question number in exam (1-25 for AMC, 2A-2E for MOEMS)
-  difficulty  DifficultyLevel @default(MEDIUM)
-  topic       String   // Algebra, Geometry, Number Theory, etc.
-  subtopic    String?  // More specific categorization
-  hasImage    Boolean  @default(false)
-  imageUrl    String?  // URL to question diagram/image (auto-generated)
-  timeLimit   Int?     // Time limit in minutes (for MOEMS)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime? // Soft delete timestamp
-
-  // Relations
-  options     Option[]
-  solution    Solution?
-  attempts    UserAttempt[]
-  tags        QuestionTag[]
-  errorReports ErrorReport[]
-  userDiagrams UserDiagram[]
-
-  @@unique([examName, examYear, questionNumber])
-  @@index([examName, examYear])
-  @@index([topic, difficulty])
-  @@index([difficulty])
-  @@index([topic])
-  @@index([examName, topic])
-  @@index([examName, topic, difficulty])
-  @@index([createdAt])
-  @@index([hasImage, topic])
-  @@index([examName, difficulty])
-  @@index([deletedAt])
+enum AchievementType {
+  STREAK
+  ACCURACY
+  QUESTIONS
+  TOPIC_MASTERY
+  SPEED
 }
 
-model Option {
-  id         String  @id @default(cuid())
-  questionId String
-  optionLetter String // A, B, C, D, E
-  optionText String  // Mathematical content
-  isCorrect  Boolean @default(false)
-
-  // Relations
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([questionId, optionLetter])
+enum SessionType {
+  QUICK
+  TIMED
+  TOPIC_FOCUSED
+  WEAK_AREAS
+  RETRY_FAILED
 }
-
-model Solution {
-  id            String   @id @default(cuid())
-  questionId    String   @unique
-  solutionText  String   // Step-by-step solution in MathJax/LaTeX
-  approach      String?  // Solution method (algebraic, geometric, etc.)
-  difficulty    String   // How hard the solution is to understand
-  timeEstimate  Int?     // Estimated solve time in minutes
-  keyInsights   String? // Important concepts or tricks used (comma-separated)
-  commonMistakes String? // Typical errors students make (comma-separated)
-  alternativeApproaches String? // Other ways to solve (comma-separated)
-  successRate   Float?   // Percentage success rate (for MOEMS)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-}
-
-model Exam {
-  id          String   @id @default(cuid())
-  name        String   // AMC8, Kangaroo, MOEMS, MathCounts, CML
-  year        Int
-  fullName    String   // "American Mathematics Competitions 8"
-  description String?
-  timeLimit   Int?     // Time limit in minutes
-  totalQuestions Int?  // Number of questions in exam
-  passingScore Int?    // Qualifying score if applicable
-  createdAt   DateTime @default(now())
-
-  @@unique([name, year])
-}
-
-model User {
-  id          String   @id @default(cuid())
-  name        String   // Ayansh
-  grade       Int?     // School grade level (5th grade)
-  targetScore Int?     // Goal score for competitions
-  createdAt   DateTime @default(now())
-  deletedAt   DateTime? // Soft delete timestamp
-
-  // Relations
-  attempts    UserAttempt[]
-  sessions    PracticeSession[]
-  achievements Achievement[]
-  dailyStats  DailyProgress[]
-  weeklyStats WeeklyAnalysis[]
-  topicPerformance TopicPerformance[]
-  errorReports ErrorReport[]
-  userDiagrams UserDiagram[]
-}
-
-model UserAttempt {
-  id           String   @id @default(cuid())
-  userId       String
-  questionId   String
-  selectedAnswer String? // User's selected option (A, B, C, D, E) or numerical answer
-  isCorrect    Boolean
-  timeSpent    Int      @db.Integer // Time in seconds (must be >= 0)
-  hintsUsed    Int      @default(0) @db.Integer // Number of hints used (must be >= 0)
-  excludeFromScoring Boolean @default(false) // Allow excluding problematic questions from score calculation
-  attemptedAt  DateTime @default(now())
-  deletedAt    DateTime? // Soft delete timestamp
-
-  // Relations
-  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  question     Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
-  session      PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  sessionId    String?
-
-  @@index([userId, questionId])
-  @@index([userId, attemptedAt])
-  @@index([questionId, attemptedAt])
-  @@index([userId, isCorrect])
-  @@index([userId, attemptedAt, isCorrect])
-  @@index([questionId, isCorrect])
-  @@index([userId, timeSpent])
-  @@index([sessionId, isCorrect])
-  @@index([deletedAt])
-
-  // Constraints to ensure data integrity
-  @@map("user_attempts")
-}
-
-model PracticeSession {
-  id          String   @id @default(cuid())
-  userId      String
-  sessionType String   // timed, topic-focused, exam-simulation, etc.
-  startedAt   DateTime @default(now())
-  completedAt DateTime?
-  totalQuestions Int
-  correctAnswers Int    @default(0)
-  totalTime   Int?     // Total time in seconds
-  averageTimePerQuestion Float? // Average time per question
-  focusTopics String? // Topics focused on in this session (comma-separated)
-  deletedAt   DateTime? // Soft delete timestamp
-
-  // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attempts    UserAttempt[]
-}
-
-model DailyProgress {
-  id               String   @id @default(cuid())
-  userId           String
-  date             DateTime // Date of practice (date only, no time)
-  questionsAttempted Int    @default(0)
-  correctAnswers   Int      @default(0)
-  totalTimeSpent   Int      @default(0) // Total minutes spent
-  averageAccuracy  Float    @default(0) // Percentage accuracy
-  topicsStudied    String? // Topics practiced today (comma-separated)
-  difficultiesStudied String? // Difficulty levels attempted (comma-separated)
-  streakDays       Int      @default(0) // Consecutive days of practice
-  isStreakDay      Boolean  @default(false) // Did practice today
-  createdAt        DateTime @default(now())
-
-  // Relations
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date])
-  @@index([userId, date])
-}
-
-model WeeklyAnalysis {
-  id                    String   @id @default(cuid())
-  userId                String
-  weekStartDate         DateTime // Monday of the week
-  weekEndDate           DateTime // Sunday of the week
-  totalQuestions        Int      @default(0)
-  totalCorrect          Int      @default(0)
-  totalTimeSpent        Int      @default(0) // Total minutes
-  averageAccuracy       Float    @default(0)
-  improvementRate       Float    @default(0) // % improvement from last week
-
-  // Weak Areas Analysis
-  weakestTopics         String?     // Topics with low accuracy (comma-separated)
-  strongestTopics       String?     // Topics with high accuracy (comma-separated)
-  slowestTopics         String?     // Topics taking most time (comma-separated)
-  recommendedFocus      String? // Topics to focus on next week (comma-separated)
-
-  // Daily Consistency
-  practicedays          Int      @default(0) // Days practiced this week
-  longestStreak         Int      @default(0) // Longest consecutive days
-  averageDailyQuestions Float    @default(0)
-
-  // Difficulty Analysis
-  beginnerAccuracy      Float?   // Accuracy on beginner questions
-  intermediateAccuracy  Float?   // Accuracy on intermediate questions
-  advancedAccuracy      Float?   // Accuracy on advanced questions
-
-  createdAt             DateTime @default(now())
-
-  // Relations
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, weekStartDate])
-  @@index([userId, weekStartDate])
-}
-
-model TopicPerformance {
-  id              String   @id @default(cuid())
-  userId          String
-  topicName       String
-  totalAttempts   Int      @default(0)
-  correctAttempts Int      @default(0)
-  accuracy        Float    @default(0)
-  averageTime     Float    @default(0) // Average seconds per question
-  lastPracticed   DateTime?
-  improvementTrend String  @default("stable") // improving, declining, stable
-  strengthLevel   String   @default("moderate") // weak, moderate, strong
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, topicName])
-  @@index([userId, strengthLevel])
-}
-
-model Topic {
-  id          String @id @default(cuid())
-  name        String @unique // Algebra, Geometry, etc.
-  description String?
-  parentId    String? // For subtopics
-
-  // Relations
-  parent      Topic?  @relation("TopicHierarchy", fields: [parentId], references: [id])
-  children    Topic[] @relation("TopicHierarchy")
-}
-
-model Tag {
-  id          String @id @default(cuid())
-  name        String @unique // "quadratic-formula", "pythagorean-theorem"
-  description String?
-
-  // Relations
-  questions   QuestionTag[]
-}
-
-model ExamSchedule {
-  id          String   @id @default(cuid())
-  examName    String   // AMC8, Kangaroo, MOEMS, MathCounts, CML
-  examDate    DateTime // Date and time of the exam
-  location    String   // School, Online, Competition Center, etc.
-  duration    Int?     // Exam duration in minutes
-  status      ExamStatus @default(UPCOMING)
-  notes       String?  // Additional notes about the exam
-
-  // Date range for when the exam can be taken
-  availableFromDate DateTime? // When the exam becomes available
-  availableToDate   DateTime? // When the exam is no longer available
-
-  // Online exam access details
-  examUrl       String? // URL for online exams
-
-  // Registration details
-  registeredAt DateTime? // When registered for the exam
-  registrationId String? // Registration confirmation number
-
-  // Results (if exam is completed)
-  score       Int?     // Score achieved (must be >= 0, no penalty for wrong answers)
-  maxScore    Int?     // Maximum possible score (must be > 0)
-  percentile  Float?   // Percentile ranking (0.0 to 100.0)
-
-  // Metadata
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([examDate])
-  @@index([status])
-  @@index([availableFromDate])
-  @@index([examName, examDate])
-}
-
-model QuestionTag {
-  questionId  String
-  tagId       String
-
-  // Relations
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([questionId, tagId])
-}
-
-model Achievement {
-  id          String   @id @default(cuid())
-  userId      String
-  title       String   // "First 100 Questions", "Perfect Week"
-  description String
-  badgeIcon   String   // Icon identifier
-  unlockedAt  DateTime @default(now())
-  category    String   // streak, accuracy, volume, speed
-
-  // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, category])
-}
-
-model ErrorReport {
-  id          String   @id @default(cuid())
-  questionId  String
-  userId      String?
-  reportType  String   // WRONG_ANSWER, INCORRECT_SOLUTION, UNCLEAR_QUESTION, etc.
-
-  description String
-  severity    ReportSeverity
-  evidence    String?  // Screenshot, explanation
-
-  // Reporter assessment
-  suggestedFix String?
-  confidence  Int      // 1-10 how confident reporter is
-
-  // Review process
-  status      ReportStatus @default(PENDING)
-  reviewedBy  String?
-  reviewNotes String?
-  resolution  String?
-
-  createdAt   DateTime @default(now())
-  resolvedAt  DateTime?
-
-  // Relations
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([questionId, status])
-  @@index([reportType, severity])
-  @@index([status])
-  @@index([status, severity])
-  @@index([questionId, reportType])
-  @@index([userId, status])
-  @@index([createdAt, status])
-}
-
-model UserDiagram {
-  id          String   @id @default(cuid())
-  questionId  String
-  userId      String?
-  imageUrl    String   // URL to user-uploaded diagram image
-  filename    String   // Original filename
-  fileSize    Int      // File size in bytes
-  mimeType    String   // image/png, image/jpeg, etc.
-  status      DiagramStatus @default(ACTIVE)
-
-  // Moderation and quality
-  isApproved  Boolean  @default(false) // Whether diagram is approved for use
-  moderatedBy String?  // Admin who approved/rejected
-  moderatedAt DateTime?
-  rejectionReason String? // Why diagram was rejected
-
-  // Usage tracking
-  isPreferred Boolean  @default(true) // Whether to prefer this over auto-generated
-  usageCount  Int      @default(0) // How many times this diagram has been viewed
-  sequence    Int      @default(1) // Order of diagram for questions with multiple diagrams
-
-  // Metadata
-  description String?  // Optional description of what the diagram shows
-  source      String?  // Where the diagram came from (user_upload, admin_replacement, etc.)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([questionId, status])
-  @@index([questionId, isPreferred])
-  @@index([userId])
-  @@index([isApproved, status])
-}
-

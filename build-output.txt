@@ -1,0 +1,44 @@
+
+> ayansh-math-prep@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.4
+   - Environments: .env
+   - Experiments (use with caution):
+     ✓ webpackMemoryOptimizations
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings in 48s
+
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/@prisma/instrumentation/dist/index.js
+./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+./node_modules/@sentry/node/build/cjs/index.js
+./node_modules/@sentry/nextjs/build/cjs/index.server.js
+./app/global-error.tsx
+
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/@prisma/instrumentation/dist/index.js
+./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+./node_modules/@sentry/node/build/cjs/index.js
+./node_modules/@sentry/nextjs/build/cjs/index.server.js
+
+ ✓ Compiled successfully in 99s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+ ⨯ Next.js build worker exited with code: 3221225794 and signal: null

@@ -1,0 +1,381 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserAttempt {
+  id                 String           @id @default(cuid())
+  userId             String
+  questionId         String
+  selectedAnswer     String?
+  isCorrect          Boolean
+  timeSpent          Int
+  hintsUsed          Int              @default(0)
+  excludeFromScoring Boolean          @default(false)
+  attemptedAt        DateTime         @default(now())
+  deletedAt          DateTime?
+  sessionId          String?
+  question           Question         @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  session            PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, questionId])
+  @@index([userId, attemptedAt])
+  @@index([questionId, isCorrect])
+  @@map("user_attempts")
+}
+
+model Achievement {
+  id                String            @id
+  name              String            @unique
+  description       String
+  type              AchievementType
+  icon              String?
+  criteria          Json
+  points            Int               @default(0)
+  tier              String?
+  isHidden          Boolean           @default(false)
+  user_achievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model DailyProgress {
+  id                 String   @id
+  userId             String
+  date               DateTime @db.Date
+  questionsAttempted Int      @default(0)
+  correctAnswers     Int      @default(0)
+  totalTimeSpent     Int      @default(0)
+  averageAccuracy    Float    @default(0)
+  topicsStudied      String?
+  streakDays         Int      @default(0)
+  isStreakDay        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_progress")
+}
+
+model ErrorReport {
+  id          String         @id
+  questionId  String
+  userId      String?
+  reportType  String         @db.VarChar(100)
+  description String
+  severity    ReportSeverity
+  evidence    String?
+  confidence  Int
+  status      ReportStatus   @default(PENDING)
+  reviewNotes String?
+  createdAt   DateTime       @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  question    Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([questionId, status])
+  @@index([status, severity])
+  @@map("error_reports")
+}
+
+model ExamSchedule {
+  id           String     @id
+  userId       String
+  examName     String     @db.VarChar(100)
+  examDate     DateTime
+  registeredAt DateTime?
+  location     String?
+  status       ExamStatus @default(UPCOMING)
+  score        Int?
+  percentile   Float?
+  notes        String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([examName, examDate])
+  @@index([userId, examDate])
+  @@map("exam_schedules")
+}
+
+model Option {
+  id           String   @id
+  questionId   String
+  optionLetter String   @db.VarChar(10)
+  optionText   String   @db.VarChar(1000)
+  isCorrect    Boolean  @default(false)
+  explanation  String?  @db.Text
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, optionLetter])
+  @@index([questionId])
+  @@map("options")
+}
+
+model PracticeSession {
+  id             String        @id
+  userId         String
+  sessionType    SessionType
+  startedAt      DateTime      @default(now())
+  completedAt    DateTime?
+  totalQuestions Int           @default(0)
+  correctAnswers Int           @default(0)
+  totalTime      Int?
+  focusTopics    String?
+  examSimulation String?
+  targetScore    Int?
+  achievedScore  Int?
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts       UserAttempt[]
+
+  @@index([userId, startedAt])
+  @@map("practice_sessions")
+}
+
+model QuestionTag {
+  questionId String
+  tagId      String
+  topicId    String?
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  topic      Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@id([questionId, tagId])
+  @@index([questionId])
+  @@index([tagId])
+  @@map("question_tags")
+}
+
+model Question {
+  id             String          @id
+  questionText   String          @db.VarChar(5000)
+  examName       String?         @db.VarChar(50)
+  examYear       Int?
+  questionNumber String?         @db.VarChar(50)
+  difficulty     DifficultyLevel @default(MEDIUM)
+  topic          String?         @db.VarChar(200)
+  subtopic       String?         @db.VarChar(200)
+  hasImage       Boolean         @default(false)
+  imageUrl       String?
+  videoUrl       String?
+  timeLimit      Int?
+  points         Int             @default(1)
+  qualityScore   Int             @default(100)
+  correctAnswer  String?         @db.VarChar(200)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+  errorReports   ErrorReport[]
+  options        Option[]
+  questionTags   QuestionTag[]
+  solution       Solution?
+  attempts       UserAttempt[]
+  userDiagrams   UserDiagram[]
+
+  @@unique([examName, examYear, questionNumber])
+  @@index([deletedAt])
+  @@index([examName, examYear])
+  @@index([qualityScore])
+  @@index([topic, difficulty])
+  @@map("questions")
+}
+
+model Solution {
+  id                    String   @id
+  questionId            String   @unique
+  solutionText          String   @db.Text
+  approach              String?  @db.Text
+  difficulty            String?
+  timeEstimate          Int?
+  keyInsights           String?  @db.Text
+  commonMistakes        String?  @db.Text
+  alternativeApproaches String?  @db.Text
+  successRate           Float?
+  videoUrl              String?
+  videoLinks            Json?
+  hints                 Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  question              Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("solutions")
+}
+
+model Tag {
+  id           String        @id
+  name         String        @unique
+  color        String?
+  questionTags QuestionTag[]
+
+  @@map("tags")
+}
+
+model TopicPerformance {
+  id              String    @id
+  userId          String
+  topic           String    @db.VarChar(200)
+  totalAttempts   Int       @default(0)
+  correctAttempts Int       @default(0)
+  accuracy        Float     @default(0)
+  averageTime     Int       @default(0)
+  lastPracticed   DateTime?
+  strengthLevel   String?
+  needsPractice   Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topic])
+  @@index([userId, accuracy])
+  @@map("topic_performance")
+}
+
+model Topic {
+  id           String        @id
+  name         String        @unique
+  description  String?
+  parentTopic  String?
+  icon         String?
+  color        String?
+  sortOrder    Int           @default(0)
+  questionTags QuestionTag[]
+
+  @@index([name])
+  @@map("topics")
+}
+
+model UserAchievement {
+  id            String      @id
+  userId        String
+  achievementId String
+  earnedAt      DateTime    @default(now())
+  progress      Int         @default(100)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, earnedAt])
+  @@map("user_achievements")
+}
+
+model UserDiagram {
+  id          String        @id
+  questionId  String
+  userId      String?
+  imageUrl    String
+  filename    String
+  fileSize    Int
+  mimeType    String
+  status      DiagramStatus @default(ACTIVE)
+  isApproved  Boolean       @default(false)
+  isPreferred Boolean       @default(false)
+  uploadedAt  DateTime      @default(now())
+  question    Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([questionId, status])
+  @@index([userId])
+  @@map("user_diagrams")
+}
+
+model User {
+  id               String             @id
+  name             String
+  grade            Int?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  preferences      Json?
+  dailyProgress    DailyProgress[]
+  errorReports     ErrorReport[]
+  examSchedules    ExamSchedule[]
+  practiceSessions PracticeSession[]
+  topicPerformance TopicPerformance[]
+  userAchievements UserAchievement[]
+  attempts         UserAttempt[]
+  userDiagrams     UserDiagram[]
+  weeklyAnalysis   WeeklyAnalysis[]
+
+  @@map("users")
+}
+
+model WeeklyAnalysis {
+  id              String   @id
+  userId          String
+  weekStartDate   DateTime @db.Date
+  weekEndDate     DateTime @db.Date
+  totalQuestions  Int      @default(0)
+  correctAnswers  Int      @default(0)
+  averageAccuracy Float    @default(0)
+  totalTimeSpent  Int      @default(0)
+  topicsStudied   String?
+  weakTopics      String?
+  strongTopics    String?
+  improvementRate Float?
+  longestStreak   Int      @default(0)
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStartDate])
+  @@index([userId, weekStartDate])
+  @@map("weekly_analysis")
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum ExamStatus {
+  UPCOMING
+  REGISTERED
+  COMPLETED
+  SCORED
+}
+
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  CONFIRMED
+  FIXED
+  DISMISSED
+}
+
+enum DiagramStatus {
+  ACTIVE
+  REPLACED
+  DELETED
+}
+
+enum AchievementType {
+  STREAK
+  ACCURACY
+  QUESTIONS
+  TOPIC_MASTERY
+  SPEED
+}
+
+enum SessionType {
+  QUICK
+  TIMED
+  TOPIC_FOCUSED
+  WEAK_AREAS
+  RETRY_FAILED
+}

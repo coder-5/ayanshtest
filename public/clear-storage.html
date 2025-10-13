@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            background-color: #dc2626;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 20px;
+        }
+        button:hover {
+            background-color: #b91c1c;
+        }
+        .success {
+            color: #16a34a;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .info {
+            background-color: #fef3c7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧹 Clear Browser Storage</h1>
+
+    <div class="info">
+        <p><strong>Why clear storage?</strong></p>
+        <p>The practice page caches questions in localStorage for better performance.
+        After importing new questions or updating diagrams, you need to clear this cache
+        to see the latest data.</p>
+    </div>
+
+    <button onclick="clearStorage()">Clear All Storage</button>
+
+    <div id="result"></div>
+
+    <script>
+        function clearStorage() {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+
+                document.getElementById('result').innerHTML = `
+                    <div class="success">
+                        ✅ Storage cleared successfully!<br><br>
+                        You can now close this page and refresh your practice session.
+                    </div>
+                `;
+
+                console.log('All storage cleared successfully');
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div style="color: red;">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+
+    <p style="margin-top: 40px; color: #6b7280;">
+        After clearing storage, go back to:
+        <a href="/practice/quick?examName=MOEMS+Division+E&examYear=2007">MOEMS Practice</a>
+    </p>
+</body>
+</html>

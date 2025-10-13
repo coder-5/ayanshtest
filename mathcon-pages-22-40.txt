@@ -1,0 +1,263 @@
+
+
+--- Page 22 ---
+
+DO NOT TURN TO THE NEXT PAGE
+until your proctor tells you.
+Please read the directions carefully.
+ You have 100 minutes for 32 Problems.
+ Mark your answers on your Answer Form with 
+a pencil. 
+ Extra scratch paper is neither given nor allowed. 
+You may use blank pages/spaces in the booklet 
+as scratch paper.
+ There are no penalties for incorrect answers. 
+Answer as many problems as you can; go 
+back and check your work and also go to 
+questions you skip, before the time is over.
+ Calculators are not permitted. Cell phones 
+must be turned off completely and placed out 
+of sight. MathCON problems are ALL done 
+without a calculator .
+ The problems are divided into three categories 
+by difficulty levels:
+ 3 Points (Questions 1-8)   
+ 5 Points (Questions 9-24) 
+ 7 Points (Questions 25-32)
+ Problems 29-32, the last four problems are 
+constructed-response problems. Enter your 
+numerical answer in the grid on your answer 
+sheet as shown on the right. 
+1. Although not required, it is suggested that 
+you write your answer from left to right in 
+the boxes at tha top of the columns to help 
+you fill in the circles accurately. You will 
+receive credit only if the circles are filled 
+in correctly. 2. Mark no more than one circle in any column.
+3. You may start your answers in any column, 
+space permitting. Columns you don’t use 
+should be left blanks, and there should be 
+no blank columns between columns that 
+are not blank. For example, if your answer 
+is 201, then either arrangement of filled-in 
+circles shown below is acceptable. 
+ For example: Answer: 201 – either position 
+is correct.
+2
+0
+11 1
+22
+33 3301
+202
+0 0
+111
+2 2
+33 3301
+2
+4. No problem has a negative answer. 
+ Notations in Geometry Problems:
+ A : Point A 
+ A⟷B : Line through points A and B
+ AB : Line segment joining A and B
+ AB : Length of the line segment AB
+ ∠ABC : Angle with the vertex point at B
+ m∠ABC : Measure of angle ABC
+ ⊥ : Perpendicular
+ // : Parallel
+
+--- Page 23 ---
+
+2. [Geometry, 3 Points]
+In the given figure,
+ABC is an isosceles triangle,
+with area 120 square units. 
+If B(0, 0) and C(20, 0) are the vertices of the base, 
+then what is the y-coordinate of point A?
+A) 10                           B) 12                           C) 16                           D) 18                           E) 24y
+A
+xB(0,0)
+C(20,0)
+16. [Combinatorics, 5 Points]
+The first six prime numbers are written on the sides of a die.
+Which of the following sums would not be possible if the die  
+was rolled three times and the numbers were added?
+A) 10                           B) 17                           C) 26                           D) 30                           E) 31
+21. [Algebra, 5 Points]
+How many points are there on the 20th stage?
+A) 73                          B) 77                          C) 80                          D) 81                          E) 855 points9 points13 points
+1st stage 2nd stage 3rd stage
+GO ON TO THE NEXT PAGE.
+2
+stronger math brıghter futureFINAL TESTGRADE 2022
+5
+
+--- Page 24 ---
+
+27. [Number Theory, 7 Points] 
+The number 987654321 is written on a strip of paper. Patel cuts the strip three times and gets four 
+numbers. Then he adds these four numbers.
+987654321
+What is the least possible sum he can get?
+A) 551                        B) 549                        C) 547                        D) 545                        E) 54326. [Geometry, 7 Points]
+A large red triangle is divided into equilateral triangles as shown in the  
+figure to the right. The side length of the blue shaded triangle is 2 inches.
+What is the perimeter of the large red triangle?
+A) 54 inches             B) 51 inches             C) 48 inches             D) 45 inches             E) 42 inches23. [Number Theory, 5 Points] 
+Which of the following numbers is not divisible by 5 for any integer n?
+A) n2 – 1                 B) 2n + 1                 C) n ∙ (n + 1)                 D) 10n + 1                 E) n3 – 1
+GO ON TO THE NEXT PAGE.
+3
+Final Test
+
+--- Page 25 ---
+
+ 
+ 
+Grade 5 Sample Final eBook Test  
+ 
+
+
+--- Page 27 ---
+
+ 
+ 
+Grade 5 Sample Final eBook Test  Solutions  
+ 
+1. 
+2. 
+ 
+3.
+4.
+5.
+6.
+ 
+
+
+--- Page 28 ---
+
+7.
+ 
+8.
+9.
+10.
+ 
+
+
+--- Page 29 ---
+
+MathCON
+ 
+2023
+ 
+-
+ 
+Week
+ 
+1
+ 
+Grade
+ 
+5
+ 
+Weekly
+ 
+Practice
+ 
+Test
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+--- Page 32 ---
+
+MathCON
+ 
+2023
+ 
+-
+ 
+Week
+ 
+2
+ 
+Grade
+ 
+5
+ 
+Weekly
+ 
+Practice
+ 
+Test
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+--- Page 35 ---
+
+MathCON
+ 
+2023
+ 
+-
+ 
+Week
+ 
+3
+ 
+Grade
+ 
+5
+ 
+Weekly
+ 
+Practice
+ 
+Test
+ 
+ 
+ 
+ 
+ 
+
+
+--- Page 39 ---
+
+MathCON
+ 
+2023
+ 
+-
+ 
+Week
+ 
+4
+ 
+Grade
+ 
+5
+ 
+Weekly
+ 
+Practice
+ 
+Test
+ 
+ 
+ 
