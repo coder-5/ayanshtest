@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { nanoid } from 'nanoid';
 import type { QuestionCreate, QuestionUpdate } from '@/lib/validation';
+import {
+  sanitizeQuestionText,
+  sanitizeOptionText,
+  sanitizeSolutionText,
+  sanitizeIdentifier,
+} from '@/lib/sanitizer';
 
 export interface QuestionFilters {
   topic?: string;
@@ -104,16 +110,24 @@ export class QuestionService {
 
     try {
       return await prisma.$transaction(async (tx) => {
+        // Sanitize all text inputs
+        const sanitizedQuestionText = sanitizeQuestionText(data.questionText);
+        const sanitizedExamName = data.examName ? sanitizeIdentifier(data.examName) : null;
+        const sanitizedTopic = data.topic ? sanitizeIdentifier(data.topic) : null;
+        const sanitizedCorrectAnswer = data.correctAnswer
+          ? sanitizeQuestionText(data.correctAnswer)
+          : null;
+
         // Create question
         const question = await tx.question.create({
           data: {
             id: questionId,
-            questionText: data.questionText,
-            examName: data.examName || null,
+            questionText: sanitizedQuestionText,
+            examName: sanitizedExamName,
             examYear: data.examYear || null,
             questionNumber: data.questionNumber || null,
-            correctAnswer: data.correctAnswer || null,
-            topic: data.topic || null,
+            correctAnswer: sanitizedCorrectAnswer,
+            topic: sanitizedTopic,
             difficulty: data.difficulty || 'MEDIUM',
             hasImage: false,
             imageUrl: null,
@@ -121,24 +135,24 @@ export class QuestionService {
           },
         });
 
-        // Create options
+        // Create options (sanitize option text)
         await tx.option.createMany({
           data: data.options.map((opt) => ({
             id: nanoid(),
             questionId,
             optionLetter: opt.optionLetter,
-            optionText: opt.optionText,
+            optionText: sanitizeOptionText(opt.optionText),
             isCorrect: opt.isCorrect,
           })),
         });
 
-        // Create solution if provided
+        // Create solution if provided (sanitize solution text)
         if (data.solution) {
           await tx.solution.create({
             data: {
               id: nanoid(),
               questionId,
-              solutionText: data.solution,
+              solutionText: sanitizeSolutionText(data.solution),
               updatedAt: new Date(),
             },
           });
@@ -167,16 +181,26 @@ export class QuestionService {
   static async update(id: string, data: QuestionUpdate) {
     try {
       return await prisma.$transaction(async (tx) => {
+        // Sanitize all text inputs
+        const sanitizedQuestionText = data.questionText
+          ? sanitizeQuestionText(data.questionText)
+          : undefined;
+        const sanitizedExamName = data.examName ? sanitizeIdentifier(data.examName) : null;
+        const sanitizedTopic = data.topic ? sanitizeIdentifier(data.topic) : undefined;
+        const sanitizedCorrectAnswer = data.correctAnswer
+          ? sanitizeQuestionText(data.correctAnswer)
+          : undefined;
+
         // Update question
         const question = await tx.question.update({
           where: { id },
           data: {
-            questionText: data.questionText,
-            examName: data.examName || null,
+            questionText: sanitizedQuestionText,
+            examName: sanitizedExamName,
             examYear: data.examYear || null,
             questionNumber: data.questionNumber,
-            correctAnswer: data.correctAnswer,
-            topic: data.topic,
+            correctAnswer: sanitizedCorrectAnswer,
+            topic: sanitizedTopic,
             difficulty: data.difficulty || 'MEDIUM',
             hasImage: data.hasImage,
             imageUrl: data.imageUrl,
@@ -189,30 +213,30 @@ export class QuestionService {
           // Delete existing options (will rollback if create fails)
           await tx.option.deleteMany({ where: { questionId: id } });
 
-          // Create new options (will rollback if this fails, preventing orphaned state)
+          // Create new options (sanitize option text)
           await tx.option.createMany({
             data: data.options.map((opt) => ({
               id: nanoid(),
               questionId: id,
               optionLetter: opt.optionLetter,
-              optionText: opt.optionText,
+              optionText: sanitizeOptionText(opt.optionText),
               isCorrect: opt.isCorrect,
             })),
           });
         }
 
-        // Update or create solution if provided (already using safe upsert)
+        // Update or create solution if provided (sanitize solution text)
         if (data.solution) {
           await tx.solution.upsert({
             where: { questionId: id },
             update: {
-              solutionText: data.solution,
+              solutionText: sanitizeSolutionText(data.solution),
               updatedAt: new Date(),
             },
             create: {
               id: nanoid(),
               questionId: id,
-              solutionText: data.solution,
+              solutionText: sanitizeSolutionText(data.solution),
               updatedAt: new Date(),
             },
           });

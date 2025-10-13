@@ -8,16 +8,8 @@ import {
   determineStrengthLevel,
   needsPractice as calculateNeedsPractice,
 } from '@/lib/config/thresholds';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
-  // Rate limiting: 60 requests per minute (prevents rapid clicking bugs)
-  const rateLimitResponse = rateLimitMiddleware('user-attempts', {
-    maxRequests: 60,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
-
   try {
     const userId = getCurrentUserId();
     const body = await request.json();
@@ -35,7 +27,7 @@ export async function POST(request: Request) {
 
     // SERVER-SIDE VALIDATION: Calculate correctness instead of trusting client
     const question = await prisma.question.findUnique({
-      where: { id: questionId },
+      where: { id: questionId, deletedAt: null },
       include: {
         options: true,
       },
@@ -205,7 +197,7 @@ async function updateTopicPerformance(
   tx: Prisma.TransactionClient
 ) {
   const question = await tx.question.findUnique({
-    where: { id: questionId },
+    where: { id: questionId, deletedAt: null },
     select: { topic: true },
   });
 

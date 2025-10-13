@@ -4,7 +4,6 @@ import { join } from 'path';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 
 // Magic number validation for image files
 function validateImageMagicNumber(buffer: Buffer): boolean {
@@ -34,12 +33,6 @@ function sanitizeFilename(filename: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  // Rate limit: 20 requests per minute for diagram uploads
-  const rateLimitResponse = rateLimitMiddleware('diagrams-post', {
-    maxRequests: 20,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const userId = getCurrentUserId();

@@ -1,17 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 import { videoViewSchema } from '@/lib/validations';
 
 // Record a video view
 export async function POST(request: Request) {
-  // Rate limit: 60 requests per minute for video view tracking
-  const rateLimitResponse = rateLimitMiddleware('video-views-post', {
-    maxRequests: 60,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const userId = getCurrentUserId();
@@ -52,12 +45,6 @@ export async function POST(request: Request) {
 
 // Get video views for the current user
 export async function GET(request: Request) {
-  // Rate limit: 100 requests per minute for read operations
-  const rateLimitResponse = rateLimitMiddleware('video-views-get', {
-    maxRequests: 100,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const userId = getCurrentUserId();

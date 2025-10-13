@@ -1,19 +1,19 @@
+/**
+ * SINGLE-USER APPLICATION
+ * This API is designed for Ayansh only - no multi-user support needed.
+ * All sessions belong to the hardcoded user ID.
+ * DO NOT add userId parameters, user switching, or multi-tenant features.
+ */
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 import { sessionSchema } from '@/lib/validations';
 import { z } from 'zod';
 
 export async function GET(request: Request) {
-  // Rate limit: 100 requests per minute for read operations
-  const rateLimitResponse = rateLimitMiddleware('sessions-get', {
-    maxRequests: 100,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
-
   try {
+    // Hardcoded for single user - this is intentional
     const userId = getCurrentUserId();
     const { searchParams } = new URL(request.url);
     const rawLimit = searchParams.get('limit') || '50';
@@ -46,14 +46,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // Rate limit: 60 requests per minute for session creation
-  const rateLimitResponse = rateLimitMiddleware('sessions-post', {
-    maxRequests: 60,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
-
   try {
+    // Hardcoded for single user - this is intentional
     const userId = getCurrentUserId();
     const body = await request.json();
 

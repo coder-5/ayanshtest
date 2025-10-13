@@ -1,15 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { nanoid } from 'nanoid';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
-  // Rate limit: 10 requests per minute for bulk uploads (prevent abuse)
-  const rateLimitResponse = rateLimitMiddleware('upload-post', {
-    maxRequests: 10,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const body = await request.json();

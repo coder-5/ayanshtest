@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 
 const topicIcons: Record<string, string> = {
   Algebra: '📐',
@@ -14,12 +13,6 @@ const topicIcons: Record<string, string> = {
 };
 
 export async function GET() {
-  // Rate limit: 100 requests per minute for read operations
-  const rateLimitResponse = rateLimitMiddleware('topics-get', {
-    maxRequests: 100,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     // Get all non-deleted questions grouped by topic

@@ -1,15 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 
 export async function GET(request: Request) {
-  // Rate limit: 100 requests per minute for read operations
-  const rateLimitResponse = rateLimitMiddleware('daily-progress-get', {
-    maxRequests: 100,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const userId = getCurrentUserId();
@@ -64,12 +57,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST() {
-  // Rate limit: 30 requests per minute for progress updates
-  const rateLimitResponse = rateLimitMiddleware('daily-progress-post', {
-    maxRequests: 30,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const userId = getCurrentUserId();

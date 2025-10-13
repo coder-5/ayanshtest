@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { QuestionService } from '@/lib/services/questionService';
 import { questionCreateSchema, questionFiltersSchema, validatePayloadSize } from '@/lib/validation';
-import { rateLimitMiddleware } from '@/lib/rateLimit';
 import { z } from 'zod';
 
 // Query parameters schema with pagination - Max 1000 records per request
@@ -23,12 +22,6 @@ const getQuerySchema = questionFiltersSchema.extend({
 });
 
 export async function GET(request: Request) {
-  // Rate limit: 100 requests per minute for read operations
-  const rateLimitResponse = rateLimitMiddleware('questions-get', {
-    maxRequests: 100,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -64,12 +57,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // Rate limit: 20 requests per minute for question creation
-  const rateLimitResponse = rateLimitMiddleware('questions-post', {
-    maxRequests: 20,
-    windowSeconds: 60,
-  });
-  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const body = await request.json();

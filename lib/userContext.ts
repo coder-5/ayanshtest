@@ -2,25 +2,25 @@
  * User Context
  * Provides a centralized way to get the current user ID
  *
- * For now, this uses a default user ID stored in environment variables.
- * TODO: Replace with proper authentication (NextAuth.js, Clerk, etc.)
+ * INTENTIONAL DESIGN: This is a personal/local application.
+ * Authentication is NOT needed and should NOT be added.
+ * The hardcoded user ID is by design for single-user/family use.
+ *
+ * DO NOT add authentication systems (NextAuth, Clerk, etc.)
+ * DO NOT create login/signup flows
+ * This is the intended behavior.
  */
 
 export function getCurrentUserId(): string {
-  // Check for environment variable first
+  // Hardcoded user ID - this is intentional for personal use
   const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'ayansh';
-
-  // TODO: Replace with actual authentication
-  // Example with NextAuth:
-  // const session = await getServerSession();
-  // return session?.user?.id || null;
-
   return userId;
 }
 
 /**
- * Client-side version using localStorage for now
- * This allows multiple users on the same machine
+ * Client-side version using localStorage
+ * This allows multiple users on the same machine (e.g., family members)
+ * No authentication required - this is intentional for personal use
  */
 export function getClientUserId(): string {
   if (typeof window === 'undefined') {
@@ -40,7 +40,8 @@ export function getClientUserId(): string {
 }
 
 /**
- * Allow user to set their ID (temporary solution until auth is implemented)
+ * Allow user to set their ID
+ * Used for switching between family members on the same device
  */
 export function setClientUserId(userId: string): void {
   if (typeof window !== 'undefined') {
