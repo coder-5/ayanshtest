@@ -9,6 +9,7 @@ import { getClientUserId } from '@/lib/userContext';
 import { useVideoTracking } from '@/hooks/useVideoTracking';
 import { SafeHtml } from '@/lib/sanitize';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 // Force dynamic rendering - this page cannot be statically generated
 export const dynamic = 'force-dynamic';
@@ -252,7 +253,7 @@ function QuickPracticePageContent() {
   const createSession = async () => {
     try {
       const userId = getClientUserId();
-      const response = await fetch('/api/sessions', {
+      const data = await fetchJsonSafe<{ session: { id: string } }>('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -260,8 +261,7 @@ function QuickPracticePageContent() {
           userId,
         }),
       });
-      if (response.ok) {
-        const data = await response.json();
+      if (data) {
         setSessionId(data.session.id);
       } else {
         toast.error('Failed to create practice session');
@@ -287,14 +287,7 @@ function QuickPracticePageContent() {
       const url =
         queryParams.length > 0 ? `/api/questions?${queryParams.join('&')}` : '/api/questions';
 
-      const response = await fetch(url);
-
-      // Check if response is ok
-      if (!response.ok) {
-        throw new Error(`Failed to fetch questions: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchJsonSafe<{ questions: Question[] }>(url);
 
       // Validate we got questions
       if (!data?.questions || !Array.isArray(data.questions)) {
@@ -344,25 +337,26 @@ function QuickPracticePageContent() {
 
     // Save attempt to database (server will calculate correctness)
     try {
-      const response = await fetch('/api/user-attempts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questionId: currentQuestion.id,
-          selectedAnswer,
-          timeSpent,
-          sessionId: sessionId,
-        }),
-      });
+      const result = await fetchJsonSafe<{ attempt: { isCorrect: boolean } }>(
+        '/api/user-attempts',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            questionId: currentQuestion.id,
+            selectedAnswer,
+            timeSpent,
+            sessionId,
+          }),
+        }
+      );
 
-      if (!response.ok) {
+      if (!result) {
         toast.error('Failed to save answer');
         setSubmitting(false);
         return;
       }
 
-      // Get server response with correct answer validation
-      const result = await response.json();
       const serverIsCorrect = result.attempt?.isCorrect || false;
 
       setShowResult(true);

@@ -94,8 +94,10 @@ export const GET = withErrorHandler(async () => {
       0
     ),
     criticalTopics: weakTopics.filter((t) => t.accuracy < 50).length,
-    needsReviewTopics: weakTopics.filter((t) => !t.lastPracticed ||
-      (now.getTime() - t.lastPracticed.getTime()) / (1000 * 60 * 60 * 24) >= 7).length,
+    needsReviewTopics: weakTopics.filter(
+      (t) =>
+        !t.lastPracticed || (now.getTime() - t.lastPracticed.getTime()) / (1000 * 60 * 60 * 24) >= 7
+    ).length,
   };
 
   return successResponse({

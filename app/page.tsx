@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster } from 'sonner';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Stats {
   totalQuestions: number;
@@ -26,30 +27,32 @@ export default function Home() {
 
   const fetchStats = async () => {
     try {
-      const [questionsRes, progressRes] = await Promise.all([
-        fetch('/api/questions?limit=1'),
-        fetch('/api/daily-progress?days=1'),
+      const [questionsData, progressData] = await Promise.all([
+        fetchJsonSafe<{ total: number }>('/api/questions?limit=1'),
+        fetchJsonSafe<{
+          dailyProgress: Array<{ questionsAttempted: number; averageAccuracy: number }>;
+          currentStreak: number;
+        }>('/api/daily-progress?days=1'),
       ]);
 
-      const questionsData = await questionsRes.json();
-      const progressData = await progressRes.json();
-
-      const totalQuestions = questionsData.total || 0;
+      const totalQuestions = questionsData?.total || 0;
 
       let totalAttempts = 0;
       let accuracy = 0;
 
-      if (progressData.dailyProgress && progressData.dailyProgress.length > 0) {
+      if (progressData?.dailyProgress && progressData.dailyProgress.length > 0) {
         const today = progressData.dailyProgress[0];
-        totalAttempts = today.questionsAttempted || 0;
-        accuracy = Math.round(today.averageAccuracy || 0);
+        if (today) {
+          totalAttempts = today.questionsAttempted || 0;
+          accuracy = Math.round(today.averageAccuracy || 0);
+        }
       }
 
       setStats({
         totalQuestions,
         totalAttempts,
         accuracy,
-        streak: progressData.currentStreak || 0,
+        streak: progressData?.currentStreak || 0,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);

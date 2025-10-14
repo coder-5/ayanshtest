@@ -4,23 +4,24 @@ import Link from 'next/link';
 import { useState, useEffect, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import { getClientUserId } from '@/lib/userContext';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 export const dynamic = 'force-dynamic';
 
 // Exam configurations
 const EXAM_CONFIGS = {
-  'AMC8': {
+  AMC8: {
     name: 'AMC8',
     questionsCount: 25,
     timeMinutes: 40,
-    description: 'Full AMC 8 Competition Format'
+    description: 'Full AMC 8 Competition Format',
   },
-  'MOEMS': {
+  MOEMS: {
     name: 'MOEMS Division E',
     questionsCount: 5,
     timeMinutes: 30,
-    description: 'Full MOEMS Competition Format'
-  }
+    description: 'Full MOEMS Competition Format',
+  },
 };
 
 interface ExamYear {
@@ -43,12 +44,13 @@ function ExamModeContent() {
 
   const fetchAvailableYears = async (examType: string) => {
     try {
-      const response = await fetch(`/api/questions/exam/${encodeURIComponent(examType)}/years`);
-      if (response.ok) {
-        const data = await response.json();
+      const data = await fetchJsonSafe<{ years: number[] }>(
+        `/api/questions/exam/${encodeURIComponent(examType)}/years`
+      );
+      if (data) {
         const years = data.years.map((year: number) => ({
           year,
-          available: true
+          available: true,
         }));
         setAvailableYears(years);
       }
@@ -69,15 +71,13 @@ function ExamModeContent() {
     try {
       // Validate that we have enough questions
       const config = EXAM_CONFIGS[selectedExam as keyof typeof EXAM_CONFIGS];
-      const response = await fetch(
+      const data = await fetchJsonSafe<{ questions: unknown[] }>(
         `/api/questions?examName=${encodeURIComponent(selectedExam)}&examYear=${selectedYear}&limit=100`
       );
 
-      if (!response.ok) {
+      if (!data) {
         throw new Error('Failed to fetch questions');
       }
-
-      const data = await response.json();
 
       if (data.questions.length < config.questionsCount) {
         toast.error(
@@ -93,7 +93,7 @@ function ExamModeContent() {
         examYear: selectedYear,
         examMode: 'true',
         timeLimit: config.timeMinutes.toString(),
-        questionCount: config.questionsCount.toString()
+        questionCount: config.questionsCount.toString(),
       });
 
       window.location.href = `/practice/timed?${params.toString()}`;
@@ -124,12 +124,8 @@ function ExamModeContent() {
       <main className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Full Exam Simulation 📝
-            </h1>
-            <p className="text-gray-600">
-              Practice complete exams under timed conditions
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Full Exam Simulation 📝</h1>
+            <p className="text-gray-600">Practice complete exams under timed conditions</p>
           </div>
 
           {/* Exam Selection */}
@@ -153,12 +149,8 @@ function ExamModeContent() {
                         : 'border-gray-300 hover:border-indigo-300'
                     }`}
                   >
-                    <div className="font-bold text-lg text-gray-900 mb-2">
-                      {config.name}
-                    </div>
-                    <div className="text-sm text-gray-600 mb-3">
-                      {config.description}
-                    </div>
+                    <div className="font-bold text-lg text-gray-900 mb-2">{config.name}</div>
+                    <div className="text-sm text-gray-600 mb-3">{config.description}</div>
                     <div className="flex gap-4 text-xs text-gray-500">
                       <span>📝 {config.questionsCount} questions</span>
                       <span>⏱️ {config.timeMinutes} minutes</span>
@@ -171,9 +163,7 @@ function ExamModeContent() {
             {/* Select Year */}
             {selectedExam && availableYears.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Year
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Year</label>
                 <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                   {availableYears.map(({ year, available }) => (
                     <button
@@ -184,8 +174,8 @@ function ExamModeContent() {
                         selectedYear === year.toString()
                           ? 'border-indigo-600 bg-indigo-50 text-indigo-900'
                           : available
-                          ? 'border-gray-300 hover:border-indigo-300 text-gray-700'
-                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'border-gray-300 hover:border-indigo-300 text-gray-700'
+                            : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
                     >
                       {year}
@@ -198,9 +188,7 @@ function ExamModeContent() {
             {/* Exam Details */}
             {selectedExam && selectedYear && (
               <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-                <h3 className="font-bold text-lg text-gray-900 mb-4">
-                  Exam Details
-                </h3>
+                <h3 className="font-bold text-lg text-gray-900 mb-4">Exam Details</h3>
                 <div className="space-y-2 text-sm text-gray-700">
                   <div className="flex justify-between">
                     <span className="font-medium">Competition:</span>
@@ -256,14 +244,16 @@ function ExamModeContent() {
 
 export default function ExamModePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">📝</div>
-          <p className="text-xl text-gray-600">Loading exam mode...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">📝</div>
+            <p className="text-xl text-gray-600">Loading exam mode...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ExamModeContent />
     </Suspense>
   );

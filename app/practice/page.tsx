@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface ExamYearOption {
   examName: string;
@@ -47,10 +48,11 @@ export default function PracticePage() {
 
   const fetchExamOptions = async () => {
     try {
-      const response = await fetch('/api/questions?limit=1000');
-      const data = await response.json();
+      const data = await fetchJsonSafe<{
+        questions: Array<{ examName: string | null; examYear: number | null }>;
+      }>('/api/questions?limit=1000');
 
-      if (data.questions) {
+      if (data?.questions) {
         const examMap = new Map<string, ExamYearOption>();
 
         data.questions.forEach((q: { examName: string | null; examYear: number | null }) => {
@@ -84,10 +86,11 @@ export default function PracticePage() {
 
   const fetchAvailableYears = async () => {
     try {
-      const response = await fetch(`/api/questions/exam/${encodeURIComponent(examName)}/years`);
-      const data = await response.json();
+      const data = await fetchJsonSafe<{ years: number[] }>(
+        `/api/questions/exam/${encodeURIComponent(examName)}/years`
+      );
 
-      if (data.years) {
+      if (data?.years) {
         setAvailableYears(data.years);
       }
     } catch (error) {
@@ -98,10 +101,9 @@ export default function PracticePage() {
   const fetchQuestionCounts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/question-counts');
+      const data = await fetchJsonSafe<QuestionCounts>('/api/question-counts');
 
-      if (response.ok) {
-        const data = await response.json();
+      if (data) {
         setCounts(data);
       }
     } catch (error) {

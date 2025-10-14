@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface TopicPerformance {
   id: string;
@@ -26,9 +27,8 @@ export default function TopicPerformancePage() {
 
   const fetchTopicPerformance = async () => {
     try {
-      const response = await fetch('/api/topic-performance');
-      const data = await response.json();
-      setTopics(data.topics || []);
+      const data = await fetchJsonSafe<{ topics: TopicPerformance[] }>('/api/topic-performance');
+      setTopics(data?.topics || []);
     } catch (error) {
       console.error('Error fetching topic performance:', error);
     } finally {

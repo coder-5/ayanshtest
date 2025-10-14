@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -144,14 +145,13 @@ export default function AddQuestionPage() {
         requestBody.videoUrl = formData.videoUrl.trim();
       }
 
-      const response = await fetch('/api/questions', {
+      const result = await fetchJsonSafe<{ question: { id: string } }>('/api/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      if (result) {
         const questionId = result.question.id;
 
         // Upload diagram if provided
@@ -167,10 +167,15 @@ export default function AddQuestionPage() {
             });
 
             if (!diagramResponse.ok) {
-              const diagramError = await diagramResponse.json();
-              alert(
-                `Question added but diagram upload failed: ${diagramError.error || 'Unknown error'}`
-              );
+              let errorMessage = 'Unknown error';
+              try {
+                const diagramError = await diagramResponse.json();
+                errorMessage = diagramError.error || 'Unknown error';
+              } catch {
+                // If JSON parsing fails, use status text
+                errorMessage = diagramResponse.statusText || 'Unknown error';
+              }
+              alert(`Question added but diagram upload failed: ${errorMessage}`);
               router.push('/library');
               return;
             }
@@ -185,34 +190,8 @@ export default function AddQuestionPage() {
         alert('Question added successfully!');
         router.push('/library');
       } else {
-        const error = await response.json();
-
-        // Show detailed validation errors if available
-        if (error.details) {
-          let errorMessage = 'Validation errors:\n\n';
-
-          // Parse Zod error details
-          const details = error.details;
-          if (details.questionText?._errors?.length) {
-            errorMessage += `• Question Text: ${details.questionText._errors.join(', ')}\n`;
-          }
-          if (details.options?._errors?.length) {
-            errorMessage += `• Options: ${details.options._errors.join(', ')}\n`;
-          }
-          if (details.examYear?._errors?.length) {
-            errorMessage += `• Exam Year: ${details.examYear._errors.join(', ')}\n`;
-          }
-          if (details.topic?._errors?.length) {
-            errorMessage += `• Topic: ${details.topic._errors.join(', ')}\n`;
-          }
-          if (details.difficulty?._errors?.length) {
-            errorMessage += `• Difficulty: ${details.difficulty._errors.join(', ')}\n`;
-          }
-
-          alert(errorMessage || `Failed to add question: ${error.error || 'Unknown error'}`);
-        } else {
-          alert(`Failed to add question: ${error.error || 'Unknown error'}`);
-        }
+        // Show error message - result is null so question creation failed
+        alert('Failed to add question: No response from server');
       }
     } catch (error) {
       console.error('Error:', error);

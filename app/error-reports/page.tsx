@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface ErrorReport {
   id: string;
@@ -29,9 +30,8 @@ export default function ErrorReportsPage() {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch('/api/error-reports');
-      const data = await response.json();
-      setReports(data.reports || []);
+      const data = await fetchJsonSafe<{ reports: ErrorReport[] }>('/api/error-reports');
+      setReports(data?.reports || []);
     } catch (error) {
       console.error('Error fetching reports:', error);
     } finally {

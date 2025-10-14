@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface WeeklyAnalysis {
   id: string;
@@ -28,9 +29,8 @@ export default function WeeklyAnalysisPage() {
 
   const fetchWeeklyAnalysis = async () => {
     try {
-      const response = await fetch('/api/weekly-analysis');
-      const data = await response.json();
-      setWeeklyData(data.weeks || []);
+      const data = await fetchJsonSafe<{ weeks: WeeklyAnalysis[] }>('/api/weekly-analysis');
+      setWeeklyData(data?.weeks || []);
     } catch (error) {
       console.error('Error fetching weekly analysis:', error);
     } finally {

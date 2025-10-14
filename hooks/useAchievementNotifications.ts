@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Achievement {
   id: string;
@@ -43,10 +44,11 @@ export function useAchievementNotifications() {
   // Check for new achievements by comparing current with stored
   const checkForNewAchievements = useCallback(async () => {
     try {
-      const response = await fetch('/api/achievements');
-      const data = await response.json();
+      const data = await fetchJsonSafe<{ achievements?: Array<Achievement & { earned: boolean }> }>(
+        '/api/achievements'
+      );
 
-      if (!data.achievements) return;
+      if (!data?.achievements) return;
 
       // Get list of achievement IDs that were already notified
       const notifiedIds = new Set(

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Exam {
   id: string;
@@ -31,9 +32,10 @@ export default function ExamsPage() {
 
   const fetchExams = async () => {
     try {
-      const response = await fetch('/api/exams');
-      const data = await response.json();
-      setExams(data.exams || []);
+      const data = await fetchJsonSafe<{ exams?: Exam[] }>('/api/exams');
+      if (data) {
+        setExams(data.exams || []);
+      }
     } catch (error) {
       console.error('Error fetching exams:', error);
     } finally {
@@ -57,8 +59,15 @@ export default function ExamsPage() {
         setShowAddForm(false);
         fetchExams();
       } else {
-        const error = await response.json();
-        alert(`Failed to add exam: ${error.error}`);
+        let errorMessage = 'Unknown error';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || 'Unknown error';
+        } catch {
+          // If JSON parsing fails, use status text
+          errorMessage = response.statusText || 'Unknown error';
+        }
+        alert(`Failed to add exam: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error adding exam:', error);

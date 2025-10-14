@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -24,9 +25,8 @@ export default function TopicPracticePage() {
 
   const fetchTopics = async () => {
     try {
-      const response = await fetch('/api/topics');
-      const data = await response.json();
-      setTopics(data.topics || []);
+      const data = await fetchJsonSafe<{ topics: Topic[] }>('/api/topics');
+      setTopics(data?.topics || []);
     } catch (error) {
       console.error('Error fetching topics:', error);
     } finally {

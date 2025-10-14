@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { SafeHtml } from '@/lib/sanitize';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Bookmark {
   id: string;
@@ -42,9 +43,8 @@ export default function BookmarksPage() {
   const fetchBookmarks = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/bookmarks');
-      const data = await response.json();
-      setBookmarks(data.bookmarks || []);
+      const data = await fetchJsonSafe<{ bookmarks: Bookmark[] }>('/api/bookmarks');
+      setBookmarks(data?.bookmarks || []);
     } catch (error) {
       console.error('Error fetching bookmarks:', error);
     } finally {
@@ -78,9 +78,7 @@ export default function BookmarksPage() {
       });
 
       setBookmarks(
-        bookmarks.map((b) =>
-          b.questionId === questionId ? { ...b, note: noteText } : b
-        )
+        bookmarks.map((b) => (b.questionId === questionId ? { ...b, note: noteText } : b))
       );
       setEditingNote(null);
       setNoteText('');
@@ -189,7 +187,8 @@ export default function BookmarksPage() {
                         {bookmark.question.examName && (
                           <span className="text-sm font-semibold text-indigo-600">
                             {bookmark.question.examName}
-                            {bookmark.question.questionNumber && ` #${bookmark.question.questionNumber}`}
+                            {bookmark.question.questionNumber &&
+                              ` #${bookmark.question.questionNumber}`}
                           </span>
                         )}
                         <span
@@ -241,7 +240,9 @@ export default function BookmarksPage() {
                                 </span>
                                 <span className="text-gray-900">{option.optionText}</span>
                                 {option.isCorrect && (
-                                  <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
+                                  <span className="ml-2 text-green-600 font-semibold">
+                                    ✓ Correct
+                                  </span>
                                 )}
                               </div>
                             ))}

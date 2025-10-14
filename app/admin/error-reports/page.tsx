@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface ErrorReport {
   id: string;
@@ -46,9 +47,8 @@ export default function AdminErrorReportsPage() {
     try {
       const url = filter === 'ALL' ? '/api/error-reports' : `/api/error-reports?status=${filter}`;
 
-      const response = await fetch(url);
-      const data = await response.json();
-      setReports(data.reports || []);
+      const data = await fetchJsonSafe<{ reports: ErrorReport[] }>(url);
+      setReports(data?.reports || []);
     } catch (_error) {
       toast.error('Failed to load error reports');
     } finally {

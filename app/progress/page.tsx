@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface ProgressStats {
   totalQuestions: number;
@@ -41,9 +42,12 @@ function ProgressPageContent() {
   useEffect(() => {
     const fetchProgress = async () => {
       try {
-        const response = await fetch('/api/progress');
-        if (response.ok) {
-          const data = await response.json();
+        const data = await fetchJsonSafe<{
+          stats: ProgressStats;
+          topicPerformance: TopicPerformance[];
+          recentActivity: RecentActivity[];
+        }>('/api/progress');
+        if (data) {
           setStats(data.stats);
           setTopicPerformance(data.topicPerformance);
           setRecentActivity(data.recentActivity);

@@ -11,10 +11,14 @@ export default function FormulasPage() {
       { name: 'Circle Area', formula: 'A = πr²', description: 'r = radius' },
       { name: 'Circle Circumference', formula: 'C = 2πr', description: 'r = radius' },
       { name: 'Rectangle Area', formula: 'A = l × w', description: 'l = length, w = width' },
-      { name: 'Rectangle Perimeter', formula: 'P = 2(l + w)', description: 'l = length, w = width' },
+      {
+        name: 'Rectangle Perimeter',
+        formula: 'P = 2(l + w)',
+        description: 'l = length, w = width',
+      },
       { name: 'Triangle Area', formula: 'A = ½bh', description: 'b = base, h = height' },
       {
-        name: 'Triangle Area (Heron\'s)',
+        name: "Triangle Area (Heron's)",
         formula: 'A = √[s(s-a)(s-b)(s-c)]',
         description: 's = (a+b+c)/2',
       },
@@ -28,27 +32,43 @@ export default function FormulasPage() {
     ],
     Volume: [
       { name: 'Cube', formula: 'V = s³', description: 's = side length' },
-      { name: 'Rectangular Prism', formula: 'V = lwh', description: 'l = length, w = width, h = height' },
+      {
+        name: 'Rectangular Prism',
+        formula: 'V = lwh',
+        description: 'l = length, w = width, h = height',
+      },
       { name: 'Cylinder', formula: 'V = πr²h', description: 'r = radius, h = height' },
       { name: 'Sphere', formula: 'V = (4/3)πr³', description: 'r = radius' },
       { name: 'Cone', formula: 'V = (1/3)πr²h', description: 'r = radius, h = height' },
       { name: 'Pyramid', formula: 'V = (1/3)Bh', description: 'B = base area, h = height' },
     ],
     'Number Theory': [
-      { name: 'Divisibility by 2', formula: 'Last digit is even', description: 'Ends in 0, 2, 4, 6, 8' },
+      {
+        name: 'Divisibility by 2',
+        formula: 'Last digit is even',
+        description: 'Ends in 0, 2, 4, 6, 8',
+      },
       {
         name: 'Divisibility by 3',
         formula: 'Sum of digits divisible by 3',
         description: 'e.g., 123: 1+2+3=6 (divisible)',
       },
-      { name: 'Divisibility by 4', formula: 'Last 2 digits divisible by 4', description: 'e.g., 316' },
+      {
+        name: 'Divisibility by 4',
+        formula: 'Last 2 digits divisible by 4',
+        description: 'e.g., 316',
+      },
       { name: 'Divisibility by 5', formula: 'Last digit is 0 or 5', description: 'Ends in 0 or 5' },
       {
         name: 'Divisibility by 9',
         formula: 'Sum of digits divisible by 9',
         description: 'e.g., 729: 7+2+9=18',
       },
-      { name: 'GCD Formula', formula: 'gcd(a,b) = gcd(b, a mod b)', description: 'Euclidean algorithm' },
+      {
+        name: 'GCD Formula',
+        formula: 'gcd(a,b) = gcd(b, a mod b)',
+        description: 'Euclidean algorithm',
+      },
       { name: 'LCM Formula', formula: 'lcm(a,b) = (a × b) / gcd(a,b)', description: 'Using GCD' },
     ],
     Combinatorics: [
@@ -60,7 +80,7 @@ export default function FormulasPage() {
       {
         name: 'Combinations',
         formula: 'C(n,r) = n!/[r!(n-r)!]',
-        description: 'Order doesn\'t matter',
+        description: "Order doesn't matter",
       },
       {
         name: 'Permutations with Repetition',
@@ -81,7 +101,7 @@ export default function FormulasPage() {
       },
       {
         name: 'Complement Rule',
-        formula: 'P(A\') = 1 - P(A)',
+        formula: "P(A') = 1 - P(A)",
         description: 'Probability of not A',
       },
       {
@@ -160,18 +180,21 @@ export default function FormulasPage() {
     ],
   };
 
-  const filteredFormulas = Object.entries(formulas).reduce((acc, [category, items]) => {
-    const filtered = items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.formula.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    if (filtered.length > 0) {
-      acc[category] = filtered;
-    }
-    return acc;
-  }, {} as typeof formulas);
+  const filteredFormulas = Object.entries(formulas).reduce(
+    (acc, [category, items]) => {
+      const filtered = items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.formula.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      if (filtered.length > 0) {
+        acc[category as keyof typeof formulas] = filtered;
+      }
+      return acc;
+    },
+    {} as Record<string, (typeof formulas)[keyof typeof formulas]>
+  );
 
   const handlePrint = () => {
     window.print();

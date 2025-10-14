@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface DailyProgress {
   id: string;
@@ -26,11 +27,13 @@ export default function DailyProgressPage() {
 
   const fetchDailyProgress = async () => {
     try {
-      const response = await fetch('/api/daily-progress');
-      const data = await response.json();
-      setProgressData(data.progress || []);
-      if (data.progress && data.progress.length > 0) {
-        setCurrentStreak(data.progress[0].streakDays || 0);
+      const data = await fetchJsonSafe<{ progress: DailyProgress[] }>('/api/daily-progress');
+      setProgressData(data?.progress || []);
+      if (data?.progress && data.progress.length > 0) {
+        const firstDay = data.progress[0];
+        if (firstDay) {
+          setCurrentStreak(firstDay.streakDays || 0);
+        }
       }
     } catch (error) {
       console.error('Error fetching daily progress:', error);

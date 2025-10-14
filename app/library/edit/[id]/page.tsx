@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 // import DiagramManager from "@/components/DiagramManager"; // TODO: Create DiagramManager component
 
 interface Option {
@@ -61,11 +62,10 @@ export default function EditQuestionPage() {
 
   const fetchQuestion = async () => {
     try {
-      const response = await fetch(`/api/questions/${questionId}`);
-      if (!response.ok) {
+      const data = await fetchJsonSafe<{ question: Question }>(`/api/questions/${questionId}`);
+      if (!data) {
         throw new Error('Question not found');
       }
-      const data = await response.json();
       const question: Question = data.question;
 
       setFormData({
@@ -155,8 +155,15 @@ export default function EditQuestionPage() {
         alert('Question updated successfully!');
         router.push('/library');
       } else {
-        const data = await response.json();
-        alert(`Failed to update question: ${data.error || 'Unknown error'}`);
+        let errorMessage = 'Unknown error';
+        try {
+          const data = await response.json();
+          errorMessage = data.error || 'Unknown error';
+        } catch {
+          // If JSON parsing fails, use status text
+          errorMessage = response.statusText || 'Unknown error';
+        }
+        alert(`Failed to update question: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error updating question:', error);

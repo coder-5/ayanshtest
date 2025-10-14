@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { SafeHtml } from '@/lib/sanitize';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Question {
   id: string;
@@ -49,10 +50,9 @@ function LibraryPageContent() {
       params.append('offset', ((page - 1) * ITEMS_PER_PAGE).toString());
 
       const url = `/api/questions?${params.toString()}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setQuestions(data.questions || []);
-      setTotalQuestions(data.total || 0);
+      const data = await fetchJsonSafe<{ questions: Question[]; total: number }>(url);
+      setQuestions(data?.questions || []);
+      setTotalQuestions(data?.total || 0);
     } catch (error) {
       console.error('Error fetching questions:', error);
     } finally {
@@ -106,8 +106,8 @@ function LibraryPageContent() {
           fetchQuestions(examFilter, topicFilter, difficultyFilter, currentPage - 1);
         }
       } else {
-        const error = await response.json();
-        alert(`Failed to delete question: ${error.error || 'Unknown error'}`);
+        const error = await fetchJsonSafe<{ error: string }>(`/api/questions/${id}`);
+        alert(`Failed to delete question: ${error?.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting question:', error);

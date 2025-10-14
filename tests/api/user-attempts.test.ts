@@ -479,9 +479,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
         questionText: 'What is 2+2?',
         correctAnswer: null,
         topic: 'Algebra',
-        options: [
-          { id: 'opt1', optionLetter: 'A', optionText: '4', isCorrect: true },
-        ],
+        options: [{ id: 'opt1', optionLetter: 'A', optionText: '4', isCorrect: true }],
       };
 
       vi.mocked(prisma.question.findUnique).mockResolvedValue(mockQuestion as any);

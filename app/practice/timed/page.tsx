@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { SafeHtml } from '@/lib/sanitize';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
 import { useSearchParams } from 'next/navigation';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -136,13 +137,22 @@ function TimedChallengePageContent() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [isRunning, isPaused, timeLeft, questions, selectedAnswers, startTime, sessionId, questionTimings]);
+  }, [
+    isRunning,
+    isPaused,
+    timeLeft,
+    questions,
+    selectedAnswers,
+    startTime,
+    sessionId,
+    questionTimings,
+  ]);
 
   const startChallenge = async (minutes: number, questionCount: number = 10) => {
     setLoading(true);
     try {
       // Create session first
-      const sessionResponse = await fetch('/api/sessions', {
+      const sessionData = await fetchJsonSafe<{ session: { id: string } }>('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,36 +160,39 @@ function TimedChallengePageContent() {
           userId: 'ayansh',
         }),
       });
-      if (sessionResponse.ok) {
-        const sessionData = await sessionResponse.json();
+      if (sessionData) {
         setSessionId(sessionData.session.id);
       }
 
-      const response = await fetch('/api/questions');
-      const data = await response.json();
-      let selectedQuestions = data.questions || [];
+      const data = await fetchJsonSafe<{ questions: Question[] }>('/api/questions');
 
-      if (examMode) {
-        // In exam mode, load questions in order
-        selectedQuestions = selectedQuestions.slice(0, questionCount);
-      } else {
-        // Regular mode: shuffle and slice
-        selectedQuestions = selectedQuestions.sort(() => Math.random() - 0.5).slice(0, questionCount);
+      if (data && data.questions) {
+        let selectedQuestions = data.questions || [];
+
+        if (examMode) {
+          // In exam mode, load questions in order
+          selectedQuestions = selectedQuestions.slice(0, questionCount);
+        } else {
+          // Regular mode: shuffle and slice
+          selectedQuestions = selectedQuestions
+            .sort(() => Math.random() - 0.5)
+            .slice(0, questionCount);
+        }
+
+        setQuestions(selectedQuestions);
+        setTotalTime(minutes);
+        setTimeLeft(minutes * 60);
+        setIsRunning(true);
+        setIsPaused(false);
+        setCurrentIndex(0);
+        setSelectedAnswers({});
+        setMarkedForReview(new Set());
+        setQuestionStartTimes({});
+        setQuestionTimings({});
+        setIsFinished(false);
+        setScore(0);
+        setStartTime(Date.now());
       }
-
-      setQuestions(selectedQuestions);
-      setTotalTime(minutes);
-      setTimeLeft(minutes * 60);
-      setIsRunning(true);
-      setIsPaused(false);
-      setCurrentIndex(0);
-      setSelectedAnswers({});
-      setMarkedForReview(new Set());
-      setQuestionStartTimes({});
-      setQuestionTimings({});
-      setIsFinished(false);
-      setScore(0);
-      setStartTime(Date.now());
     } catch (error) {
       console.error('Error fetching questions:', error);
     } finally {
@@ -196,6 +209,7 @@ function TimedChallengePageContent() {
         startChallenge(timeLimit, questionCount);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryTimeLimit, queryQuestionCount]);
 
   const handleAnswer = (optionLetter: string) => {
@@ -331,7 +345,7 @@ function TimedChallengePageContent() {
 
   const getPacingWarning = () => {
     if (questions.length === 0) return null;
-    const avgTimePerQuestion = totalTime * 60 / questions.length;
+    const avgTimePerQuestion = (totalTime * 60) / questions.length;
     const questionsAnswered = Object.keys(selectedAnswers).length;
     const elapsedTime = totalTime * 60 - timeLeft;
 
@@ -452,7 +466,7 @@ function TimedChallengePageContent() {
     const percentage = Math.round((score / questions.length) * 100);
 
     // Calculate questions that took too long
-    const avgTimePerQuestion = totalTime * 60 / questions.length;
+    const avgTimePerQuestion = (totalTime * 60) / questions.length;
     const slowQuestions = Object.entries(questionTimings)
       .filter(([_, time]) => time > avgTimePerQuestion * 1.5)
       .map(([idx]) => parseInt(idx) + 1);
@@ -503,7 +517,10 @@ function TimedChallengePageContent() {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
                 <h3 className="font-semibold text-blue-800 mb-2">Marked for Review:</h3>
                 <p className="text-sm text-blue-700">
-                  Questions: {Array.from(markedForReview).map(i => i + 1).join(', ')}
+                  Questions:{' '}
+                  {Array.from(markedForReview)
+                    .map((i) => i + 1)
+                    .join(', ')}
                 </p>
               </div>
             )}
@@ -541,9 +558,7 @@ function TimedChallengePageContent() {
             Ayansh Math Prep
           </Link>
           <div className="flex items-center gap-4">
-            <div className={`text-2xl font-bold ${getTimerColor()}`}>
-              {formatTime(timeLeft)}
-            </div>
+            <div className={`text-2xl font-bold ${getTimerColor()}`}>{formatTime(timeLeft)}</div>
             {!examMode && (
               <button
                 onClick={togglePause}
@@ -577,7 +592,8 @@ function TimedChallengePageContent() {
           <div className="mb-6">
             <div className="flex justify-between text-sm text-gray-600 mb-2">
               <span>
-                Question {examMode && currentQuestion?.questionNumber
+                Question{' '}
+                {examMode && currentQuestion?.questionNumber
                   ? `${currentQuestion.questionNumber}`
                   : `${currentIndex + 1} of ${questions.length}`}
               </span>
@@ -607,7 +623,9 @@ function TimedChallengePageContent() {
                   onClick={() => {
                     // Save time on current question before jumping
                     if (questionStartTimes[currentIndex]) {
-                      const timeSpent = Math.floor((Date.now() - questionStartTimes[currentIndex]) / 1000);
+                      const timeSpent = Math.floor(
+                        (Date.now() - questionStartTimes[currentIndex]) / 1000
+                      );
                       setQuestionTimings((prev) => ({
                         ...prev,
                         [currentIndex]: (prev[currentIndex] || 0) + timeSpent,
@@ -619,10 +637,10 @@ function TimedChallengePageContent() {
                     idx === currentIndex
                       ? 'bg-indigo-600 text-white'
                       : selectedAnswers[idx]
-                      ? 'bg-green-200 text-green-800'
-                      : markedForReview.has(idx)
-                      ? 'bg-yellow-200 text-yellow-800'
-                      : 'bg-gray-200 text-gray-600'
+                        ? 'bg-green-200 text-green-800'
+                        : markedForReview.has(idx)
+                          ? 'bg-yellow-200 text-yellow-800'
+                          : 'bg-gray-200 text-gray-600'
                   }`}
                 >
                   {idx + 1}
@@ -630,9 +648,15 @@ function TimedChallengePageContent() {
               ))}
             </div>
             <div className="flex gap-4 mt-3 text-xs text-gray-600">
-              <span><span className="inline-block w-3 h-3 bg-green-200 rounded mr-1"></span>Answered</span>
-              <span><span className="inline-block w-3 h-3 bg-yellow-200 rounded mr-1"></span>Review</span>
-              <span><span className="inline-block w-3 h-3 bg-gray-200 rounded mr-1"></span>Unanswered</span>
+              <span>
+                <span className="inline-block w-3 h-3 bg-green-200 rounded mr-1"></span>Answered
+              </span>
+              <span>
+                <span className="inline-block w-3 h-3 bg-yellow-200 rounded mr-1"></span>Review
+              </span>
+              <span>
+                <span className="inline-block w-3 h-3 bg-gray-200 rounded mr-1"></span>Unanswered
+              </span>
             </div>
           </div>
 
@@ -777,14 +801,16 @@ function TimedChallengePageContent() {
 export default function TimedChallengePage() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">⏱️</div>
-            <p className="text-xl text-gray-600">Loading timed challenge...</p>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-6xl mb-4">⏱️</div>
+              <p className="text-xl text-gray-600">Loading timed challenge...</p>
+            </div>
           </div>
-        </div>
-      }>
+        }
+      >
         <TimedChallengePageContent />
       </Suspense>
     </ErrorBoundary>

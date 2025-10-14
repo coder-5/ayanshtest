@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Achievement {
   id: string;
@@ -30,12 +31,19 @@ export default function AchievementsPage() {
 
   const fetchAchievements = async () => {
     try {
-      const response = await fetch('/api/achievements');
-      const data = await response.json();
-      setAchievements(data.achievements || []);
-      setTotalPoints(data.totalPoints || 0);
-      setEarnedCount(data.earnedCount || 0);
-      setTotalCount(data.totalCount || 0);
+      const data = await fetchJsonSafe<{
+        achievements?: Achievement[];
+        totalPoints?: number;
+        earnedCount?: number;
+        totalCount?: number;
+      }>('/api/achievements');
+
+      if (data) {
+        setAchievements(data.achievements || []);
+        setTotalPoints(data.totalPoints || 0);
+        setEarnedCount(data.earnedCount || 0);
+        setTotalCount(data.totalCount || 0);
+      }
     } catch (error) {
       console.error('Error fetching achievements:', error);
     } finally {

@@ -6,9 +6,9 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "prettier . --write",
     "api": "postman api lint 29ab828e-0ab0-4de0-95d0-c1a72140b4de",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format": "prettier . --write",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -60,7 +60,7 @@
     "lucide-react": "^0.545.0",
     "mammoth": "^1.11.0",
     "mathjs": "^15.0.0",
-    "next": "^15.5.4",
+    "next": "^15.5.5",
     "next-auth": "^5.0.0-beta.29",
     "node-tesseract-ocr": "^2.2.1",
     "pdf-lib": "^1.17.1",
@@ -98,9 +98,9 @@
     "happy-dom": "^20.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.4",
-    "newman": "^6.2.1",
+    "newman": "^6.2.0",
     "postcss": "^8",
-    "prettier": "^3.6.2",
+    "prettier": "3.6.2",
     "prisma": "^6.17.1",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
@@ -110,5 +110,8 @@
   },
   "overrides": {
     "uuid": "^9.0.0"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
   }
 }

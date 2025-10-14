@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Session {
   id: string;
@@ -26,9 +27,8 @@ export default function SessionsPage() {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/sessions');
-      const data = await response.json();
-      setSessions(data.sessions || []);
+      const data = await fetchJsonSafe<{ sessions: Session[] }>('/api/sessions');
+      setSessions(data?.sessions || []);
     } catch (error) {
       console.error('Error fetching sessions:', error);
     } finally {

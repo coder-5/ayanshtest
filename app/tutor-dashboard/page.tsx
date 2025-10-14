@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface TopicData {
   topic: string;
@@ -79,20 +80,33 @@ export default function TutorDashboardPage() {
     try {
       // Use Promise.allSettled to handle partial failures gracefully
       const results = await Promise.allSettled([
-        fetch('/api/user').then((r) => r.json()),
-        fetch('/api/progress').then((r) => r.json()),
-        fetch('/api/topic-performance').then((r) => r.json()),
-        fetch('/api/sessions').then((r) => r.json()),
-        fetch('/api/exams').then((r) => r.json()),
+        fetchJsonSafe<{ user?: { name?: string; grade?: number } }>('/api/user'),
+        fetchJsonSafe<{
+          stats?: {
+            totalQuestions?: number;
+            accuracy?: number;
+            streakDays?: number;
+            timeSpent?: number;
+          };
+        }>('/api/progress'),
+        fetchJsonSafe<{ topicPerformance?: TopicData[] }>('/api/topic-performance'),
+        fetchJsonSafe<{ sessions?: SessionData[] }>('/api/sessions'),
+        fetchJsonSafe<{ exams?: ExamData[] }>('/api/exams'),
       ]);
 
       // Extract successful results or use defaults
-      const userData = results[0].status === 'fulfilled' ? results[0].value : { user: {} };
-      const progressData = results[1].status === 'fulfilled' ? results[1].value : { stats: {} };
+      const userData =
+        results[0].status === 'fulfilled' && results[0].value ? results[0].value : { user: {} };
+      const progressData =
+        results[1].status === 'fulfilled' && results[1].value ? results[1].value : { stats: {} };
       const topicData =
-        results[2].status === 'fulfilled' ? results[2].value : { topicPerformance: [] };
-      const sessionsData = results[3].status === 'fulfilled' ? results[3].value : { sessions: [] };
-      const examsData = results[4].status === 'fulfilled' ? results[4].value : { exams: [] };
+        results[2].status === 'fulfilled' && results[2].value
+          ? results[2].value
+          : { topicPerformance: [] };
+      const sessionsData =
+        results[3].status === 'fulfilled' && results[3].value ? results[3].value : { sessions: [] };
+      const examsData =
+        results[4].status === 'fulfilled' && results[4].value ? results[4].value : { exams: [] };
 
       // Log any failures for debugging
       results.forEach((result, index) => {

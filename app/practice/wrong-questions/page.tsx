@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SafeHtml } from '@/lib/sanitize';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface QuestionWithStats {
   id: string;
@@ -49,10 +50,11 @@ function WrongQuestionsPageContent() {
 
   const fetchWrongQuestions = async () => {
     try {
-      const response = await fetch('/api/questions/failed');
-      const data = await response.json();
-      setQuestions(data.questions || []);
-      setSummary(data.summary);
+      const data = await fetchJsonSafe<{ questions: QuestionWithStats[]; summary: Summary }>(
+        '/api/questions/failed'
+      );
+      setQuestions(data?.questions || []);
+      setSummary(data?.summary || null);
     } catch (error) {
       console.error('Error fetching wrong questions:', error);
     } finally {

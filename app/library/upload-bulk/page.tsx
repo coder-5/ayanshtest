@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { fetchJsonSafe } from '@/lib/fetchJson';
 
 export default function BulkUploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -64,14 +65,18 @@ export default function BulkUploadPage() {
       }
 
       // Upload to API
-      const response = await fetch('/api/upload', {
+      const data = await fetchJsonSafe<{
+        uploaded: number;
+        failed: number;
+        total: number;
+        errors?: Array<{ index: number; error: string }>;
+      }>('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ questions }),
       });
 
-      const data = await response.json();
-      setResult(data);
+      setResult(data || null);
     } catch (error) {
       console.error('Upload error:', error);
       alert('Error uploading file');
