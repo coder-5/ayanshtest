@@ -109,7 +109,7 @@ export const GET = withErrorHandler(async (request: Request) => {
       AND "deletedAt" IS NULL
   `;
 
-  const total = Number(totalCount[0].count);
+  const total = totalCount?.[0]?.count ? Number(totalCount[0].count) : 0;
 
   return successResponse({
     questions: questionsWithStats,

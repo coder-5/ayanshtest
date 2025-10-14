@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
-export const PUT = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
+export const PUT = withErrorHandler(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
     const body = await request.json();
     const { totalQuestions, correctAnswers, totalTime, achievedScore } = body;
@@ -18,9 +19,12 @@ export const PUT = withErrorHandler(async (request: Request, { params }: { param
       },
     });
 
-    return successResponse({ success: true, session });});
+    return successResponse({ success: true, session });
+  }
+);
 
-export const GET = withErrorHandler(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
+export const GET = withErrorHandler(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
 
     const session = await prisma.practiceSession.findUnique({
@@ -47,4 +51,6 @@ export const GET = withErrorHandler(async (request: Request, { params }: { param
       return successResponse({ error: 'Session not found' }, 404);
     }
 
-    return successResponse({ session });});
+    return successResponse({ session });
+  }
+);

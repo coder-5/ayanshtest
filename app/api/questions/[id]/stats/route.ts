@@ -13,12 +13,10 @@ import { withErrorHandler, successResponse } from '@/lib/error-handler';
  * - Last attempted date
  * - Auto-calculated difficulty based on performance
  */
-export const GET = withErrorHandler(async (
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) => {
-  const { id } = await params;
-  const userId = getCurrentUserId();
+export const GET = withErrorHandler(
+  async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
+    const { id } = await params;
+    const userId = getCurrentUserId();
 
     // Get question to verify it exists
     const question = await prisma.question.findUnique({
@@ -110,4 +108,5 @@ export const GET = withErrorHandler(async (
         timeSpent: a.timeSpent,
       })),
     });
-});
+  }
+);

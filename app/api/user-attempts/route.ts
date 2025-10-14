@@ -42,8 +42,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     isCorrect = selectedOption?.isCorrect || false;
   } else if (question.correctAnswer) {
     // Fill-in-the-blank question - compare with correctAnswer (case-insensitive)
-    isCorrect =
-      selectedAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+    isCorrect = selectedAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
   } else {
     return successResponse({ error: 'Question has no correct answer configured' }, 400);
   }

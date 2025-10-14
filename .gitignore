@@ -85,3 +85,7 @@ amc8-*.json
 # Python cache
 __pycache__/
 *.pyc
+
+# Newman/Postman test reports
+newman/
+newman-report.json

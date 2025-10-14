@@ -36,10 +36,7 @@ export const POST = withErrorHandler(async (request: Request) => {
   // Validate request
   const validation = bulkActionSchema.safeParse(body);
   if (!validation.success) {
-    return successResponse(
-      { error: 'Invalid request', details: validation.error.format() },
-      400
-    );
+    return successResponse({ error: 'Invalid request', details: validation.error.format() }, 400);
   }
 
   const data = validation.data;

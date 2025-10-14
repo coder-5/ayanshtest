@@ -166,5 +166,8 @@ export const POST = withErrorHandler(async (request: Request) => {
     });
   }
 
-  return NextResponse.json({ error: 'Invalid type (must be "topic" or "question")' }, { status: 400 });
+  return NextResponse.json(
+    { error: 'Invalid type (must be "topic" or "question")' },
+    { status: 400 }
+  );
 });

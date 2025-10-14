@@ -104,7 +104,11 @@
       "Bash(if grep -q \"withErrorHandler\" \"$file\")",
       "Bash(echo:*)",
       "Bash(else)",
-      "Bash(do echo \"❌ $file\")"
+      "Bash(do echo \"❌ $file\")",
+      "Bash(npm why:*)",
+      "Bash(do if [ -f \"app/api/$route/route.ts\" ])",
+      "Bash(then echo \"✓ /api/$route\")",
+      "Bash(else echo \"✗ /api/$route - MISSING\")"
     ],
     "deny": [],
     "ask": []

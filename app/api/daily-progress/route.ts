@@ -81,8 +81,7 @@ export const POST = withErrorHandler(async () => {
   const questionsAttempted = attempts.length;
   const correctAnswers = attempts.filter((a) => a.isCorrect).length;
   const totalTimeSpent = attempts.reduce((sum, a) => sum + a.timeSpent, 0);
-  const averageAccuracy =
-    questionsAttempted > 0 ? (correctAnswers / questionsAttempted) * 100 : 0;
+  const averageAccuracy = questionsAttempted > 0 ? (correctAnswers / questionsAttempted) * 100 : 0;
 
   // Get unique topics studied
   const topicsSet = new Set(attempts.map((a) => a.question.topic));

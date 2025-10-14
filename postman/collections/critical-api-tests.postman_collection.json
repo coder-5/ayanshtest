@@ -1,0 +1,1182 @@
+{
+  "info": {
+    "name": "Ayansh Math Prep - Comprehensive API Tests",
+    "_postman_id": "ayansh-comprehensive-tests",
+    "description": "Comprehensive API endpoint tests covering all critical paths including answer validation, question management, error reports, exams, sessions, analytics, and media uploads",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "questionId",
+      "value": "q-sCIqKPVcQz8qntvJhk8Mo",
+      "type": "string"
+    },
+    {
+      "key": "createdQuestionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "errorReportId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "examId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "User Attempts - Answer Validation",
+      "item": [
+        {
+          "name": "Submit Correct Answer (Multiple Choice)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Attempt is marked as correct', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.attempt).to.have.property('isCorrect');",
+                  "    pm.expect(jsonData.attempt.isCorrect).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response time is reasonable', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"selectedAnswer\": \"A\",\n  \"timeSpent\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user-attempts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-attempts"]
+            }
+          }
+        },
+        {
+          "name": "Submit Incorrect Answer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Attempt is marked as incorrect', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.attempt).to.have.property('isCorrect');",
+                  "    pm.expect(jsonData.attempt.isCorrect).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"selectedAnswer\": \"B\",\n  \"timeSpent\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user-attempts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-attempts"]
+            }
+          }
+        },
+        {
+          "name": "Reject Deleted Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error message indicates question not found', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "    pm.expect(jsonData.error).to.include('not found');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"deleted-question-id\",\n  \"selectedAnswer\": \"A\",\n  \"timeSpent\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user-attempts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-attempts"]
+            }
+          }
+        },
+        {
+          "name": "Reject Missing Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Validation error is returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "    pm.expect(jsonData.error).to.include('Validation');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"selectedAnswer\": \"A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user-attempts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-attempts"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Questions - CRUD Operations",
+      "item": [
+        {
+          "name": "Get All Questions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains questions array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('questions');",
+                  "    pm.expect(jsonData.questions).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Response contains pagination fields', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('limit');",
+                  "    pm.expect(jsonData).to.have.property('offset');",
+                  "});",
+                  "",
+                  "// Save first question ID for later tests",
+                  "if (pm.response.json().questions.length > 0) {",
+                  "    pm.collectionVariables.set('questionId', pm.response.json().questions[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Questions with Filters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('All returned questions match filter', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.questions.length > 0) {",
+                  "        jsonData.questions.forEach(q => {",
+                  "            pm.expect(q.difficulty).to.equal('EASY');",
+                  "        });",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?difficulty=EASY&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"],
+              "query": [
+                {
+                  "key": "difficulty",
+                  "value": "EASY"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Question by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains question object', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('question');",
+                  "    pm.expect(jsonData.question).to.be.an('object');",
+                  "});",
+                  "",
+                  "pm.test('Question has required fields', function () {",
+                  "    const question = pm.response.json().question;",
+                  "    pm.expect(question).to.have.property('id');",
+                  "    pm.expect(question).to.have.property('questionText');",
+                  "    pm.expect(question).to.have.property('options');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Question with Sanitization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Question is sanitized (no script tags)', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.question.questionText).to.not.include('<script>');",
+                  "});",
+                  "",
+                  "pm.test('LaTeX is preserved', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.question.questionText).to.include('$x^2$');",
+                  "});",
+                  "",
+                  "// Save created question ID",
+                  "pm.collectionVariables.set('createdQuestionId', pm.response.json().question.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"<script>alert('xss')</script>What is $x^2$ when $x=4$?\",\n  \"examName\": \"Test Exam\",\n  \"examYear\": 2024,\n  \"questionNumber\": \"TEST-1\",\n  \"topic\": \"Algebra\",\n  \"difficulty\": \"EASY\",\n  \"options\": [\n    {\"optionLetter\": \"A\", \"optionText\": \"8\", \"isCorrect\": false},\n    {\"optionLetter\": \"B\", \"optionText\": \"16\", \"isCorrect\": true},\n    {\"optionLetter\": \"C\", \"optionText\": \"24\", \"isCorrect\": false}\n  ],\n  \"solution\": \"Square 4 to get $4^2 = 16$\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"]
+            }
+          }
+        },
+        {
+          "name": "Update Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Question is updated', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.question).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"Updated: What is $x^2$ when $x=4$?\",\n  \"difficulty\": \"MEDIUM\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{createdQuestionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{createdQuestionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Question is deleted', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{createdQuestionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{createdQuestionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Question Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stats contain required metrics', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('stats');",
+                  "    pm.expect(jsonData.stats).to.have.property('totalAttempts');",
+                  "    pm.expect(jsonData.stats).to.have.property('correctAttempts');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Reports",
+      "item": [
+        {
+          "name": "Submit Error Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Report is created', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('errorReport');",
+                  "    pm.expect(jsonData.errorReport).to.have.property('id');",
+                  "});",
+                  "",
+                  "// Save error report ID",
+                  "pm.collectionVariables.set('errorReportId', pm.response.json().errorReport.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"reportType\": \"INCORRECT_ANSWER\",\n  \"description\": \"The correct answer should be C, not B. I double-checked the calculation.\",\n  \"severity\": \"HIGH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/error-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "error-reports"]
+            }
+          }
+        },
+        {
+          "name": "Get All Error Reports",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reports array is returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('errorReports');",
+                  "    pm.expect(jsonData.errorReports).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/error-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "error-reports"]
+            }
+          }
+        },
+        {
+          "name": "Resolve Error Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Report status is updated', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"resolutionNotes\": \"Answer corrected after verification\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/error-reports/{{errorReportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "error-reports", "{{errorReportId}}"]
+            }
+          }
+        },
+        {
+          "name": "Reject Invalid Report (Too Short)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Validation error returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"reportType\": \"TYPO\",\n  \"description\": \"Bad\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/error-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "error-reports"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exams",
+      "item": [
+        {
+          "name": "Schedule Exam",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Exam is created', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('exam');",
+                  "    pm.expect(jsonData.exam).to.have.property('id');",
+                  "});",
+                  "",
+                  "// Save exam ID",
+                  "pm.collectionVariables.set('examId', pm.response.json().exam.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examName\": \"AMC8 2025\",\n  \"examDate\": \"2025-11-15T14:00:00.000Z\",\n  \"location\": \"School Auditorium\",\n  \"notes\": \"Bring pencils and calculator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "exams"]
+            }
+          }
+        },
+        {
+          "name": "Get All Exams",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Exams array is returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('exams');",
+                  "    pm.expect(jsonData.exams).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "exams"]
+            }
+          }
+        },
+        {
+          "name": "Get Exam Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Exam details returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('exam');",
+                  "    pm.expect(jsonData.exam.id).to.equal(pm.collectionVariables.get('examId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/exams/{{examId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "exams", "{{examId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Exam with Score",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Exam is updated', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"score\": 22,\n  \"percentile\": 90,\n  \"notes\": \"Great performance!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/exams/{{examId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "exams", "{{examId}}"]
+            }
+          }
+        },
+        {
+          "name": "Reject Past Exam Date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Validation error for past date', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examName\": \"Past Exam\",\n  \"examDate\": \"2020-01-01T14:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "exams"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create Practice Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Session is created', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('session');",
+                  "    pm.expect(jsonData.session).to.have.property('id');",
+                  "});",
+                  "",
+                  "// Save session ID for later tests",
+                  "pm.collectionVariables.set('sessionId', pm.response.json().session.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionType\": \"QUICK\",\n  \"targetQuestions\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "Get Session Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Session details are returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('session');",
+                  "    pm.expect(jsonData.session.id).to.equal(pm.collectionVariables.get('sessionId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Complete Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Session is updated', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"totalQuestions\": 10,\n  \"correctAnswers\": 8,\n  \"totalTime\": 300,\n  \"achievedScore\": 80\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Daily Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Daily progress data is returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('dailyProgress');",
+                  "    pm.expect(jsonData.dailyProgress).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/daily-progress?days=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "daily-progress"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Topic Performance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Topic performance data is returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('topicPerformance');",
+                  "    pm.expect(jsonData.topicPerformance).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/topic-performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "topic-performance"]
+            }
+          }
+        },
+        {
+          "name": "Get Weekly Analysis",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Weekly analysis data is returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('analysis');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/weekly-analysis",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "weekly-analysis"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Media & Uploads",
+      "item": [
+        {
+          "name": "Track Video View",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Video view is tracked', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('videoView');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"videoUrl\": \"https://youtube.com/watch?v=abc123\",\n  \"watchDuration\": 120,\n  \"completedVideo\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/video-views",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "video-views"]
+            }
+          }
+        },
+        {
+          "name": "Reject Invalid Video URL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Validation error returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"videoUrl\": \"not-a-valid-url\",\n  \"watchDuration\": 120\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/video-views",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "video-views"]
+            }
+          }
+        },
+        {
+          "name": "Get Achievements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Achievements array is returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('achievements');",
+                  "    pm.expect(jsonData.achievements).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/achievements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "achievements"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

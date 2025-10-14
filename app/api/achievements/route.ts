@@ -18,70 +18,70 @@ export const GET = withErrorHandler(async () => {
     CacheTTL.achievements
   );
 
-    // Get user's earned achievements
-    const userAchievements = await prisma.userAchievement.findMany({
-      where: { userId },
-      include: {
-        achievement: true,
-      },
-      orderBy: {
-        earnedAt: 'desc',
-      },
-    });
+  // Get user's earned achievements
+  const userAchievements = await prisma.userAchievement.findMany({
+    where: { userId },
+    include: {
+      achievement: true,
+    },
+    orderBy: {
+      earnedAt: 'desc',
+    },
+  });
 
-    // Get user statistics for progress tracking
-    const allAttempts = await prisma.userAttempt.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-      },
-      select: {
-        isCorrect: true,
-      },
-    });
+  // Get user statistics for progress tracking
+  const allAttempts = await prisma.userAttempt.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+    },
+    select: {
+      isCorrect: true,
+    },
+  });
 
-    const totalQuestions = allAttempts.length;
-    const correctAnswers = allAttempts.filter((a) => a.isCorrect).length;
+  const totalQuestions = allAttempts.length;
+  const correctAnswers = allAttempts.filter((a) => a.isCorrect).length;
 
-    // Get streak information
-    const latestProgress = await prisma.dailyProgress.findFirst({
-      where: { userId },
-      orderBy: { date: 'desc' },
-    });
+  // Get streak information
+  const latestProgress = await prisma.dailyProgress.findFirst({
+    where: { userId },
+    orderBy: { date: 'desc' },
+  });
 
-    const currentStreak = latestProgress?.streakDays || 0;
+  const currentStreak = latestProgress?.streakDays || 0;
 
-    // Calculate achievement progress
-    const achievementsWithProgress = allAchievements.map((achievement) => {
-      const earned = userAchievements.find((ua) => ua.achievementId === achievement.id);
+  // Calculate achievement progress
+  const achievementsWithProgress = allAchievements.map((achievement) => {
+    const earned = userAchievements.find((ua) => ua.achievementId === achievement.id);
 
-      let progress = 0;
-      if (!earned) {
-        // Calculate progress based on criteria
-        const criteria = achievement.criteria as { type: string; target: number };
+    let progress = 0;
+    if (!earned) {
+      // Calculate progress based on criteria
+      const criteria = achievement.criteria as { type: string; target: number };
 
-        switch (criteria.type) {
-          case 'total_questions':
-            progress = Math.min(100, Math.round((totalQuestions / criteria.target) * 100));
-            break;
-          case 'correct_answers':
-            progress = Math.min(100, Math.round((correctAnswers / criteria.target) * 100));
-            break;
-          case 'streak_days':
-            progress = Math.min(100, Math.round((currentStreak / criteria.target) * 100));
-            break;
-          default:
-            progress = 0;
-        }
+      switch (criteria.type) {
+        case 'total_questions':
+          progress = Math.min(100, Math.round((totalQuestions / criteria.target) * 100));
+          break;
+        case 'correct_answers':
+          progress = Math.min(100, Math.round((correctAnswers / criteria.target) * 100));
+          break;
+        case 'streak_days':
+          progress = Math.min(100, Math.round((currentStreak / criteria.target) * 100));
+          break;
+        default:
+          progress = 0;
       }
+    }
 
-      return {
-        ...achievement,
-        earned: !!earned,
-        earnedAt: earned?.earnedAt,
-        progress: earned ? 100 : progress,
-      };
-    });
+    return {
+      ...achievement,
+      earned: !!earned,
+      earnedAt: earned?.earnedAt,
+      progress: earned ? 100 : progress,
+    };
+  });
 
   return successResponse({
     achievements: achievementsWithProgress,

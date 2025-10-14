@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/userContext';
 import { errorReportSchema } from '@/lib/validation';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
+import { ReportSeverity, ReportStatus } from '@prisma/client';
 
 /**
  * GET /api/error-reports
@@ -15,13 +16,13 @@ export const GET = withErrorHandler(async (request: Request) => {
   const questionId = searchParams.get('questionId');
 
   const where: {
-    status?: string;
-    severity?: string;
+    status?: ReportStatus;
+    severity?: ReportSeverity;
     questionId?: string;
   } = {};
 
-  if (status) where.status = status;
-  if (severity) where.severity = severity;
+  if (status) where.status = status as ReportStatus;
+  if (severity) where.severity = severity as ReportSeverity;
   if (questionId) where.questionId = questionId;
 
   const reports = await prisma.errorReport.findMany({

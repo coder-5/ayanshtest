@@ -133,6 +133,7 @@ export const CacheKeys = {
   achievementById: (id: string) => `achievement:${id}`,
 
   // Exam data cache
+  exams: (filter: string) => `exams:${filter}`,
   examYears: (examType: string) => `exam_years:${examType}`,
 };
 

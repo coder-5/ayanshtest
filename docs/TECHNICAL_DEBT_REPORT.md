@@ -11,14 +11,14 @@ This report documents all technical debt, gaps, and issues found in the codebase
 
 ### Summary Statistics
 
-| Category | Count | Priority |
-|----------|-------|----------|
-| **TypeScript Errors** | 22 | 🔴 HIGH |
-| **ESLint Configuration** | 1 (deprecated) | 🔴 HIGH |
-| **Outdated Dependencies** | 24 | 🟡 MEDIUM |
-| **Deleted Files in Git** | 200+ | 🟡 MEDIUM |
-| **Missing Tests** | Many | 🟢 LOW |
-| **Documentation Gaps** | Some | 🟢 LOW |
+| Category                  | Count          | Priority  |
+| ------------------------- | -------------- | --------- |
+| **TypeScript Errors**     | 22             | 🔴 HIGH   |
+| **ESLint Configuration**  | 1 (deprecated) | 🔴 HIGH   |
+| **Outdated Dependencies** | 24             | 🟡 MEDIUM |
+| **Deleted Files in Git**  | 200+           | 🟡 MEDIUM |
+| **Missing Tests**         | Many           | 🟢 LOW    |
+| **Documentation Gaps**    | Some           | 🟢 LOW    |
 
 ---
 
@@ -29,6 +29,7 @@ This report documents all technical debt, gaps, and issues found in the codebase
 **Impact:** Prevents production builds, type safety compromised
 
 **Files Affected:**
+
 - ✅ `app/practice/quick/page.tsx` - FIXED (reduced from 38 to 0 errors)
 - ❌ `app/practice/timed/page.tsx` - 4 errors
 - ❌ `app/library/edit/[id]/page.tsx` - 1 error
@@ -36,11 +37,13 @@ This report documents all technical debt, gaps, and issues found in the codebase
 - ❌ Other files - 15 errors
 
 **Root Cause:**
+
 - Missing null/undefined checks for array access
 - `URLSearchParams.get()` returns `string | null` but code expects `string | undefined`
 - Potentially undefined values accessed without guards
 
 **Fix Applied (quick/page.tsx):**
+
 ```typescript
 // Before
 const currentQuestion = questions[currentIndex];
@@ -53,6 +56,7 @@ const currentQuestion = questions[currentIndex];
 ```
 
 **Remaining Fixes Needed:**
+
 1. Apply same pattern to `app/practice/timed/page.tsx`
 2. Fix library edit page option type mismatch
 3. Add null checks in weekly-analysis page
@@ -62,6 +66,7 @@ const currentQuestion = questions[currentIndex];
 **Impact:** Build warnings, will break in Next.js 16
 
 **Error Message:**
+
 ```
 `next lint` is deprecated and will be removed in Next.js 16.
 Invalid Options:
@@ -69,11 +74,13 @@ Invalid Options:
 ```
 
 **Current State:**
+
 - `.eslintrc.json` file exists (deleted in git)
 - ESLint configured via deprecated Next.js lint
 - Modern `eslint.config.mjs` format needed
 
 **Fix Needed:**
+
 ```bash
 # Run migration
 npx @next/codemod@canary next-lint-to-eslint-cli .
@@ -92,23 +99,26 @@ npx @next/codemod@canary next-lint-to-eslint-cli .
 
 **Critical Updates Needed:**
 
-| Package | Current | Latest | Impact |
-|---------|---------|--------|--------|
-| `@hookform/resolvers` | 3.10.0 | 5.2.2 | Breaking changes |
-| `react` | 18.3.1 | 19.2.0 | Major version |
-| `react-dom` | 18.3.1 | 19.2.0 | Major version |
-| `@types/react` | 18.3.24 | 19.2.2 | Type safety |
-| `eslint` | 8.57.1 | 9.37.0 | Major version |
-| `tailwindcss` | 3.4.18 | 4.1.14 | Major version |
-| `zod` | 3.25.76 | 4.1.12 | Breaking changes |
+| Package               | Current | Latest | Impact           |
+| --------------------- | ------- | ------ | ---------------- |
+| `@hookform/resolvers` | 3.10.0  | 5.2.2  | Breaking changes |
+| `react`               | 18.3.1  | 19.2.0 | Major version    |
+| `react-dom`           | 18.3.1  | 19.2.0 | Major version    |
+| `@types/react`        | 18.3.24 | 19.2.2 | Type safety      |
+| `eslint`              | 8.57.1  | 9.37.0 | Major version    |
+| `tailwindcss`         | 3.4.18  | 4.1.14 | Major version    |
+| `zod`                 | 3.25.76 | 4.1.12 | Breaking changes |
 
 **Recommended Approach:**
+
 1. **Phase 1:** Minor/patch updates (low risk)
+
    ```bash
    npm update --save
    ```
 
 2. **Phase 2:** Major updates (test thoroughly)
+
    ```bash
    npm install react@19 react-dom@19
    npm install eslint@9
@@ -125,12 +135,14 @@ npx @next/codemod@canary next-lint-to-eslint-cli .
 **Impact:** Confusing git history, large repository size
 
 **Issues:**
+
 - 200+ files marked as deleted but not committed
 - Many are documentation files that were consolidated
 - Old images that are no longer used
 - Backup files in git tracking
 
 **Files to Clean Up:**
+
 ```
 D .env.local.example
 D .eslintrc.json
@@ -151,6 +163,7 @@ D 180+ deleted question images
 ```
 
 **Recommended Fix:**
+
 ```bash
 # Commit all deletions
 git add -u
@@ -167,6 +180,7 @@ git restore <files-to-keep>
 ### 5. Missing Test Coverage
 
 **Current Coverage:**
+
 - ✅ Parser functions: 100% (26 tests passing)
 - ❌ API routes: 0%
 - ❌ React components: 0%
@@ -175,7 +189,9 @@ git restore <files-to-keep>
 - ❌ E2E tests: 0%
 
 **Recommendations:**
+
 1. **API Route Tests** (High Value)
+
    ```typescript
    // tests/api/questions.test.ts
    describe('GET /api/questions', () => {
@@ -187,6 +203,7 @@ git restore <files-to-keep>
    ```
 
 2. **Component Tests** (Medium Value)
+
    ```typescript
    // tests/components/QuestionCard.test.tsx
    describe('QuestionCard', () => {
@@ -207,19 +224,23 @@ git restore <files-to-keep>
 **Examples Found:**
 
 **Duplicate 1: YouTube URL Parsing**
+
 - `app/practice/quick/page.tsx` - `getYouTubeEmbedUrl()`
 - `app/practice/timed/page.tsx` - Same function (likely)
 - **Fix:** Move to `lib/youtube.ts`
 
 **Duplicate 2: Question Fetching Logic**
+
 - Multiple pages fetch questions similarly
 - **Fix:** Create `hooks/useQuestions.ts`
 
 **Duplicate 3: Session Management**
+
 - Quick practice and timed practice have similar session logic
 - **Fix:** Create `hooks/useSession.ts`
 
 **Recommended Refactor:**
+
 ```typescript
 // lib/youtube.ts
 export function getYouTubeEmbedUrl(url: string): string | null {
@@ -244,11 +265,13 @@ export function useSession(sessionType: SessionType) {
 ### 7. Database Schema Issues
 
 **Potential Issues:**
+
 - No database indexes on frequently queried fields
 - Some fields might benefit from constraints
 - Missing foreign key constraints
 
 **Recommended Audit:**
+
 ```bash
 # Check for missing indexes
 npx prisma db execute --file scripts/audit-schema.sql
@@ -261,12 +284,14 @@ npx prisma db execute --file scripts/audit-schema.sql
 ### 8. Documentation Improvements
 
 **What's Good:**
+
 - ✅ CODE_QUALITY_GUIDE.md (500+ lines, comprehensive)
 - ✅ CODE_QUALITY_IMPROVEMENTS_SUMMARY.md (detailed)
 - ✅ README.md (updated)
 - ✅ COMPLETE_DOCUMENTATION.md
 
 **What's Missing:**
+
 - API documentation (endpoints, request/response schemas)
 - Component documentation (props, usage examples)
 - Database schema documentation (ER diagrams)
@@ -276,6 +301,7 @@ npx prisma db execute --file scripts/audit-schema.sql
 ### 9. Performance Optimizations
 
 **Opportunities:**
+
 1. **Image Optimization**
    - Many question images could be optimized
    - Consider WebP format
@@ -292,6 +318,7 @@ npx prisma db execute --file scripts/audit-schema.sql
 ### 10. Security Improvements
 
 **Current Status:**
+
 - ✅ Server-side answer validation
 - ✅ Input sanitization with DOMPurify
 - ✅ TypeScript strict mode
@@ -300,6 +327,7 @@ npx prisma db execute --file scripts/audit-schema.sql
 - ❌ No authentication/authorization (may be intentional)
 
 **Recommendations:**
+
 ```typescript
 // Add rate limiting
 import { rateLimit } from '@/lib/rate-limiter';
@@ -402,6 +430,7 @@ Low Impact, High Effort (AVOID FOR NOW):
 ## 🔧 Quick Fix Scripts
 
 ### Fix All TypeScript Errors
+
 ```bash
 # Create fix script
 cat > scripts/fix-typescript-errors.ts << 'EOF'
@@ -417,6 +446,7 @@ npx tsc --noEmit
 ```
 
 ### Update Dependencies Safely
+
 ```bash
 # Check for security vulnerabilities
 npm audit
@@ -433,6 +463,7 @@ npm run build
 ```
 
 ### Clean Git Repository
+
 ```bash
 # See what will be cleaned
 git status --short | grep "^\\sD"
@@ -450,6 +481,7 @@ git status
 ## 📊 Progress Tracking
 
 ### Completed ✅
+
 - [x] Code quality tools installation (Prettier, ESLint, Vitest, Husky)
 - [x] Comprehensive testing for parser functions (26 tests, 100% coverage)
 - [x] TypeScript strict mode enabled
@@ -459,11 +491,13 @@ git status
 - [x] Comprehensive documentation created
 
 ### In Progress 🔄
+
 - [ ] Fix remaining TypeScript errors (22 remaining)
 - [ ] ESLint migration
 - [ ] Git repository cleanup
 
 ### Planned 📅
+
 - [ ] Dependency updates
 - [ ] Code refactoring
 - [ ] Additional test coverage
@@ -475,18 +509,21 @@ git status
 ## 💡 Recommendations
 
 ### Development Workflow
+
 1. **Always run tests before committing** (automated via Husky)
 2. **Check TypeScript errors frequently:** `npx tsc --noEmit`
 3. **Review eslint warnings:** `npm run lint`
 4. **Keep dependencies updated:** Weekly check for security updates
 
 ### Code Standards
+
 1. **Use TypeScript strict mode** - Already enabled ✅
 2. **Write tests for new features** - Template exists
 3. **Document complex logic** - JSDoc format
 4. **Follow established patterns** - See CODE_QUALITY_GUIDE.md
 
 ### Git Practices
+
 1. **Commit frequently** with descriptive messages
 2. **Clean up deleted files** regularly
 3. **Review changes** before committing

@@ -1,0 +1,6 @@
+app/api/error-reports/route.ts(28,5): error TS2322: Type '{ status?: string | undefined; severity?: string | undefined; questionId?: string | undefined; }' is not assignable to type 'ErrorReportWhereInput'.
+  Types of property 'severity' are incompatible.
+    Type 'string | undefined' is not assignable to type 'ReportSeverity | EnumReportSeverityFilter<"ErrorReport"> | undefined'.
+      Type 'string' is not assignable to type 'ReportSeverity | EnumReportSeverityFilter<"ErrorReport"> | undefined'.
+app/api/questions/exams/route.ts(12,15): error TS2339: Property 'exams' does not exist on type '{ questions: (filters: string) => string; questionById: (id: string) => string; questionCount: (filters: string) => string; topics: string; achievements: string; achievementById: (id: string) => string; examYears: (examType: string) => string; }'.
+app/api/questions/failed/route.ts(112,24): error TS2532: Object is possibly 'undefined'.
