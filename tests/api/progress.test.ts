@@ -9,6 +9,45 @@ import { GET } from '@/app/api/progress/route';
 import { prisma } from '@/lib/prisma';
 import { expectResponse } from '../mocks/mockRequest';
 
+// Response type for progress endpoint
+interface ProgressResponse {
+  overall: {
+    totalQuestions: number;
+    correctAnswers: number;
+    accuracy: number;
+    currentStreak: number;
+  };
+  dailyProgress: Array<{
+    id: string;
+    date: Date;
+    questionsAttempted: number;
+    correctAnswers: number;
+    totalTimeSpent: number;
+    topicsStudied: string[];
+    streakDays: number;
+  }>;
+  topicPerformance: Array<{
+    topic: string;
+    totalAttempts: number;
+    correctAttempts: number;
+    accuracy: number;
+    lastPracticed: Date | null;
+    needsPractice: boolean;
+  }>;
+  recentSessions: Array<{
+    id: string;
+    sessionType: string;
+    startedAt: Date;
+    completedAt: Date | null;
+    totalQuestions: number;
+    correctAnswers: number;
+  }>;
+  recentActivity: {
+    questionsAttempted: number;
+    correctAnswers: number;
+  };
+}
+
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -65,7 +104,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.overall).toBeDefined();
     expect(data.overall.totalQuestions).toBe(100);
@@ -85,7 +124,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.overall.accuracy).toBe(60); // 30/50 * 100
   });
@@ -100,7 +139,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.overall.totalQuestions).toBe(0);
     expect(data.overall.correctAnswers).toBe(0);
@@ -129,7 +168,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.overall.currentStreak).toBe(7);
   });
@@ -143,7 +182,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.overall.currentStreak).toBe(0);
   });
@@ -184,7 +223,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.dailyProgress).toHaveLength(2);
   });
@@ -214,10 +253,10 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.topicPerformance).toHaveLength(1);
-    expect(data.topicPerformance[0].topic).toBe('Algebra');
+    expect(data.topicPerformance[0]!.topic).toBe('Algebra');
   });
 
   it('should return recent sessions', async () => {
@@ -244,7 +283,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([]);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.recentSessions).toHaveLength(1);
   });
@@ -282,7 +321,7 @@ describe('GET /api/progress', () => {
     ] as any);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<ProgressResponse>(response, 200);
 
     expect(data.recentActivity.questionsAttempted).toBe(2);
     expect(data.recentActivity.correctAnswers).toBe(1);

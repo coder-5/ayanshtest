@@ -4,10 +4,32 @@
  * Critical business logic - practice recommendation algorithm
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET } from '@/app/api/recommendations/weak-topics/route';
 import { prisma } from '@/lib/prisma';
 import { createGetRequest, expectResponse } from '../mocks/mockRequest';
+
+// Response type for weak topics recommendation endpoint
+interface WeakTopicsResponse {
+  weakTopics: Array<{
+    topic: string;
+    accuracy: number;
+    totalAttempts: number;
+    correctAttempts: number;
+    lastPracticed: Date | null;
+    needsPractice: boolean;
+    weaknessScore: number;
+    reason: string;
+    recommendedQuestions: number;
+  }>;
+  summary: {
+    totalWeakTopics: number;
+    topicsReturned: number;
+    totalRecommendedQuestions: number;
+    criticalTopics: number;
+    needsReviewTopics: number;
+  };
+}
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -66,11 +88,11 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
     expect(data.weakTopics).toHaveLength(1);
-    expect(data.weakTopics[0].topic).toBe('Algebra');
-    expect(data.weakTopics[0].accuracy).toBe(60);
+    expect(data.weakTopics[0]!.topic).toBe('Algebra');
+    expect(data.weakTopics[0]!.accuracy).toBe(60);
   });
 
   it('should identify topics marked as needsPractice even with high accuracy', async () => {
@@ -92,11 +114,11 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
     expect(data.weakTopics).toHaveLength(1);
-    expect(data.weakTopics[0].topic).toBe('Number Theory');
-    expect(data.weakTopics[0].needsPractice).toBe(true);
+    expect(data.weakTopics[0]!.topic).toBe('Number Theory');
+    expect(data.weakTopics[0]!.needsPractice).toBe(true);
   });
 
   it('should calculate weakness score correctly', async () => {
@@ -131,15 +153,15 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
     // Algebra: (1 - 50/100) * 50 = 0.5 * 50 = 25
     // Geometry: (1 - 60/100) * 20 = 0.4 * 20 = 8
     // Algebra should be first (higher weakness score)
-    expect(data.weakTopics[0].topic).toBe('Algebra');
-    expect(data.weakTopics[0].weaknessScore).toBe(25);
-    expect(data.weakTopics[1].topic).toBe('Geometry');
-    expect(data.weakTopics[1].weaknessScore).toBe(8);
+    expect(data.weakTopics[0]!.topic).toBe('Algebra');
+    expect(data.weakTopics[0]!.weaknessScore).toBe(25);
+    expect(data.weakTopics[1]!.topic).toBe('Geometry');
+    expect(data.weakTopics[1]!.weaknessScore).toBe(8);
   });
 
   it('should return top 5 weak topics only', async () => {
@@ -161,7 +183,7 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
     expect(data.weakTopics).toHaveLength(5);
     expect(data.summary.totalWeakTopics).toBe(10);
@@ -187,10 +209,10 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
-    expect(data.weakTopics[0].reason).toContain('Low accuracy');
-    expect(data.weakTopics[0].reason).toContain('40%');
+    expect(data.weakTopics[0]!.reason).toContain('Low accuracy');
+    expect(data.weakTopics[0]!.reason).toContain('40%');
   });
 
   it('should provide reason for accuracy < 70%', async () => {
@@ -212,10 +234,10 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
-    expect(data.weakTopics[0].reason).toContain('Below target accuracy');
-    expect(data.weakTopics[0].reason).toContain('65%');
+    expect(data.weakTopics[0]!.reason).toContain('Below target accuracy');
+    expect(data.weakTopics[0]!.reason).toContain('65%');
   });
 
   it('should provide reason for not practiced in 7+ days', async () => {
@@ -237,10 +259,10 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
-    expect(data.weakTopics[0].reason).toContain('Not practiced in');
-    expect(data.weakTopics[0].reason).toContain('14 days');
+    expect(data.weakTopics[0]!.reason).toContain('Not practiced in');
+    expect(data.weakTopics[0]!.reason).toContain('14 days');
   });
 
   it('should handle topic never practiced', async () => {
@@ -262,9 +284,9 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
-    expect(data.weakTopics[0].reason).toContain('Never practiced');
+    expect(data.weakTopics[0]!.reason).toContain('Never practiced');
   });
 
   it('should recommend 10 questions per topic', async () => {
@@ -286,9 +308,9 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
-    expect(data.weakTopics[0].recommendedQuestions).toBe(10);
+    expect(data.weakTopics[0]!.recommendedQuestions).toBe(10);
   });
 
   it('should calculate summary statistics correctly', async () => {
@@ -323,7 +345,7 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
     expect(data.summary.totalWeakTopics).toBe(2);
     expect(data.summary.topicsReturned).toBe(2);
@@ -364,7 +386,7 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
     expect(data.weakTopics).toHaveLength(0);
     expect(data.summary.totalWeakTopics).toBe(0);
@@ -375,7 +397,7 @@ describe('GET /api/recommendations/weak-topics', () => {
 
     const request = createGetRequest('http://localhost/api/recommendations/weak-topics');
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<WeakTopicsResponse>(response, 200);
 
     expect(data.weakTopics).toHaveLength(0);
     expect(data.summary.totalWeakTopics).toBe(0);

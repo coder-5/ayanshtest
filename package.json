@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "prettier . --write",
+    "error": "tsc --noEmit",
     "api": "postman api lint 29ab828e-0ab0-4de0-95d0-c1a72140b4de",
     "format": "prettier . --write",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",

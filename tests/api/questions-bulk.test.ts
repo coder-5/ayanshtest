@@ -9,6 +9,26 @@ import { POST } from '@/app/api/questions/bulk/route';
 import { prisma } from '@/lib/prisma';
 import { createPostRequest, expectResponse } from '../mocks/mockRequest';
 
+// Response types for bulk endpoint
+interface BulkUpdateResponse {
+  success: boolean;
+  action: 'update';
+  updatedCount: number;
+  updates: Record<string, unknown>;
+}
+
+interface BulkDeleteResponse {
+  success: boolean;
+  action: 'delete';
+  deletedCount: number;
+}
+
+interface BulkErrorResponse {
+  error: string;
+  missingIds?: string[];
+  questionsWithAttempts?: string[];
+}
+
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -52,7 +72,7 @@ describe('POST /api/questions/bulk - Bulk Update', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<BulkUpdateResponse>(response, 200);
 
     expect(data.success).toBe(true);
     expect(data.action).toBe('update');
@@ -85,7 +105,7 @@ describe('POST /api/questions/bulk - Bulk Update', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
     expect(prisma.question.updateMany).not.toHaveBeenCalled();
@@ -99,7 +119,7 @@ describe('POST /api/questions/bulk - Bulk Update', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });
@@ -117,7 +137,7 @@ describe('POST /api/questions/bulk - Bulk Update', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 404);
+    const data = await expectResponse<BulkErrorResponse>(response, 404);
 
     expect(data.error).toContain('not found');
     expect(data.missingIds).toEqual(['q3']);
@@ -163,7 +183,7 @@ describe('POST /api/questions/bulk - Bulk Update', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });
@@ -210,7 +230,7 @@ describe('POST /api/questions/bulk - Bulk Delete', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<BulkDeleteResponse>(response, 200);
 
     expect(data.success).toBe(true);
     expect(data.action).toBe('delete');
@@ -244,7 +264,7 @@ describe('POST /api/questions/bulk - Bulk Delete', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toContain('Cannot delete questions with user attempts');
     expect(data.questionsWithAttempts).toEqual([
@@ -266,7 +286,7 @@ describe('POST /api/questions/bulk - Bulk Delete', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });
@@ -278,7 +298,7 @@ describe('POST /api/questions/bulk - Bulk Delete', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });
@@ -335,7 +355,7 @@ describe('POST /api/questions/bulk - Input Validation', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });
@@ -346,7 +366,7 @@ describe('POST /api/questions/bulk - Input Validation', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });
@@ -359,7 +379,7 @@ describe('POST /api/questions/bulk - Input Validation', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });
@@ -371,7 +391,7 @@ describe('POST /api/questions/bulk - Input Validation', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<BulkErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid request');
   });

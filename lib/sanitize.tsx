@@ -5,7 +5,7 @@
  * Protects against XSS attacks
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import DOMPurify from 'isomorphic-dompurify';
 
 /**
@@ -56,10 +56,28 @@ export function sanitizeText(dirty: string): string {
 
 /**
  * Component for safely rendering user content with HTML
+ * Automatically triggers MathJax typesetting for LaTeX content
  * Usage: <SafeHtml html={userContent} className="..." />
  */
 export const SafeHtml = ({ html, className }: { html: string; className?: string }) => {
-  return <div className={className} dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Trigger MathJax typesetting when content changes
+    if (containerRef.current && typeof window !== 'undefined' && (window as any).MathJax) {
+      (window as any).MathJax.typesetPromise([containerRef.current]).catch((err: any) =>
+        console.error('MathJax typesetting failed:', err)
+      );
+    }
+  }, [html]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+    />
+  );
 };
 
 /**

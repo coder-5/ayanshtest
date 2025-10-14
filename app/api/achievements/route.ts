@@ -61,20 +61,48 @@ export const GET = withErrorHandler(async () => {
     let progress = 0;
     if (!earned) {
       // Calculate progress based on criteria
-      const criteria = achievement.criteria as { type: string; target: number };
+      try {
+        // Parse criteria if it's a string, otherwise use as-is
+        let criteria = achievement.criteria;
+        if (typeof criteria === 'string') {
+          criteria = JSON.parse(criteria);
+        }
 
-      switch (criteria.type) {
-        case 'total_questions':
-          progress = Math.min(100, Math.round((totalQuestions / criteria.target) * 100));
-          break;
-        case 'correct_answers':
-          progress = Math.min(100, Math.round((correctAnswers / criteria.target) * 100));
-          break;
-        case 'streak_days':
-          progress = Math.min(100, Math.round((currentStreak / criteria.target) * 100));
-          break;
-        default:
-          progress = 0;
+        // Type guard to ensure criteria is an object
+        if (criteria && typeof criteria === 'object') {
+          const crit = criteria as Record<string, any>;
+
+          // Handle different criteria types based on what fields are present
+          if ('streakDays' in crit) {
+            // Streak achievement
+            progress = Math.min(100, Math.round((currentStreak / crit.streakDays) * 100));
+          } else if ('totalQuestions' in crit) {
+            // Questions achievement
+            progress = Math.min(100, Math.round((totalQuestions / crit.totalQuestions) * 100));
+          } else if ('consecutiveCorrect' in crit) {
+            // Consecutive correct achievement - we can't track this with current data
+            progress = 0;
+          } else if ('accuracy' in crit && 'minQuestions' in crit) {
+            // Accuracy achievement
+            const currentAccuracy =
+              totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+            const meetsAccuracy = currentAccuracy >= crit.accuracy;
+            const meetsMinQuestions = totalQuestions >= crit.minQuestions;
+            progress =
+              meetsAccuracy && meetsMinQuestions
+                ? 100
+                : Math.min(100, Math.round((totalQuestions / crit.minQuestions) * 50));
+          } else if ('questionsUnderTime' in crit) {
+            // Speed achievement - we can't track this with current data
+            progress = 0;
+          } else if ('topic' in crit) {
+            // Topic mastery - would need topic-specific query
+            progress = 0;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse achievement criteria:', achievement.id, error);
+        progress = 0;
       }
     }
 

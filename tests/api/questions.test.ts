@@ -10,6 +10,20 @@ import { QuestionService } from '@/lib/services/questionService';
 import { createGetRequest, createPostRequest, expectResponse } from '../mocks/mockRequest';
 import { mockQuestions, mockOptions, createMockQuestion } from '../mocks/testData';
 
+// Response types
+interface QuestionErrorResponse {
+  error: string;
+}
+
+interface QuestionPostResponse {
+  question: {
+    id: string;
+    hasImage?: boolean;
+    imageUrl?: string | null;
+    correctAnswer?: string | null;
+  };
+}
+
 // Mock QuestionService
 vi.mock('@/lib/services/questionService');
 
@@ -40,7 +54,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions');
     const response = await GET(request);
@@ -73,7 +87,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       examName: 'AMC8',
@@ -97,7 +111,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       topic: 'Algebra',
@@ -121,7 +135,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       difficulty: 'HARD',
@@ -145,7 +159,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       examYear: '2023',
@@ -169,7 +183,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       search: 'algebra',
@@ -193,7 +207,7 @@ describe('GET /api/questions', () => {
       hasMore: true,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       limit: '10',
@@ -217,7 +231,7 @@ describe('GET /api/questions', () => {
       hasMore: true,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       limit: '5000', // Trying to request 5000
@@ -241,7 +255,7 @@ describe('GET /api/questions', () => {
       hasMore: true,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       limit: '-10', // Trying negative limit
@@ -265,7 +279,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       offset: '50',
@@ -289,7 +303,7 @@ describe('GET /api/questions', () => {
       hasMore: true,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       offset: '-10',
@@ -309,7 +323,7 @@ describe('GET /api/questions', () => {
       difficulty: 'INVALID_DIFFICULTY',
     });
     const response = await GET(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<QuestionErrorResponse>(response, 400);
 
     expect(data).toHaveProperty('error');
     expect(data.error).toBe('Invalid query parameters');
@@ -324,7 +338,7 @@ describe('GET /api/questions', () => {
       hasMore: false,
     };
 
-    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult);
+    vi.mocked(QuestionService.getAll).mockResolvedValue(mockResult as any);
 
     const request = createGetRequest('http://localhost/api/questions', {
       examName: 'AMC8',
@@ -376,7 +390,7 @@ describe('POST /api/questions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<QuestionPostResponse>(response, 201);
 
     expect(data).toHaveProperty('question');
     expect(data.question.id).toBe('new-q-1');
@@ -398,7 +412,7 @@ describe('POST /api/questions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<QuestionErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid input');
     expect(QuestionService.create).not.toHaveBeenCalled();
@@ -412,7 +426,7 @@ describe('POST /api/questions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<QuestionErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid input');
   });
@@ -426,7 +440,7 @@ describe('POST /api/questions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 400);
+    const data = await expectResponse<QuestionErrorResponse>(response, 400);
 
     expect(data.error).toBe('Invalid input');
   });
@@ -479,7 +493,7 @@ describe('POST /api/questions', () => {
       id: 'moems-q-1',
       examName: 'MOEMS Division E',
       correctAnswer: '42',
-    });
+    } as any);
 
     vi.mocked(QuestionService.create).mockResolvedValue(newQuestion as any);
 
@@ -497,7 +511,7 @@ describe('POST /api/questions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<QuestionPostResponse>(response, 201);
 
     expect(data.question.correctAnswer).toBe('42');
   });
@@ -554,7 +568,7 @@ describe('POST /api/questions', () => {
     const newQuestion = createMockQuestion({
       hasImage: true,
       imageUrl: '/images/questions/test.png',
-    });
+    } as any);
 
     vi.mocked(QuestionService.create).mockResolvedValue(newQuestion as any);
 
@@ -570,7 +584,7 @@ describe('POST /api/questions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<QuestionPostResponse>(response, 201);
 
     expect(data.question.hasImage).toBe(true);
     expect(data.question.imageUrl).toBe('/images/questions/test.png');

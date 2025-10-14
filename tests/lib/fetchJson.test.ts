@@ -53,7 +53,7 @@ describe('fetchJsonSafe', () => {
       json: async () => {
         throw new Error('Invalid JSON');
       },
-    } as Response);
+    } as unknown as Response);
 
     const result = await fetchJsonSafe('/api/test');
 

@@ -4,6 +4,8 @@
  * Utilities for creating Next.js Request mocks in API tests
  */
 
+import { expect } from 'vitest';
+
 /**
  * Create a mock GET request with query parameters
  */

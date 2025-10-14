@@ -25,6 +25,14 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: '192.168.1.197',
       },
+      {
+        protocol: 'https',
+        hostname: 'latex.artofproblemsolving.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'wiki-images.artofproblemsolving.com',
+      },
     ],
   },
   // Optimize build performance

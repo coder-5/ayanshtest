@@ -4,11 +4,36 @@
  * Business logic - practice session management
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET, POST } from '@/app/api/sessions/route';
 import { prisma } from '@/lib/prisma';
 import { createGetRequest, createPostRequest, expectResponse } from '../mocks/mockRequest';
 import { mockSessions } from '../mocks/testData';
+
+// Response types for sessions endpoint
+interface SessionsGetResponse {
+  sessions: Array<{
+    id: string;
+    sessionType: string;
+    startedAt: Date;
+    completedAt: Date | null;
+    totalQuestions: number;
+    correctAnswers: number;
+    _count?: {
+      attempts: number;
+    };
+  }>;
+}
+
+interface SessionPostResponse {
+  success: boolean;
+  session: {
+    id: string;
+    sessionType: string;
+    startedAt: Date;
+    userId: string;
+  };
+}
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -44,7 +69,7 @@ describe('GET /api/sessions', () => {
 
     const request = createGetRequest('http://localhost/api/sessions');
     const response = await GET(request);
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<SessionsGetResponse>(response, 200);
 
     expect(data.sessions).toHaveLength(2);
     expect(prisma.practiceSession.findMany).toHaveBeenCalledWith({
@@ -131,9 +156,9 @@ describe('GET /api/sessions', () => {
 
     const request = createGetRequest('http://localhost/api/sessions');
     const response = await GET(request);
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<SessionsGetResponse>(response, 200);
 
-    expect(data.sessions[0]._count.attempts).toBe(20);
+    expect(data.sessions[0]!._count!.attempts).toBe(20);
   });
 });
 
@@ -169,7 +194,7 @@ describe('POST /api/sessions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<SessionPostResponse>(response, 201);
 
     expect(data.success).toBe(true);
     expect(data.session.sessionType).toBe('QUICK');
@@ -205,7 +230,7 @@ describe('POST /api/sessions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<SessionPostResponse>(response, 201);
 
     expect(data.session.sessionType).toBe('TIMED');
   });
@@ -232,7 +257,7 @@ describe('POST /api/sessions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<SessionPostResponse>(response, 201);
 
     expect(data.session.sessionType).toBe('TOPIC_FOCUSED');
     expect(prisma.practiceSession.create).toHaveBeenCalledWith({
@@ -263,7 +288,7 @@ describe('POST /api/sessions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<SessionPostResponse>(response, 201);
 
     expect(data.session.sessionType).toBe('WEAK_AREAS');
   });
@@ -289,7 +314,7 @@ describe('POST /api/sessions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<SessionPostResponse>(response, 201);
 
     expect(data.session.sessionType).toBe('RETRY_FAILED');
   });
@@ -338,7 +363,7 @@ describe('POST /api/sessions', () => {
     });
 
     const response = await POST(request);
-    const data = await expectResponse(response, 201);
+    const data = await expectResponse<SessionPostResponse>(response, 201);
 
     expect(prisma.practiceSession.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -348,8 +373,8 @@ describe('POST /api/sessions', () => {
   });
 
   it('should generate unique session IDs', async () => {
-    vi.mocked(prisma.practiceSession.create).mockImplementation((args) => {
-      return Promise.resolve(args.data as any);
+    vi.mocked(prisma.practiceSession.create).mockImplementation((args: any) => {
+      return Promise.resolve(args.data) as any;
     });
 
     const request = createPostRequest('http://localhost/api/sessions', {
@@ -367,8 +392,8 @@ describe('POST /api/sessions', () => {
 
   it('should set startedAt to current time', async () => {
     const now = new Date();
-    vi.mocked(prisma.practiceSession.create).mockImplementation((args) => {
-      return Promise.resolve(args.data as any);
+    vi.mocked(prisma.practiceSession.create).mockImplementation((args: any) => {
+      return Promise.resolve(args.data) as any;
     });
 
     const request = createPostRequest('http://localhost/api/sessions', {

@@ -4,6 +4,7 @@ import './globals.css';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
 import { AchievementNotificationProvider } from '@/components/AchievementNotificationProvider';
+import Script from 'next/script';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -28,6 +29,29 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* MathJax Configuration */}
+        <Script id="mathjax-config" strategy="beforeInteractive">
+          {`
+            window.MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+                processEscapes: true,
+                processEnvironments: true
+              },
+              options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+              }
+            };
+          `}
+        </Script>
+
+        {/* MathJax Library */}
+        <Script
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+          strategy="beforeInteractive"
+        />
+
         <ErrorBoundary>{children}</ErrorBoundary>
         <AchievementNotificationProvider />
         <Toaster

@@ -10,6 +10,24 @@ import { prisma } from '@/lib/prisma';
 import { mockAchievements, mockUsers } from '../mocks/testData';
 import { expectResponse } from '../mocks/mockRequest';
 
+// Response type for achievements endpoint
+interface AchievementsResponse {
+  achievements: Array<{
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    points: number;
+    tier: string;
+    earned: boolean;
+    progress: number;
+    earnedAt?: Date;
+  }>;
+  totalPoints: number;
+  earnedCount: number;
+  totalCount: number;
+}
+
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -71,11 +89,11 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
     expect(data.achievements).toHaveLength(2);
-    expect(data.achievements[0].earned).toBe(true);
-    expect(data.achievements[1].earned).toBe(false);
+    expect(data.achievements[0]!.earned).toBe(true);
+    expect(data.achievements[1]!.earned).toBe(false);
   });
 
   it('should calculate total points from earned achievements', async () => {
@@ -106,7 +124,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
     expect(data.totalPoints).toBe(60); // 10 + 50
     expect(data.earnedCount).toBe(2);
@@ -128,10 +146,10 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
-    expect(data.achievements[0].progress).toBe(50); // 50/100 * 100 = 50%
-    expect(data.achievements[0].earned).toBe(false);
+    expect(data.achievements[0]!.progress).toBe(50); // 50/100 * 100 = 50%
+    expect(data.achievements[0]!.earned).toBe(false);
   });
 
   it('should calculate progress for correct_answers achievement', async () => {
@@ -159,9 +177,9 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
-    expect(data.achievements[0].progress).toBe(60); // 30/50 * 100 = 60%
+    expect(data.achievements[0]!.progress).toBe(60); // 30/50 * 100 = 60%
   });
 
   it('should calculate progress for streak_days achievement', async () => {
@@ -190,9 +208,9 @@ describe('GET /api/achievements', () => {
     } as any);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
-    expect(data.achievements[0].progress).toBe(57); // Math.round(4/7 * 100) = 57%
+    expect(data.achievements[0]!.progress).toBe(57); // Math.round(4/7 * 100) = 57%
   });
 
   it('should cap progress at 100%', async () => {
@@ -217,9 +235,9 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
-    expect(data.achievements[0].progress).toBe(100); // Capped at 100
+    expect(data.achievements[0]!.progress).toBe(100); // Capped at 100
   });
 
   it('should return 100% progress for earned achievements', async () => {
@@ -239,11 +257,11 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
-    expect(data.achievements[0].progress).toBe(100);
-    expect(data.achievements[0].earned).toBe(true);
-    expect(data.achievements[0].earnedAt).toBeDefined();
+    expect(data.achievements[0]!.progress).toBe(100);
+    expect(data.achievements[0]!.earned).toBe(true);
+    expect(data.achievements[0]!.earnedAt).toBeDefined();
   });
 
   it('should handle unknown achievement criteria type', async () => {
@@ -266,9 +284,9 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
-    expect(data.achievements[0].progress).toBe(0); // Unknown type = 0 progress
+    expect(data.achievements[0]!.progress).toBe(0); // Unknown type = 0 progress
   });
 
   it('should sort achievements by tier and points', async () => {
@@ -283,7 +301,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
     expect(prisma.achievement.findMany).toHaveBeenCalledWith({
       orderBy: [{ tier: 'asc' }, { points: 'desc' }],
@@ -335,7 +353,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
     expect(data.achievements).toHaveLength(0);
     expect(data.totalPoints).toBe(0);
@@ -354,7 +372,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue(null);
 
     const response = await GET();
-    const data = await expectResponse(response, 200);
+    const data = await expectResponse<AchievementsResponse>(response, 200);
 
     expect(data.achievements).toHaveLength(2);
     expect(data.achievements.every((a) => !a.earned)).toBe(true);

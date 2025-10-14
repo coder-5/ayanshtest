@@ -87,7 +87,7 @@ export const POST = withErrorHandler(async (request: Request) => {
   // Create error report
   const report = await prisma.errorReport.create({
     data: {
-      id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: crypto.randomUUID(),
       questionId: validated.questionId,
       userId,
       reportType: validated.reportType,

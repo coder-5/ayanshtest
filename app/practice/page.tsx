@@ -402,7 +402,7 @@ export default function PracticePage() {
           </Link>
 
           <Link
-            href="/practice/retry"
+            href="/practice/wrong-questions"
             className="bg-white rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow border-red-200"
           >
             <div className="mb-4">
@@ -429,7 +429,7 @@ export default function PracticePage() {
           </Link>
 
           <Link
-            href="/practice/weak-areas"
+            href="/practice/topics"
             className="bg-white rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow border-yellow-200"
           >
             <div className="mb-4">
