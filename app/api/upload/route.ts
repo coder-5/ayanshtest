@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 import { nanoid } from 'nanoid';
+import { cache } from '@/lib/cache';
+import {
+  sanitizeQuestionText,
+  sanitizeOptionText,
+  sanitizeSolutionText,
+  sanitizeIdentifier,
+} from '@/lib/sanitizer';
 
 export const POST = withErrorHandler(async (request: Request) => {
   const body = await request.json();
@@ -46,15 +53,20 @@ export const POST = withErrorHandler(async (request: Request) => {
         }
       }
 
+      // Sanitize all text inputs to prevent XSS
+      const sanitizedQuestionText = sanitizeQuestionText(q.questionText);
+      const sanitizedExamName = q.examName ? sanitizeIdentifier(q.examName) : null;
+      const sanitizedTopic = q.topic ? sanitizeIdentifier(q.topic) : null;
+
       // Create question with options and solution
       await prisma.question.create({
         data: {
           id: `q-${nanoid(21)}`,
-          questionText: q.questionText,
-          examName: q.examName || null,
+          questionText: sanitizedQuestionText,
+          examName: sanitizedExamName,
           examYear: q.examYear ? parseInt(q.examYear) : null,
           questionNumber: q.questionNumber || null,
-          topic: q.topic || null,
+          topic: sanitizedTopic,
           difficulty: q.difficulty || 'MEDIUM',
           hasImage: q.hasImage || false,
           imageUrl: q.imageUrl || q.diagramPath || null,
@@ -71,7 +83,7 @@ export const POST = withErrorHandler(async (request: Request) => {
                   }) => ({
                     id: `opt-${nanoid(21)}`,
                     optionLetter: opt.optionLabel || opt.optionLetter || 'A',
-                    optionText: opt.optionText,
+                    optionText: sanitizeOptionText(opt.optionText),
                     isCorrect: opt.isCorrect,
                   })
                 ),
@@ -81,7 +93,9 @@ export const POST = withErrorHandler(async (request: Request) => {
             solution: {
               create: {
                 id: `sol-${nanoid(21)}`,
-                solutionText: q.solution || 'No detailed solution available.',
+                solutionText: q.solution
+                  ? sanitizeSolutionText(q.solution)
+                  : 'No detailed solution available.',
                 videoLinks: q.videoLinks || null,
                 updatedAt: new Date(),
               },
@@ -96,6 +110,14 @@ export const POST = withErrorHandler(async (request: Request) => {
       errors.push({ index: i, error: errorMessage });
       errorCount++;
     }
+  }
+
+  // Invalidate all question-related caches after bulk upload
+  if (successCount > 0) {
+    cache.invalidatePattern('questions:');
+    cache.invalidate('question_counts');
+    cache.invalidate('topics:all');
+    cache.invalidatePattern('exams:');
   }
 
   return successResponse({

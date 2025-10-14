@@ -79,6 +79,7 @@ export default function TutorDashboardPage() {
     try {
       // Use Promise.allSettled to handle partial failures gracefully
       const results = await Promise.allSettled([
+        fetch('/api/user').then((r) => r.json()),
         fetch('/api/progress').then((r) => r.json()),
         fetch('/api/topic-performance').then((r) => r.json()),
         fetch('/api/sessions').then((r) => r.json()),
@@ -86,16 +87,17 @@ export default function TutorDashboardPage() {
       ]);
 
       // Extract successful results or use defaults
-      const progressData = results[0].status === 'fulfilled' ? results[0].value : { stats: {} };
+      const userData = results[0].status === 'fulfilled' ? results[0].value : { user: {} };
+      const progressData = results[1].status === 'fulfilled' ? results[1].value : { stats: {} };
       const topicData =
-        results[1].status === 'fulfilled' ? results[1].value : { topicPerformance: [] };
-      const sessionsData = results[2].status === 'fulfilled' ? results[2].value : { sessions: [] };
-      const examsData = results[3].status === 'fulfilled' ? results[3].value : { exams: [] };
+        results[2].status === 'fulfilled' ? results[2].value : { topicPerformance: [] };
+      const sessionsData = results[3].status === 'fulfilled' ? results[3].value : { sessions: [] };
+      const examsData = results[4].status === 'fulfilled' ? results[4].value : { exams: [] };
 
       // Log any failures for debugging
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          const apiNames = ['progress', 'topic-performance', 'sessions', 'exams'];
+          const apiNames = ['user', 'progress', 'topic-performance', 'sessions', 'exams'];
           console.error(`Failed to fetch ${apiNames[index]}:`, result.reason);
         }
       });
@@ -103,8 +105,8 @@ export default function TutorDashboardPage() {
       // Compile dashboard data
       const dashboardData: DashboardData = {
         student: {
-          name: 'Ayansh',
-          grade: 6, // Could fetch from user profile
+          name: userData.user?.name || 'Student',
+          grade: userData.user?.grade || 0,
         },
         overview: {
           totalQuestions: progressData.stats?.totalQuestions || 0,

@@ -29,19 +29,22 @@ export const GET = withErrorHandler(async () => {
     },
   });
 
-  // Get user statistics for progress tracking
-  const allAttempts = await prisma.userAttempt.findMany({
-    where: {
-      userId,
-      deletedAt: null,
-    },
-    select: {
-      isCorrect: true,
-    },
-  });
-
-  const totalQuestions = allAttempts.length;
-  const correctAnswers = allAttempts.filter((a) => a.isCorrect).length;
+  // Get user statistics for progress tracking (using aggregation for performance)
+  const [totalQuestions, correctAnswers] = await Promise.all([
+    prisma.userAttempt.count({
+      where: {
+        userId,
+        deletedAt: null,
+      },
+    }),
+    prisma.userAttempt.count({
+      where: {
+        userId,
+        deletedAt: null,
+        isCorrect: true,
+      },
+    }),
+  ]);
 
   // Get streak information
   const latestProgress = await prisma.dailyProgress.findFirst({

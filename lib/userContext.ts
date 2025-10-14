@@ -13,7 +13,7 @@
 
 export function getCurrentUserId(): string {
   // Hardcoded user ID - this is intentional for personal use
-  const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'ayansh';
+  const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'user-ayansh';
   return userId;
 }
 
@@ -24,7 +24,7 @@ export function getCurrentUserId(): string {
  */
 export function getClientUserId(): string {
   if (typeof window === 'undefined') {
-    return 'ayansh'; // Server-side fallback
+    return 'user-ayansh'; // Server-side fallback
   }
 
   // Check localStorage for stored user ID
@@ -32,7 +32,7 @@ export function getClientUserId(): string {
 
   if (!userId) {
     // If no user ID exists, create one or use default
-    userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'ayansh';
+    userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'user-ayansh';
     localStorage.setItem('userId', userId);
   }
 

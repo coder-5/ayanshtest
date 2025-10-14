@@ -184,34 +184,62 @@ function QuickPracticePageContent() {
   // Cleanup: Complete session on component unmount or navigation away
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Warn user if they're in the middle of a session
       if (currentIndex > 0 && currentIndex < questions.length - 1) {
         e.preventDefault();
         e.returnValue = 'You have unsaved progress. Are you sure you want to leave?';
       }
-    };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-
-      // Complete session synchronously on cleanup
+      // Save session progress BEFORE unload
       if (sessionId && currentIndex > 0) {
-        // Fire and forget - send beacon for cleanup
         const data = JSON.stringify({
           totalQuestions: currentIndex + (showResult ? 1 : 0),
           correctAnswers: score,
         });
 
-        // Use sendBeacon for guaranteed delivery even when page unloads
+        // sendBeacon ensures data is sent even if page is closing
         if (navigator.sendBeacon) {
           navigator.sendBeacon(
             `/api/sessions/${sessionId}`,
             new Blob([data], { type: 'application/json' })
           );
         }
+      }
+    };
 
-        // Clean up localStorage
+    // Add event listener for page close/refresh
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+
+      // On component unmount (navigation within app)
+      // Only save if we haven't already completed the session
+      if (sessionId && currentIndex > 0 && currentIndex < questions.length) {
+        const data = JSON.stringify({
+          totalQuestions: currentIndex + (showResult ? 1 : 0),
+          correctAnswers: score,
+        });
+
+        // Use sendBeacon for guaranteed delivery
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(
+            `/api/sessions/${sessionId}`,
+            new Blob([data], { type: 'application/json' })
+          );
+        } else {
+          // Fallback: synchronous fetch (may fail on unload)
+          fetch(`/api/sessions/${sessionId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: data,
+            keepalive: true, // Keep request alive during page unload
+          }).catch(() => {
+            // Ignore errors - best effort
+          });
+        }
+
+        // Clean up localStorage after saving
         try {
           localStorage.removeItem('quickPracticeState');
         } catch (_error) {
@@ -260,15 +288,37 @@ function QuickPracticePageContent() {
         queryParams.length > 0 ? `/api/questions?${queryParams.join('&')}` : '/api/questions';
 
       const response = await fetch(url);
+
+      // Check if response is ok
+      if (!response.ok) {
+        throw new Error(`Failed to fetch questions: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
-      setQuestions(data?.questions || []);
+
+      // Validate we got questions
+      if (!data?.questions || !Array.isArray(data.questions)) {
+        throw new Error('Invalid response format: missing questions array');
+      }
+
+      if (data.questions.length === 0) {
+        toast.error('No questions found matching your filters');
+        setQuestions([]);
+      } else {
+        setQuestions(data.questions);
+        toast.success(`Loaded ${data.questions.length} questions`);
+      }
 
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);
       setScore(0);
-    } catch (_error) {
-      toast.error('Failed to load questions');
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to load questions. Please try again.'
+      );
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
@@ -518,7 +568,6 @@ function QuickPracticePageContent() {
                           width={800}
                           height={600}
                           className="w-full h-auto object-contain rounded"
-                          unoptimized
                           onError={() => setImageError(true)}
                         />
                       </div>

@@ -1,4 +1,4 @@
-import { PrismaClient, AchievementType, DifficultyLevel } from '@prisma/client';
+import { PrismaClient, AchievementType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -13,7 +13,7 @@ async function main() {
     create: {
       id: 'user-ayansh',
       name: 'Ayansh',
-      email: 'ayansh@example.com',
+      email: 'manish.agrawal446@gmail.com',
       grade: 5,
       preferences: {
         theme: 'light',
@@ -229,166 +229,6 @@ async function main() {
     }
 
     console.log(`✅ Created ${achievements.length} achievements\n`);
-  }
-
-  // Check if we should create sample questions
-  const existingQuestions = await prisma.question.count();
-
-  if (existingQuestions === 0) {
-    console.log('📚 Creating sample questions...');
-
-    const sampleQuestions = [
-      {
-        id: 'sample-q1',
-        questionText: 'What is 7 + 5?',
-        examName: 'Sample',
-        examYear: 2024,
-        questionNumber: '1',
-        difficulty: DifficultyLevel.EASY,
-        topic: 'Arithmetic',
-        hasImage: false,
-        qualityScore: 100,
-        options: {
-          create: [
-            { id: 'sample-q1-a', optionLetter: 'A', optionText: '10', isCorrect: false },
-            { id: 'sample-q1-b', optionLetter: 'B', optionText: '11', isCorrect: false },
-            { id: 'sample-q1-c', optionLetter: 'C', optionText: '12', isCorrect: true },
-            { id: 'sample-q1-d', optionLetter: 'D', optionText: '13', isCorrect: false },
-            { id: 'sample-q1-e', optionLetter: 'E', optionText: '14', isCorrect: false },
-          ],
-        },
-        solution: {
-          create: {
-            id: 'sample-sol1',
-            solutionText: 'Simply add: 7 + 5 = 12',
-            approach: 'Direct addition',
-            keyInsights: 'Basic arithmetic',
-          },
-        },
-      },
-      {
-        id: 'sample-q2',
-        questionText: 'If a rectangle has length 8 and width 3, what is its perimeter?',
-        examName: 'Sample',
-        examYear: 2024,
-        questionNumber: '2',
-        difficulty: DifficultyLevel.EASY,
-        topic: 'Geometry',
-        hasImage: false,
-        qualityScore: 100,
-        options: {
-          create: [
-            { id: 'sample-q2-a', optionLetter: 'A', optionText: '11', isCorrect: false },
-            { id: 'sample-q2-b', optionLetter: 'B', optionText: '22', isCorrect: true },
-            { id: 'sample-q2-c', optionLetter: 'C', optionText: '24', isCorrect: false },
-            { id: 'sample-q2-d', optionLetter: 'D', optionText: '16', isCorrect: false },
-            { id: 'sample-q2-e', optionLetter: 'E', optionText: '32', isCorrect: false },
-          ],
-        },
-        solution: {
-          create: {
-            id: 'sample-sol2',
-            solutionText: 'Perimeter = 2(length + width) = 2(8 + 3) = 2(11) = 22',
-            approach: 'Use perimeter formula',
-            keyInsights: 'Remember: perimeter is the sum of all sides',
-          },
-        },
-      },
-      {
-        id: 'sample-q3',
-        questionText: 'What is 3 × 4 × 5?',
-        examName: 'Sample',
-        examYear: 2024,
-        questionNumber: '3',
-        difficulty: DifficultyLevel.EASY,
-        topic: 'Arithmetic',
-        hasImage: false,
-        qualityScore: 100,
-        options: {
-          create: [
-            { id: 'sample-q3-a', optionLetter: 'A', optionText: '12', isCorrect: false },
-            { id: 'sample-q3-b', optionLetter: 'B', optionText: '15', isCorrect: false },
-            { id: 'sample-q3-c', optionLetter: 'C', optionText: '20', isCorrect: false },
-            { id: 'sample-q3-d', optionLetter: 'D', optionText: '60', isCorrect: true },
-            { id: 'sample-q3-e', optionLetter: 'E', optionText: '35', isCorrect: false },
-          ],
-        },
-        solution: {
-          create: {
-            id: 'sample-sol3',
-            solutionText: '3 × 4 = 12, then 12 × 5 = 60',
-            approach: 'Multiply step by step',
-            keyInsights: 'Multiplication is associative',
-          },
-        },
-      },
-      {
-        id: 'sample-q4',
-        questionText: 'How many sides does a hexagon have?',
-        examName: 'Sample',
-        examYear: 2024,
-        questionNumber: '4',
-        difficulty: DifficultyLevel.EASY,
-        topic: 'Geometry',
-        hasImage: false,
-        qualityScore: 100,
-        options: {
-          create: [
-            { id: 'sample-q4-a', optionLetter: 'A', optionText: '4', isCorrect: false },
-            { id: 'sample-q4-b', optionLetter: 'B', optionText: '5', isCorrect: false },
-            { id: 'sample-q4-c', optionLetter: 'C', optionText: '6', isCorrect: true },
-            { id: 'sample-q4-d', optionLetter: 'D', optionText: '7', isCorrect: false },
-            { id: 'sample-q4-e', optionLetter: 'E', optionText: '8', isCorrect: false },
-          ],
-        },
-        solution: {
-          create: {
-            id: 'sample-sol4',
-            solutionText: 'A hexagon has 6 sides (hexa = 6 in Greek)',
-            approach: 'Recall polygon names',
-            keyInsights: 'Remember: triangle=3, quadrilateral=4, pentagon=5, hexagon=6',
-          },
-        },
-      },
-      {
-        id: 'sample-q5',
-        questionText: 'What is 100 - 37?',
-        examName: 'Sample',
-        examYear: 2024,
-        questionNumber: '5',
-        difficulty: DifficultyLevel.EASY,
-        topic: 'Arithmetic',
-        hasImage: false,
-        qualityScore: 100,
-        options: {
-          create: [
-            { id: 'sample-q5-a', optionLetter: 'A', optionText: '53', isCorrect: false },
-            { id: 'sample-q5-b', optionLetter: 'B', optionText: '63', isCorrect: true },
-            { id: 'sample-q5-c', optionLetter: 'C', optionText: '73', isCorrect: false },
-            { id: 'sample-q5-d', optionLetter: 'D', optionText: '67', isCorrect: false },
-            { id: 'sample-q5-e', optionLetter: 'E', optionText: '83', isCorrect: false },
-          ],
-        },
-        solution: {
-          create: {
-            id: 'sample-sol5',
-            solutionText: '100 - 37 = 100 - 30 - 7 = 70 - 7 = 63',
-            approach: 'Break down subtraction',
-            keyInsights: 'Can subtract in parts: subtract tens, then ones',
-          },
-        },
-      },
-    ];
-
-    for (const question of sampleQuestions) {
-      await prisma.question.create({
-        data: question,
-      });
-    }
-
-    console.log(`✅ Created ${sampleQuestions.length} sample questions\n`);
-  } else {
-    console.log(`ℹ️  Skipping sample questions (${existingQuestions} already exist)\n`);
   }
 
   console.log('✅ Seed completed successfully!\n');

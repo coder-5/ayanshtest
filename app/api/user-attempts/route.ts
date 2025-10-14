@@ -80,13 +80,13 @@ export const POST = withErrorHandler(async (request: Request) => {
 });
 
 async function updateDailyProgress(userId: string, tx: Prisma.TransactionClient) {
-  // Use UTC to avoid timezone issues
+  // Use local time for simplicity (single-user app)
   const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const todayStart = new Date(today);
   const todayEnd = new Date(today);
-  todayEnd.setUTCHours(23, 59, 59, 999);
+  todayEnd.setHours(23, 59, 59, 999);
 
   const attempts = await tx.userAttempt.findMany({
     where: {
@@ -115,7 +115,7 @@ async function updateDailyProgress(userId: string, tx: Prisma.TransactionClient)
   const topicsStudied = Array.from(topicsSet).join(', ');
 
   const yesterday = new Date(today);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  yesterday.setDate(yesterday.getDate() - 1);
 
   const yesterdayProgress = await tx.dailyProgress.findFirst({
     where: {
@@ -134,10 +134,19 @@ async function updateDailyProgress(userId: string, tx: Prisma.TransactionClient)
 
   const isStreakDay = questionsAttempted > 0;
 
-  // Calculate streak:
-  // - If we already have a record for today with a streak, keep it
-  // - Otherwise, extend yesterday's streak if yesterday was a streak day
-  // - Otherwise, start a new streak at 1
+  // Calculate streak days
+  // Streak Logic:
+  // 1. If today already has a streak recorded (multiple attempts in same day):
+  //    → Keep the existing streak value (don't reset mid-day)
+  // 2. If yesterday was a streak day:
+  //    → Extend the streak: yesterday's streak + 1
+  // 3. If yesterday was NOT a streak day (user took a break):
+  //    → Start fresh: streak = 1
+  //
+  // Example: 10-day streak, then 1 day off, then come back
+  //   Day 10: streak = 10, isStreakDay = true
+  //   Day 11: streak = 0,  isStreakDay = false (no practice)
+  //   Day 12: streak = 1,  isStreakDay = true (fresh start, not 11!)
   let streakDays: number;
   if (todayProgress && todayProgress.streakDays > 0) {
     streakDays = todayProgress.streakDays;
@@ -193,6 +202,7 @@ async function updateTopicPerformance(
 
   const topic = question.topic;
 
+  // Fetch topic attempts - optimized to select only needed fields
   const allAttempts = await tx.userAttempt.findMany({
     where: {
       userId,
@@ -200,6 +210,10 @@ async function updateTopicPerformance(
       question: {
         topic,
       },
+    },
+    select: {
+      isCorrect: true,
+      timeSpent: true,
     },
   });
 
@@ -377,16 +391,14 @@ async function checkAchievements(userId: string, tx: Prisma.TransactionClient) {
 
 async function updateWeeklyAnalysis(userId: string, tx: Prisma.TransactionClient) {
   const now = new Date();
-  const currentDay = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
+  const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // Get the start of this week (Sunday) in UTC
-  const weekStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - currentDay)
-  );
+  // Get the start of this week (Sunday) in local time
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDay);
 
   const weekEnd = new Date(weekStart);
-  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-  weekEnd.setUTCHours(23, 59, 59, 999);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
 
   // Get all attempts for this week
   const attempts = await tx.userAttempt.findMany({
@@ -442,7 +454,7 @@ async function updateWeeklyAnalysis(userId: string, tx: Prisma.TransactionClient
 
   // Calculate improvement from previous week
   const previousWeekStart = new Date(weekStart);
-  previousWeekStart.setUTCDate(weekStart.getUTCDate() - 7);
+  previousWeekStart.setDate(weekStart.getDate() - 7);
 
   const previousWeek = await tx.weeklyAnalysis.findFirst({
     where: {

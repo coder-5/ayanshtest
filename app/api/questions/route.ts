@@ -3,6 +3,7 @@ import { QuestionService } from '@/lib/services/questionService';
 import { questionCreateSchema, questionFiltersSchema, validatePayloadSize } from '@/lib/validation';
 import { z } from 'zod';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
+import { cache } from '@/lib/cache';
 
 // Query parameters schema with pagination - Max 1000 records per request
 const getQuerySchema = questionFiltersSchema.extend({
@@ -75,6 +76,12 @@ export const POST = withErrorHandler(async (request: Request) => {
   }
 
   const question = await QuestionService.create(validationResult.data);
+
+  // Invalidate caches after creating question
+  cache.invalidatePattern('questions:');
+  cache.invalidate('question_counts');
+  cache.invalidate('topics:all');
+  cache.invalidatePattern('exams:');
 
   return successResponse({ question }, 201);
 });

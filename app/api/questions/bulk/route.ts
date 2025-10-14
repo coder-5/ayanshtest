@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
+import { cache } from '@/lib/cache';
 
 /**
  * POST /api/questions/bulk
@@ -86,6 +87,12 @@ async function handleBulkUpdate(data: z.infer<typeof bulkUpdateSchema>) {
     },
   });
 
+  // Invalidate caches after bulk update
+  cache.invalidatePattern('questions:');
+  cache.invalidate('question_counts');
+  cache.invalidate('topics:all');
+  cache.invalidatePattern('exams:');
+
   return successResponse({
     success: true,
     action: 'update',
@@ -143,6 +150,12 @@ async function handleBulkDelete(data: z.infer<typeof bulkDeleteSchema>) {
       deletedAt: new Date(),
     },
   });
+
+  // Invalidate caches after bulk delete
+  cache.invalidatePattern('questions:');
+  cache.invalidate('question_counts');
+  cache.invalidate('topics:all');
+  cache.invalidatePattern('exams:');
 
   return successResponse({
     success: true,
