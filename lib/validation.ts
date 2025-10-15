@@ -69,13 +69,18 @@ export const questionCreateSchema = z.object({
     .max(MAX_LENGTHS.EXAM_NAME, `Exam name must not exceed ${MAX_LENGTHS.EXAM_NAME} characters`)
     .optional(),
   examYear: z.number().int().min(1900).max(2100).optional(),
-  questionNumber: z.string().optional(),
+  questionNumber: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional(),
   correctAnswer: z.string().optional(),
   topic: z
     .string()
     .max(MAX_LENGTHS.TOPIC, `Topic must not exceed ${MAX_LENGTHS.TOPIC} characters`)
     .optional(),
   difficulty: z.enum(['EASY', 'MEDIUM', 'HARD', 'EXPERT']).default('MEDIUM'),
+  hasImage: z.boolean().optional(),
+  imageUrl: z.string().optional(),
   options: z
     .array(
       z.object({

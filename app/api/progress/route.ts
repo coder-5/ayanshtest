@@ -5,113 +5,111 @@ import { withErrorHandler, successResponse } from '@/lib/error-handler';
 export const GET = withErrorHandler(async () => {
   const userId = USER_ID;
 
-  // Get total attempts and accuracy
-  const attempts = await prisma.userAttempt.findMany({
-    where: {
-      userId,
-      deletedAt: null,
-    },
-    select: {
-      isCorrect: true,
-      attemptedAt: true,
-      timeSpent: true,
-    },
-  });
+  // Get overall statistics
+  const [totalQuestions, correctAnswers] = await Promise.all([
+    prisma.userAttempt.count({
+      where: {
+        userId,
+        deletedAt: null,
+      },
+    }),
+    prisma.userAttempt.count({
+      where: {
+        userId,
+        deletedAt: null,
+        isCorrect: true,
+      },
+    }),
+  ]);
 
-  const totalQuestions = attempts.length;
-  const correctAnswers = attempts.filter((a) => a.isCorrect).length;
   const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-  const timeSpent = Math.round(attempts.reduce((sum, a) => sum + (a.timeSpent || 0), 0) / 3600); // Convert to hours
 
-  // Get streak days from latest daily progress record
+  // Get current streak from latest daily progress
   const latestProgress = await prisma.dailyProgress.findFirst({
     where: { userId },
     orderBy: { date: 'desc' },
   });
 
-  const streakDays = latestProgress?.streakDays || 0;
+  const currentStreak = latestProgress?.streakDays || 0;
 
-  // Get topic performance
-  const topicAttempts = await prisma.userAttempt.findMany({
+  // Get daily progress for last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const dailyProgress = await prisma.dailyProgress.findMany({
     where: {
       userId,
-      deletedAt: null,
-      question: {
-        topic: {
-          not: null,
-        },
+      date: {
+        gte: thirtyDaysAgo,
       },
     },
-    include: {
-      question: {
-        select: {
-          topic: true,
-        },
-      },
+    orderBy: {
+      date: 'desc',
     },
   });
 
-  const topicStats = topicAttempts.reduce(
-    (acc, attempt) => {
-      const topic = attempt.question?.topic || 'Unknown';
-      if (!acc[topic]) {
-        acc[topic] = { total: 0, correct: 0 };
-      }
-      acc[topic].total++;
-      if (attempt.isCorrect) {
-        acc[topic].correct++;
-      }
-      return acc;
+  // Get topic performance from topicPerformance table
+  const topicPerformance = await prisma.topicPerformance.findMany({
+    where: { userId },
+    select: {
+      topic: true,
+      totalAttempts: true,
+      correctAttempts: true,
+      accuracy: true,
+      lastPracticed: true,
+      needsPractice: true,
     },
-    {} as Record<string, { total: number; correct: number }>
-  );
+  });
 
-  const topicPerformance = Object.entries(topicStats).map(([topic, stats]) => ({
-    topic,
-    total: stats.total,
-    correct: stats.correct,
-    accuracy: Math.round((stats.correct / stats.total) * 100),
-  }));
-
-  // Get recent activity
-  const recentActivity = await prisma.userAttempt.findMany({
-    where: {
-      userId,
-      deletedAt: null,
+  // Get recent sessions (last 10)
+  const recentSessions = await prisma.practiceSession.findMany({
+    where: { userId },
+    orderBy: {
+      startedAt: 'desc',
     },
     take: 10,
-    orderBy: {
-      attemptedAt: 'desc',
-    },
-    include: {
-      question: {
-        select: {
-          id: true,
-          questionText: true,
-          topic: true,
-          difficulty: true,
-        },
-      },
+    select: {
+      id: true,
+      sessionType: true,
+      startedAt: true,
+      completedAt: true,
+      totalQuestions: true,
+      correctAnswers: true,
     },
   });
 
-  const formattedActivity = recentActivity.map((activity) => ({
-    id: activity.id,
-    questionText: activity.question?.questionText || 'Question not found',
-    topic: activity.question?.topic || 'Unknown',
-    difficulty: activity.question?.difficulty || 'MEDIUM',
-    isCorrect: activity.isCorrect,
-    attemptedAt: activity.attemptedAt.toISOString(),
-  }));
+  // Get recent activity (last 7 days)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const recentAttempts = await prisma.userAttempt.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+      attemptedAt: {
+        gte: sevenDaysAgo,
+      },
+    },
+    select: {
+      isCorrect: true,
+    },
+  });
+
+  const recentActivity = {
+    questionsAttempted: recentAttempts.length,
+    correctAnswers: recentAttempts.filter((a) => a.isCorrect).length,
+  };
 
   return successResponse({
-    stats: {
+    overall: {
       totalQuestions,
+      correctAnswers,
       accuracy,
-      streakDays,
-      timeSpent,
+      currentStreak,
     },
+    dailyProgress,
     topicPerformance,
-    recentActivity: formattedActivity,
+    recentSessions,
+    recentActivity,
   });
 });

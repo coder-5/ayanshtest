@@ -130,7 +130,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.achievement.findMany).mockResolvedValue([
       {
         ...mockAchievements.firstAnswer,
-        criteria: JSON.stringify({ type: 'total_questions', target: 100 }),
+        criteria: JSON.stringify({ totalQuestions: 100 }),
       },
     ] as any);
 
@@ -156,7 +156,7 @@ describe('GET /api/achievements', () => {
         icon: '✓',
         points: 25,
         tier: 'BRONZE',
-        criteria: JSON.stringify({ type: 'correct_answers', target: 50 }),
+        criteria: JSON.stringify({ correctAnswers: 50 }),
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -181,7 +181,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.achievement.findMany).mockResolvedValue([
       {
         ...mockAchievements.streak7,
-        criteria: JSON.stringify({ type: 'streak_days', target: 7 }),
+        criteria: JSON.stringify({ streakDays: 7 }),
       },
     ] as any);
 
@@ -217,7 +217,7 @@ describe('GET /api/achievements', () => {
         icon: '🎯',
         points: 10,
         tier: 'BRONZE',
-        criteria: JSON.stringify({ type: 'total_questions', target: 50 }),
+        criteria: JSON.stringify({ totalQuestions: 50 }),
         createdAt: new Date(),
         updatedAt: new Date(),
       },

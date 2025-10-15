@@ -31,7 +31,7 @@ export const GET = withErrorHandler(async () => {
     },
   });
 
-  return successResponse({ bookmarks, total: bookmarks.length });
+  return successResponse({ success: true, bookmarks, total: bookmarks.length });
 });
 
 // POST - Create a new bookmark
@@ -88,7 +88,10 @@ export const POST = withErrorHandler(async (request: Request) => {
     },
   });
 
-  return successResponse({ bookmark, message: 'Bookmark created successfully' }, 201);
+  return successResponse(
+    { success: true, bookmark, message: 'Bookmark created successfully' },
+    201
+  );
 });
 
 // DELETE - Remove a bookmark
@@ -123,7 +126,7 @@ export const DELETE = withErrorHandler(async (request: Request) => {
     },
   });
 
-  return successResponse({ message: 'Bookmark deleted successfully' });
+  return successResponse({ success: true, message: 'Bookmark deleted successfully' });
 });
 
 // PUT - Update bookmark note

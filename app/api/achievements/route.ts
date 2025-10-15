@@ -76,6 +76,9 @@ export const GET = withErrorHandler(async () => {
           if ('streakDays' in crit) {
             // Streak achievement
             progress = Math.min(100, Math.round((currentStreak / crit.streakDays) * 100));
+          } else if ('correctAnswers' in crit) {
+            // Correct answers achievement
+            progress = Math.min(100, Math.round((correctAnswers / crit.correctAnswers) * 100));
           } else if ('totalQuestions' in crit) {
             // Questions achievement
             progress = Math.min(100, Math.round((totalQuestions / crit.totalQuestions) * 100));

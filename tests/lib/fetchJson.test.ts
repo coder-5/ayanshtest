@@ -25,7 +25,7 @@ describe('fetchJsonSafe', () => {
     const result = await fetchJsonSafe<typeof mockData>('/api/test');
 
     expect(result).toEqual(mockData);
-    expect(fetch).toHaveBeenCalledWith('/api/test');
+    expect(fetch).toHaveBeenCalledWith('/api/test', undefined);
   });
 
   it('should return null on fetch error', async () => {

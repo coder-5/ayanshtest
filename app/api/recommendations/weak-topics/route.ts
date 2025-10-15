@@ -51,14 +51,14 @@ export const GET = withErrorHandler(async () => {
       ? Math.floor((now.getTime() - topic.lastPracticed.getTime()) / (1000 * 60 * 60 * 24))
       : Infinity;
 
-    if (topic.accuracy < 50) {
+    if (!topic.lastPracticed) {
+      reason = 'Never practiced';
+    } else if (topic.accuracy < 50) {
       reason = `Low accuracy (${topic.accuracy.toFixed(0)}%) - needs significant improvement`;
     } else if (topic.accuracy < 70) {
       reason = `Below target accuracy (${topic.accuracy.toFixed(0)}%)`;
-    } else if (!topic.lastPracticed || daysSinceLastPractice >= 7) {
-      reason = topic.lastPracticed
-        ? `Not practiced in ${daysSinceLastPractice} days`
-        : 'Never practiced';
+    } else if (daysSinceLastPractice >= 7) {
+      reason = `Not practiced in ${daysSinceLastPractice} days`;
     } else {
       reason = 'Marked as needs practice';
     }
