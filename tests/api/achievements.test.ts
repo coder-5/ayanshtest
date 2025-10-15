@@ -59,11 +59,6 @@ vi.mock('@/lib/cache', () => ({
   },
 }));
 
-// Mock user context
-vi.mock('@/lib/userContext', () => ({
-  'user-ayansh': vi.fn(() => 'test-user-id'),
-}));
-
 describe('GET /api/achievements', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,7 +73,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.userAchievement.findMany).mockResolvedValue([
       {
         id: 'ua-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         achievementId: mockAchievements.firstAnswer.id,
         earnedAt: new Date('2024-01-10'),
         achievement: mockAchievements.firstAnswer,
@@ -106,14 +101,14 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.userAchievement.findMany).mockResolvedValue([
       {
         id: 'ua-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         achievementId: mockAchievements.firstAnswer.id,
         earnedAt: new Date('2024-01-10'),
         achievement: mockAchievements.firstAnswer,
       },
       {
         id: 'ua-2',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         achievementId: mockAchievements.streak7.id,
         earnedAt: new Date('2024-01-15'),
         achievement: mockAchievements.streak7,
@@ -196,7 +191,7 @@ describe('GET /api/achievements', () => {
     // Current streak is 4 days
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue({
       id: 'dp-1',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       date: new Date(),
       questionsAttempted: 10,
       correctAnswers: 8,
@@ -246,7 +241,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.userAchievement.findMany).mockResolvedValue([
       {
         id: 'ua-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         achievementId: mockAchievements.firstAnswer.id,
         earnedAt: new Date('2024-01-10'),
         achievement: mockAchievements.firstAnswer,
@@ -314,7 +309,7 @@ describe('GET /api/achievements', () => {
     vi.mocked(prisma.userAchievement.findMany).mockResolvedValue([
       {
         id: 'ua-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         achievementId: mockAchievements.firstAnswer.id,
         earnedAt: new Date('2024-01-10'),
         achievement: mockAchievements.firstAnswer,
@@ -327,7 +322,7 @@ describe('GET /api/achievements', () => {
     await GET();
 
     expect(prisma.userAchievement.findMany).toHaveBeenCalledWith({
-      where: { userId: 'test-user-id' },
+      where: { userId: 'user-ayansh' },
       include: { achievement: true },
       orderBy: { earnedAt: 'desc' },
     });

@@ -45,11 +45,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock user context
-vi.mock('@/lib/userContext', () => ({
-  'user-ayansh': vi.fn(() => 'test-user-id'),
-}));
-
 describe('GET /api/sessions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -73,7 +68,7 @@ describe('GET /api/sessions', () => {
 
     expect(data.sessions).toHaveLength(2);
     expect(prisma.practiceSession.findMany).toHaveBeenCalledWith({
-      where: { userId: 'test-user-id' },
+      where: { userId: 'user-ayansh' },
       orderBy: { startedAt: 'desc' },
       take: 50,
       include: {
@@ -176,7 +171,7 @@ describe('POST /api/sessions', () => {
   it('should create a QUICK session', async () => {
     const newSession = {
       id: 'session-1705329600000-abcdefghi',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       sessionType: 'QUICK' as const,
       focusTopics: null,
       examSimulation: null,
@@ -200,7 +195,7 @@ describe('POST /api/sessions', () => {
     expect(data.session.sessionType).toBe('QUICK');
     expect(prisma.practiceSession.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         sessionType: 'QUICK',
         focusTopics: null,
         examSimulation: null,
@@ -212,7 +207,7 @@ describe('POST /api/sessions', () => {
   it('should create a TIMED session', async () => {
     const newSession = {
       id: 'session-123',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       sessionType: 'TIMED' as const,
       focusTopics: null,
       examSimulation: null,
@@ -238,7 +233,7 @@ describe('POST /api/sessions', () => {
   it('should create a TOPIC_FOCUSED session with focusTopics', async () => {
     const newSession = {
       id: 'session-123',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       sessionType: 'TOPIC_FOCUSED' as const,
       focusTopics: ['Algebra', 'Geometry'],
       examSimulation: null,
@@ -270,7 +265,7 @@ describe('POST /api/sessions', () => {
   it('should create WEAK_AREAS session', async () => {
     const newSession = {
       id: 'session-123',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       sessionType: 'WEAK_AREAS' as const,
       focusTopics: null,
       examSimulation: null,
@@ -296,7 +291,7 @@ describe('POST /api/sessions', () => {
   it('should create RETRY_FAILED session', async () => {
     const newSession = {
       id: 'session-123',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       sessionType: 'RETRY_FAILED' as const,
       focusTopics: null,
       examSimulation: null,
@@ -344,7 +339,7 @@ describe('POST /api/sessions', () => {
   it('should accept optional examSimulation parameter', async () => {
     const newSession = {
       id: 'session-123',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       sessionType: 'TIMED' as const,
       focusTopics: null,
       examSimulation: 'AMC8',

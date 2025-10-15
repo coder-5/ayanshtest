@@ -35,11 +35,6 @@ vi.mock('@/lib/cache', () => ({
   },
 }));
 
-// Mock user context
-vi.mock('@/lib/userContext', () => ({
-  'user-ayansh': vi.fn(() => 'test-user-id'),
-}));
-
 describe('GET /api/questions', () => {
   beforeEach(() => {
     vi.clearAllMocks();

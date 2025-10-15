@@ -40,11 +40,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock user context
-vi.mock('@/lib/userContext', () => ({
-  'user-ayansh': vi.fn(() => 'test-user-id'),
-}));
-
 describe('GET /api/recommendations/weak-topics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -60,7 +55,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 20,
         correctAttempts: 12,
@@ -73,7 +68,7 @@ describe('GET /api/recommendations/weak-topics', () => {
       },
       {
         id: '2',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Geometry',
         totalAttempts: 30,
         correctAttempts: 27,
@@ -99,7 +94,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Number Theory',
         totalAttempts: 15,
         correctAttempts: 13,
@@ -125,7 +120,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 50,
         correctAttempts: 25,
@@ -138,7 +133,7 @@ describe('GET /api/recommendations/weak-topics', () => {
       },
       {
         id: '2',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Geometry',
         totalAttempts: 20,
         correctAttempts: 12,
@@ -167,7 +162,7 @@ describe('GET /api/recommendations/weak-topics', () => {
   it('should return top 5 weak topics only', async () => {
     const topics = Array.from({ length: 10 }, (_, i) => ({
       id: `${i}`,
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       topic: `Topic ${i}`,
       totalAttempts: 20,
       correctAttempts: 8,
@@ -194,7 +189,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 20,
         correctAttempts: 8,
@@ -219,7 +214,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Geometry',
         totalAttempts: 20,
         correctAttempts: 13,
@@ -244,7 +239,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 20,
         correctAttempts: 18,
@@ -269,7 +264,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Combinatorics',
         totalAttempts: 5,
         correctAttempts: 2,
@@ -293,7 +288,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 20,
         correctAttempts: 12,
@@ -317,7 +312,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 20,
         correctAttempts: 8,
@@ -330,7 +325,7 @@ describe('GET /api/recommendations/weak-topics', () => {
       },
       {
         id: '2',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Geometry',
         totalAttempts: 15,
         correctAttempts: 9,
@@ -358,7 +353,7 @@ describe('GET /api/recommendations/weak-topics', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: '1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 30,
         correctAttempts: 27,
@@ -371,7 +366,7 @@ describe('GET /api/recommendations/weak-topics', () => {
       },
       {
         id: '2',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Geometry',
         totalAttempts: 25,
         correctAttempts: 20,

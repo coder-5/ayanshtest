@@ -36,11 +36,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock user context
-vi.mock('@/lib/userContext', () => ({
-  'user-ayansh': vi.fn(() => 'test-user-id'),
-}));
-
 describe('POST /api/user-attempts - Answer Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -64,7 +59,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt1',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q1',
           selectedAnswer: 'B',
           isCorrect: true,
@@ -118,7 +113,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt1',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q1',
           selectedAnswer: 'A',
           isCorrect: false,
@@ -167,7 +162,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt1',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q1',
           selectedAnswer: 'Z',
           isCorrect: false,
@@ -214,7 +209,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt2',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q2',
           selectedAnswer: 'paris',
           isCorrect: true,
@@ -258,7 +253,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt2',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q2',
           selectedAnswer: '  Paris  ',
           isCorrect: true,
@@ -302,7 +297,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt2',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q2',
           selectedAnswer: 'London',
           isCorrect: false,
@@ -351,7 +346,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt1',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q1',
           selectedAnswer: 'A',
           isCorrect: false, // Server calculates this, not client
@@ -486,7 +481,7 @@ describe('POST /api/user-attempts - Answer Validation', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
         const mockAttempt = {
           id: 'attempt1',
-          userId: 'test-user-id',
+          userId: 'user-ayansh',
           questionId: 'q1',
           selectedAnswer: 'A',
           isCorrect: true,

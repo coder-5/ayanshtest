@@ -108,7 +108,8 @@
       "Bash(npm why:*)",
       "Bash(do if [ -f \"app/api/$route/route.ts\" ])",
       "Bash(then echo \"✓ /api/$route\")",
-      "Bash(else echo \"✗ /api/$route - MISSING\")"
+      "Bash(else echo \"✗ /api/$route - MISSING\")",
+      "Bash(git show:*)"
     ],
     "deny": [],
     "ask": []

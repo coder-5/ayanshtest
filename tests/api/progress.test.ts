@@ -68,11 +68,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock user context
-vi.mock('@/lib/userContext', () => ({
-  'user-ayansh': vi.fn(() => 'test-user-id'),
-}));
-
 describe('GET /api/progress', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,7 +83,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.dailyProgress.findMany).mockResolvedValue([]);
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue({
       id: 'dp-1',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       date: new Date(),
       questionsAttempted: 10,
       correctAnswers: 8,
@@ -151,7 +146,7 @@ describe('GET /api/progress', () => {
 
     vi.mocked(prisma.dailyProgress.findFirst).mockResolvedValue({
       id: 'dp-1',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       date: new Date(),
       questionsAttempted: 10,
       correctAnswers: 8,
@@ -194,7 +189,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.dailyProgress.findMany).mockResolvedValue([
       {
         id: 'dp-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         date: new Date('2024-01-15'),
         questionsAttempted: 10,
         correctAnswers: 8,
@@ -206,7 +201,7 @@ describe('GET /api/progress', () => {
       },
       {
         id: 'dp-2',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         date: new Date('2024-01-14'),
         questionsAttempted: 15,
         correctAnswers: 12,
@@ -236,7 +231,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.topicPerformance.findMany).mockResolvedValue([
       {
         id: 'tp-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         topic: 'Algebra',
         totalAttempts: 50,
         correctAttempts: 40,
@@ -268,7 +263,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.practiceSession.findMany).mockResolvedValue([
       {
         id: 'session-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         sessionType: 'QUICK',
         startedAt: new Date(),
         completedAt: null,
@@ -298,7 +293,7 @@ describe('GET /api/progress', () => {
     vi.mocked(prisma.userAttempt.findMany).mockResolvedValue([
       {
         id: 'attempt-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         questionId: 'q-1',
         selectedAnswer: 'A',
         isCorrect: true,
@@ -309,7 +304,7 @@ describe('GET /api/progress', () => {
       },
       {
         id: 'attempt-2',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         questionId: 'q-2',
         selectedAnswer: 'B',
         isCorrect: false,

@@ -6,14 +6,14 @@
 
 export const mockUsers = {
   testUser: {
-    id: 'test-user-id',
+    id: 'user-ayansh',
     name: 'Test User',
     email: 'test@example.com',
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   },
   ayansh: {
-    id: 'ayansh',
+    id: 'user-ayansh',
     name: 'Ayansh',
     email: 'ayansh@example.com',
     createdAt: new Date('2024-01-01'),
@@ -172,7 +172,7 @@ export const mockAchievements = {
 export const mockAttempts = {
   correct: {
     id: 'attempt-1',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     questionId: 'q-mc-1',
     selectedAnswer: 'B',
     isCorrect: true,
@@ -183,7 +183,7 @@ export const mockAttempts = {
   },
   incorrect: {
     id: 'attempt-2',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     questionId: 'q-mc-1',
     selectedAnswer: 'A',
     isCorrect: false,
@@ -197,7 +197,7 @@ export const mockAttempts = {
 export const mockSessions = {
   quick: {
     id: 'session-quick-1',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     sessionType: 'QUICK' as const,
     startedAt: new Date('2024-01-15T10:00:00Z'),
     completedAt: null,
@@ -207,7 +207,7 @@ export const mockSessions = {
   },
   timed: {
     id: 'session-timed-1',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     sessionType: 'TIMED' as const,
     startedAt: new Date('2024-01-15T14:00:00Z'),
     completedAt: new Date('2024-01-15T14:30:00Z'),
@@ -220,7 +220,7 @@ export const mockSessions = {
 export const mockDailyProgress = {
   today: {
     id: 'dp-1',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     date: new Date('2024-01-15'),
     questionsAttempted: 10,
     correctAnswers: 8,
@@ -231,7 +231,7 @@ export const mockDailyProgress = {
   },
   yesterday: {
     id: 'dp-2',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     date: new Date('2024-01-14'),
     questionsAttempted: 15,
     correctAnswers: 12,
@@ -245,7 +245,7 @@ export const mockDailyProgress = {
 export const mockTopicPerformance = {
   algebra: {
     id: 'tp-algebra',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     topic: 'Algebra',
     totalAttempts: 50,
     correctAttempts: 40,
@@ -257,7 +257,7 @@ export const mockTopicPerformance = {
   },
   geometry: {
     id: 'tp-geometry',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     topic: 'Geometry',
     totalAttempts: 30,
     correctAttempts: 18,
@@ -272,7 +272,7 @@ export const mockTopicPerformance = {
 export const mockBookmarks = {
   bookmark1: {
     id: 'bm-1',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     questionId: 'q-mc-1',
     createdAt: new Date('2024-01-10'),
   },
@@ -282,7 +282,7 @@ export const mockErrorReports = {
   report1: {
     id: 'err-1',
     questionId: 'q-mc-1',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     issueType: 'WRONG_ANSWER' as const,
     description: 'The correct answer should be C, not B',
     status: 'PENDING' as const,
@@ -294,7 +294,7 @@ export const mockErrorReports = {
 export const mockExamSchedules = {
   upcoming: {
     id: 'exam-1',
-    userId: 'test-user-id',
+    userId: 'user-ayansh',
     examName: 'AMC8',
     examDate: new Date('2024-12-01'),
     notes: 'Prepare geometry and number theory',

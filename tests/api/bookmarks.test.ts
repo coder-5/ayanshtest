@@ -69,10 +69,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/lib/userContext', () => ({
-  'user-ayansh': vi.fn(() => 'test-user-id'),
-}));
-
 describe('GET /api/bookmarks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -82,7 +78,7 @@ describe('GET /api/bookmarks', () => {
     vi.mocked(prisma.questionBookmark.findMany).mockResolvedValue([
       {
         id: 'bm-1',
-        userId: 'test-user-id',
+        userId: 'user-ayansh',
         questionId: 'q-1',
         note: null,
         createdAt: new Date(),
@@ -115,7 +111,7 @@ describe('GET /api/bookmarks', () => {
     await GET();
 
     expect(prisma.questionBookmark.findMany).toHaveBeenCalledWith({
-      where: { userId: 'test-user-id' },
+      where: { userId: 'user-ayansh' },
       include: {
         question: {
           select: {
@@ -150,7 +146,7 @@ describe('POST /api/bookmarks', () => {
     } as any);
     vi.mocked(prisma.questionBookmark.create).mockResolvedValue({
       id: 'bm-1',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       questionId: 'q-1',
       createdAt: new Date(),
     } as any);
@@ -170,7 +166,7 @@ describe('POST /api/bookmarks', () => {
   it('should prevent duplicate bookmarks', async () => {
     vi.mocked(prisma.questionBookmark.findUnique).mockResolvedValue({
       id: 'bm-1',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       questionId: 'q-1',
       note: null,
       createdAt: new Date(),
@@ -204,7 +200,7 @@ describe('DELETE /api/bookmarks', () => {
   it('should delete a bookmark', async () => {
     vi.mocked(prisma.questionBookmark.findUnique).mockResolvedValue({
       id: 'bm-1',
-      userId: 'test-user-id',
+      userId: 'user-ayansh',
       questionId: 'q-1',
       note: null,
       createdAt: new Date(),
