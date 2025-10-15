@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 /**
@@ -12,7 +12,7 @@ import { withErrorHandler, successResponse } from '@/lib/error-handler';
  * - Resolution tracking (mark topics/questions as taught)
  */
 export const GET = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   // Get all topic performance
   const topicPerformance = await prisma.topicPerformance.findMany({
@@ -124,7 +124,7 @@ export const GET = withErrorHandler(async () => {
  * Mark topics or questions as resolved after teaching
  */
 export const POST = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const body = await request.json();
 
   const { type, id, resolved, tutorNotes } = body;

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { Prisma } from '@prisma/client';
 import { userAttemptSchema } from '@/lib/validation';
 import {
@@ -10,7 +10,7 @@ import {
 } from '@/lib/config/thresholds';
 
 export const POST = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const body = await request.json();
 
   // Validate request body

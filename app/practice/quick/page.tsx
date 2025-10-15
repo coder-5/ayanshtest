@@ -5,9 +5,9 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { calculatePercentile } from '@/lib/examCutoffs';
-import { getClientUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { useVideoTracking } from '@/hooks/useVideoTracking';
-import { SafeHtml } from '@/lib/sanitize';
+import { MathContent } from '@/components/MathContent';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
 import { fetchJsonSafe } from '@/lib/fetchJson';
 
@@ -252,7 +252,8 @@ function QuickPracticePageContent() {
 
   const createSession = async () => {
     try {
-      const userId = getClientUserId();
+      const userId = USER_ID;
+      console.log('Creating session with userId:', userId);
       const data = await fetchJsonSafe<{ session: { id: string } }>('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -498,7 +499,7 @@ function QuickPracticePageContent() {
           ) : !currentQuestion ? (
             <div className="text-center text-gray-500 py-12">Loading question...</div>
           ) : (
-            <>
+            <div key={`question-${currentIndex}`}>
               {/* Progress */}
               <div className="mb-6">
                 <div className="flex justify-between text-sm text-gray-600 mb-2">
@@ -546,8 +547,8 @@ function QuickPracticePageContent() {
                     </span>
                   )}
                 </div>
-                <SafeHtml
-                  html={currentQuestion.questionText}
+                <MathContent
+                  content={currentQuestion.questionText}
                   className="text-lg text-gray-900 font-medium mb-4 whitespace-pre-wrap"
                 />
 
@@ -604,7 +605,7 @@ function QuickPracticePageContent() {
                         }`}
                       >
                         <span className="font-semibold text-gray-900">{option.optionLetter}.</span>{' '}
-                        <span className="text-gray-900">{option.optionText}</span>
+                        <MathContent content={option.optionText} className="inline text-gray-900" />
                       </button>
                     ))}
                   </div>
@@ -628,10 +629,13 @@ function QuickPracticePageContent() {
                             <p className="text-red-700 font-semibold text-lg mb-2">
                               ✗ Incorrect. The correct answer is ({correctOption?.optionLetter})
                             </p>
-                            <p className="text-gray-700">
+                            <div className="text-gray-700">
                               <span className="font-semibold">{correctOption?.optionLetter}.</span>{' '}
-                              {correctOption?.optionText}
-                            </p>
+                              <MathContent
+                                content={correctOption?.optionText || ''}
+                                className="inline"
+                              />
+                            </div>
                           </div>
                         );
                       })()}
@@ -685,69 +689,61 @@ function QuickPracticePageContent() {
                     <span className="text-2xl">{showSolution ? '▲' : '▼'}</span>
                   </button>
 
-                  {showSolution && (
-                    <div className="mt-4 bg-gray-50 border-2 border-indigo-200 rounded-lg p-6">
-                      {/* Written Solution */}
-                      {currentQuestion.solution?.solutionText && (
-                        <div className="mb-6">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            📝 Detailed Solution
+                  {/* Always render solution in DOM, just hide with CSS */}
+                  <div
+                    className={`mt-4 bg-gray-50 border-2 border-indigo-200 rounded-lg p-6 ${showSolution ? '' : 'hidden'}`}
+                  >
+                    {/* Written Solution */}
+                    {currentQuestion.solution?.solutionText && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          📝 Detailed Solution
+                        </h3>
+                        <div className="bg-white rounded-lg p-6 border border-gray-200 space-y-4">
+                          {currentQuestion.solution.solutionText
+                            .split('\n\n')
+                            .map((paragraph, idx) => (
+                              <div
+                                key={idx}
+                                className={`${paragraph.trim().startsWith('METHOD') ? 'pt-4 mt-4 border-t-2 border-gray-200' : ''}`}
+                              >
+                                <MathContent
+                                  content={paragraph.trim()}
+                                  className={`text-gray-800 leading-relaxed ${paragraph.trim().startsWith('METHOD') ? 'font-semibold text-indigo-900 mb-2' : ''}`}
+                                />
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Video Solutions */}
+                    {currentQuestion.solution?.videoLinks &&
+                      currentQuestion.solution.videoLinks.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                            📺 Video Solutions ({currentQuestion.solution.videoLinks.length})
                           </h3>
-                          <div className="bg-white rounded-lg p-6 border border-gray-200 space-y-4">
-                            {currentQuestion.solution.solutionText
-                              .split('\n\n')
-                              .map((paragraph, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`${paragraph.trim().startsWith('METHOD') ? 'pt-4 mt-4 border-t-2 border-gray-200' : ''}`}
-                                >
-                                  <p
-                                    className={`text-gray-800 leading-relaxed ${paragraph.trim().startsWith('METHOD') ? 'font-semibold text-indigo-900 mb-2' : ''}`}
-                                  >
-                                    {paragraph.trim()}
-                                  </p>
-                                </div>
-                              ))}
+                          <div className="space-y-4">
+                            {currentQuestion.solution.videoLinks?.map((videoLink, index) => {
+                              const embedUrl = getYouTubeEmbedUrl(videoLink);
+                              // Use YouTube embed if available, otherwise use URL directly in iframe
+                              const iframeUrl = embedUrl || videoLink;
+
+                              return (
+                                <VideoPlayer
+                                  key={`${currentQuestion.id}-${index}`}
+                                  embedUrl={iframeUrl}
+                                  videoLink={videoLink}
+                                  questionId={currentQuestion.id}
+                                  videoIndex={index}
+                                />
+                              );
+                            })}
                           </div>
                         </div>
                       )}
-
-                      {/* Video Solutions */}
-                      {currentQuestion.solution?.videoLinks &&
-                        currentQuestion.solution.videoLinks.length > 0 && (
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                              📺 Video Solutions ({currentQuestion.solution.videoLinks.length})
-                            </h3>
-                            <div className="space-y-4">
-                              {currentQuestion.solution.videoLinks?.map((videoLink, index) => {
-                                const embedUrl = getYouTubeEmbedUrl(videoLink);
-                                return embedUrl ? (
-                                  <VideoPlayer
-                                    key={`${currentQuestion.id}-${index}`}
-                                    embedUrl={embedUrl}
-                                    videoLink={videoLink}
-                                    questionId={currentQuestion.id}
-                                    videoIndex={index}
-                                  />
-                                ) : (
-                                  <div key={index} className="text-sm">
-                                    <a
-                                      href={videoLink}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-indigo-600 hover:underline"
-                                    >
-                                      📺 Video {index + 1}: {videoLink}
-                                    </a>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  )}
+                  </div>
                 </div>
               )}
 
@@ -904,7 +900,7 @@ function QuickPracticePageContent() {
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
 

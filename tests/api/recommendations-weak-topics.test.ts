@@ -42,7 +42,7 @@ vi.mock('@/lib/prisma', () => ({
 
 // Mock user context
 vi.mock('@/lib/userContext', () => ({
-  getCurrentUserId: vi.fn(() => 'test-user-id'),
+  'user-ayansh': vi.fn(() => 'test-user-id'),
 }));
 
 describe('GET /api/recommendations/weak-topics', () => {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 /**
@@ -16,7 +16,7 @@ import { withErrorHandler, successResponse } from '@/lib/error-handler';
 export const GET = withErrorHandler(
   async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
-    const userId = getCurrentUserId();
+    const userId = USER_ID;
 
     // Get question to verify it exists
     const question = await prisma.question.findUnique({

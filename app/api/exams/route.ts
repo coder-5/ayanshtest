@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { nanoid } from 'nanoid';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { examScheduleSchema } from '@/lib/validation';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 export const GET = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const exams = await prisma.examSchedule.findMany({
     where: {
       userId,
@@ -25,7 +25,7 @@ export const POST = withErrorHandler(async (request: Request) => {
   // Validate request body
   const validated = examScheduleSchema.parse(body);
 
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   const exam = await prisma.examSchedule.create({
     data: {

@@ -70,7 +70,7 @@ vi.mock('@/lib/prisma', () => ({
 }));
 
 vi.mock('@/lib/userContext', () => ({
-  getCurrentUserId: vi.fn(() => 'test-user-id'),
+  'user-ayansh': vi.fn(() => 'test-user-id'),
 }));
 
 describe('GET /api/bookmarks', () => {

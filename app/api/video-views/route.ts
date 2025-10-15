@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { videoViewSchema } from '@/lib/validation';
 
 // Record a video view
 export const POST = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const body = await request.json();
 
   // Validate request body
@@ -41,7 +41,7 @@ export const POST = withErrorHandler(async (request: Request) => {
 
 // Get video views for the current user
 export const GET = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const { searchParams } = new URL(request.url);
   const questionId = searchParams.get('questionId');
 

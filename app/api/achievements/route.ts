@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 export const GET = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   // Cache achievements list (rarely changes)
   const allAchievements = await cache.getOrFetch(

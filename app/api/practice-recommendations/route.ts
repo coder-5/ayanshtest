@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 
 export const GET = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   // Get all incorrect attempts
   const incorrectAttempts = await prisma.userAttempt.findMany({

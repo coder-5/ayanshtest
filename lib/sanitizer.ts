@@ -15,51 +15,21 @@ import DOMPurify from 'isomorphic-dompurify';
 /**
  * Sanitize question text, preserving LaTeX math delimiters
  *
- * Removes HTML tags while preserving:
+ * Only removes dangerous tags (script, style, iframe) while preserving:
  * - LaTeX inline math: $...$ and \(...\)
  * - LaTeX display math: $$...$$ and \[...\]
+ * - All safe formatting tags (bold, italic, lists, etc.)
  */
 export function sanitizeQuestionText(text: string): string {
   if (!text) return '';
 
-  // Temporarily replace LaTeX math with placeholders
-  const mathPlaceholders: string[] = [];
-  let processedText = text;
-
-  // Match $$...$$ (display math)
-  processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (_match, content) => {
-    mathPlaceholders.push(`$$${content}$$`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
+  // Minimal sanitization - only block dangerous tags
+  const sanitized = DOMPurify.sanitize(text, {
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'link'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
   });
 
-  // Match $...$ (inline math)
-  processedText = processedText.replace(/\$([^\$\n]+?)\$/g, (_match, content) => {
-    mathPlaceholders.push(`$${content}$`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
-  });
-
-  // Match \[...\] (display math)
-  processedText = processedText.replace(/\\\[([\s\S]*?)\\\]/g, (_match, content) => {
-    mathPlaceholders.push(`\\[${content}\\]`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
-  });
-
-  // Match \(...\) (inline math)
-  processedText = processedText.replace(/\\\(([\s\S]*?)\\\)/g, (_match, content) => {
-    mathPlaceholders.push(`\\(${content}\\)`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
-  });
-
-  // Sanitize HTML (strip all tags)
-  const sanitized = DOMPurify.sanitize(processedText, { ALLOWED_TAGS: [] });
-
-  // Restore LaTeX math
-  let result = sanitized;
-  mathPlaceholders.forEach((math, index) => {
-    result = result.replace(`__MATH_${index}__`, math);
-  });
-
-  return result.trim();
+  return sanitized.trim();
 }
 
 /**
@@ -70,52 +40,10 @@ export function sanitizeOptionText(text: string): string {
 }
 
 /**
- * Sanitize solution text (preserves more formatting for explanations)
+ * Sanitize solution text (same minimal sanitization)
  */
 export function sanitizeSolutionText(text: string): string {
-  if (!text) return '';
-
-  // Temporarily replace LaTeX math with placeholders
-  const mathPlaceholders: string[] = [];
-  let processedText = text;
-
-  // Match $$...$$ (display math)
-  processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (_match, content) => {
-    mathPlaceholders.push(`$$${content}$$`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
-  });
-
-  // Match $...$ (inline math)
-  processedText = processedText.replace(/\$([^\$\n]+?)\$/g, (_match, content) => {
-    mathPlaceholders.push(`$${content}$`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
-  });
-
-  // Match \[...\] (display math)
-  processedText = processedText.replace(/\\\[([\s\S]*?)\\\]/g, (_match, content) => {
-    mathPlaceholders.push(`\\[${content}\\]`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
-  });
-
-  // Match \(...\) (inline math)
-  processedText = processedText.replace(/\\\(([\s\S]*?)\\\)/g, (_match, content) => {
-    mathPlaceholders.push(`\\(${content}\\)`);
-    return `__MATH_${mathPlaceholders.length - 1}__`;
-  });
-
-  // Sanitize HTML - allow basic formatting for solutions
-  const sanitized = DOMPurify.sanitize(processedText, {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'br', 'p'],
-    ALLOWED_ATTR: [],
-  });
-
-  // Restore LaTeX math
-  let result = sanitized;
-  mathPlaceholders.forEach((math, index) => {
-    result = result.replace(`__MATH_${index}__`, math);
-  });
-
-  return result.trim();
+  return sanitizeQuestionText(text);
 }
 
 /**

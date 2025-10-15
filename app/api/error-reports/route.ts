@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { errorReportSchema } from '@/lib/validation';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 import { ReportSeverity, ReportStatus } from '@prisma/client';
@@ -69,7 +69,7 @@ export const GET = withErrorHandler(async (request: Request) => {
  * Create a new error report for a question
  */
 export const POST = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const body = await request.json();
 
   // Validate request body

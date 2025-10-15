@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 
 interface WeakTopic {
   topic: string;
@@ -16,7 +16,7 @@ interface WeakTopic {
 }
 
 export const GET = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   // Get all topic performance data
   const topicPerformance = await prisma.topicPerformance.findMany({

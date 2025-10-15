@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { SafeHtml } from '@/lib/sanitize';
+import { MathContent } from '@/components/MathContent';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
 import { fetchJsonSafe } from '@/lib/fetchJson';
 
@@ -246,8 +246,8 @@ function LibraryPageContent() {
                     )}
 
                     <div className="flex-1">
-                      <SafeHtml
-                        html={question.questionText}
+                      <MathContent
+                        content={question.questionText}
                         className="text-gray-900 font-medium mb-2"
                       />
                       <div className="flex gap-3 text-sm text-gray-600 mb-2 flex-wrap">

@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import {
   determineStrengthLevel,
   needsPractice as calculateNeedsPractice,
 } from '@/lib/config/thresholds';
 
 export const GET = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   // Pagination parameters
   const { searchParams } = new URL(request.url);
@@ -40,7 +40,7 @@ export const GET = withErrorHandler(async (request: Request) => {
 });
 
 export const POST = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   // Get all user attempts grouped by topic
   const attempts = await prisma.userAttempt.findMany({

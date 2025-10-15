@@ -22,7 +22,8 @@ export function VideoPlayer({ questionId, videoUrl, title, onComplete }: VideoPl
     },
   });
 
-  const embedUrl = getYouTubeEmbedUrl(videoUrl);
+  // Try to get YouTube embed URL, otherwise use the URL directly
+  const embedUrl = getYouTubeEmbedUrl(videoUrl) || videoUrl;
 
   useEffect(() => {
     // Listen for YouTube iframe API messages
@@ -43,24 +44,6 @@ export function VideoPlayer({ questionId, videoUrl, title, onComplete }: VideoPl
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [markAsCompleted]);
-
-  if (!embedUrl) {
-    return (
-      <div className="bg-gray-100 rounded-lg p-4">
-        <p className="text-sm text-gray-600">
-          📺{' '}
-          <a
-            href={videoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-600 hover:underline"
-          >
-            {title || 'Watch video solution'}
-          </a>
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="relative">

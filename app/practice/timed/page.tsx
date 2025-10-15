@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
-import { SafeHtml } from '@/lib/sanitize';
+import { MathContent } from '@/components/MathContent';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
 import { useSearchParams } from 'next/navigation';
 import { fetchJsonSafe } from '@/lib/fetchJson';
@@ -662,8 +662,8 @@ function TimedChallengePageContent() {
 
           {/* Question */}
           <div className="mb-6">
-            <SafeHtml
-              html={currentQuestion?.questionText || ''}
+            <MathContent
+              content={currentQuestion?.questionText || ''}
               className="text-xl text-gray-900 mb-4 whitespace-pre-wrap"
             />
 
@@ -727,7 +727,7 @@ function TimedChallengePageContent() {
                 }`}
               >
                 <span className="font-semibold text-indigo-600 mr-3">{option.optionLetter}.</span>
-                <span className="text-gray-900">{option.optionText}</span>
+                <MathContent content={option.optionText} className="inline text-gray-900" />
               </button>
             ))}
           </div>

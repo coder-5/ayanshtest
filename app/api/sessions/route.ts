@@ -7,14 +7,14 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { sessionSchema } from '@/lib/validation';
 import { z } from 'zod';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 export const GET = withErrorHandler(async (request: Request) => {
   // Hardcoded for single user - this is intentional
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const { searchParams } = new URL(request.url);
   const rawLimit = searchParams.get('limit') || '50';
 
@@ -44,7 +44,7 @@ export const GET = withErrorHandler(async (request: Request) => {
 
 export const POST = withErrorHandler(async (request: Request) => {
   // Hardcoded for single user - this is intentional
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const body = await request.json();
 
   // Validate request body

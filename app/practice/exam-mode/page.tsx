@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, Suspense } from 'react';
 import toast from 'react-hot-toast';
-import { getClientUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { fetchJsonSafe } from '@/lib/fetchJson';
 
 export const dynamic = 'force-dynamic';

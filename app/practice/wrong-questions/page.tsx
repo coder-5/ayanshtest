@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { SafeHtml } from '@/lib/sanitize';
+import { MathContent } from '@/components/MathContent';
 import { ErrorBoundary } from '@/app/components/ErrorBoundary';
 import { fetchJsonSafe } from '@/lib/fetchJson';
 
@@ -270,8 +270,8 @@ function WrongQuestionsPageContent() {
                       </div>
 
                       {/* Question Text */}
-                      <SafeHtml
-                        html={question.questionText}
+                      <MathContent
+                        content={question.questionText}
                         className="text-gray-900 mb-3 line-clamp-2"
                       />
 

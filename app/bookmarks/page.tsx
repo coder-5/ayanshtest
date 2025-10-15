@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { SafeHtml } from '@/lib/sanitize';
+import { MathContent } from '@/components/MathContent';
 import { fetchJsonSafe } from '@/lib/fetchJson';
 
 interface Bookmark {
@@ -205,8 +205,8 @@ export default function BookmarksPage() {
                         )}
                       </div>
 
-                      <SafeHtml
-                        html={bookmark.question.questionText}
+                      <MathContent
+                        content={bookmark.question.questionText}
                         className="text-gray-900 mb-3"
                       />
 
@@ -238,7 +238,10 @@ export default function BookmarksPage() {
                                 <span className="font-semibold text-indigo-600 mr-2">
                                   {option.optionLetter}.
                                 </span>
-                                <span className="text-gray-900">{option.optionText}</span>
+                                <MathContent
+                                  content={option.optionText}
+                                  className="inline text-gray-900"
+                                />
                                 {option.isCorrect && (
                                   <span className="ml-2 text-green-600 font-semibold">
                                     ✓ Correct

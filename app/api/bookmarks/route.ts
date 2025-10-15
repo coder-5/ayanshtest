@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 
 // GET - Fetch all bookmarks for the user
 export const GET = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   const bookmarks = await prisma.questionBookmark.findMany({
     where: {
@@ -36,7 +36,7 @@ export const GET = withErrorHandler(async () => {
 
 // POST - Create a new bookmark
 export const POST = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const body = await request.json();
 
   const { questionId, note } = body;
@@ -93,7 +93,7 @@ export const POST = withErrorHandler(async (request: Request) => {
 
 // DELETE - Remove a bookmark
 export const DELETE = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const { searchParams } = new URL(request.url);
   const questionId = searchParams.get('questionId');
 
@@ -128,7 +128,7 @@ export const DELETE = withErrorHandler(async (request: Request) => {
 
 // PUT - Update bookmark note
 export const PUT = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const body = await request.json();
 
   const { questionId, note } = body;

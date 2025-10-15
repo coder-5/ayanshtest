@@ -1,9 +1,9 @@
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 export const GET = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
 
   // Get total attempts and accuracy
   const attempts = await prisma.userAttempt.findMany({

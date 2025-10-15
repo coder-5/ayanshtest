@@ -1,9 +1,9 @@
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
 
 export const GET = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const { searchParams } = new URL(request.url);
   const days = parseInt(searchParams.get('days') || '30');
 
@@ -51,7 +51,7 @@ export const GET = withErrorHandler(async (request: Request) => {
 });
 
 export const POST = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

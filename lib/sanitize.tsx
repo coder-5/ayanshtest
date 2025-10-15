@@ -56,28 +56,14 @@ export function sanitizeText(dirty: string): string {
 
 /**
  * Component for safely rendering user content with HTML
- * Automatically triggers MathJax typesetting for LaTeX content
+ * MathJax typesetting is handled globally by the page component
  * Usage: <SafeHtml html={userContent} className="..." />
+ *
+ * NOTE: Content is expected to be pre-sanitized by lib/sanitizer.ts
+ * This component does NOT sanitize to preserve LaTeX math expressions
  */
 export const SafeHtml = ({ html, className }: { html: string; className?: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Trigger MathJax typesetting when content changes
-    if (containerRef.current && typeof window !== 'undefined' && (window as any).MathJax) {
-      (window as any).MathJax.typesetPromise([containerRef.current]).catch((err: any) =>
-        console.error('MathJax typesetting failed:', err)
-      );
-    }
-  }, [html]);
-
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
-    />
-  );
+  return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 };
 
 /**

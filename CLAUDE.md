@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Ayansh Math Prep** is a comprehensive math practice platform for competitive mathematics exams (AMC8, MOEMS, Math Kangaroo, etc.). Built with Next.js 15, React 19, TypeScript, PostgreSQL, and Prisma ORM.
 
-**IMPORTANT DESIGN DECISION:** This is intentionally a personal/local application. Authentication is hardcoded by design (see `lib/userContext.ts`). DO NOT add authentication systems unless explicitly requested.
+**IMPORTANT DESIGN DECISION:** This is intentionally a single-user application. The user ID is a constant (`USER_ID = 'user-ayansh'` in `lib/constants.ts`). DO NOT add authentication systems unless explicitly requested.
 
 ## Development Commands
 
@@ -74,13 +74,13 @@ The codebase follows Next.js 15 App Router conventions:
 
 - **`lib/`** - Shared utilities and business logic
   - **`lib/services/`** - Service layer (e.g., `questionService.ts`)
-  - **`lib/userContext.ts`** - User management (hardcoded by design)
+  - **`lib/constants.ts`** - Application constants (single user ID)
   - **`lib/validation.ts`** - Zod schemas for input validation
   - **`lib/sanitizer.ts`** - XSS protection that preserves LaTeX math
   - **`lib/prisma.ts`** - Database client singleton
 
 - **`components/`** - Reusable React components
-- **`prisma/schema.prisma`** - Database schema (14 models, soft-delete pattern)
+- **`prisma/schema.prisma`** - Database schema (soft-delete pattern)
 - **`scripts/`** - Utility scripts for data import, backup, etc.
 
 ### Key Architectural Patterns
@@ -126,7 +126,7 @@ Use `crypto.randomUUID()` for all new IDs. Never use `Date.now()` or `Math.rando
 
 ### Core Models
 
-- **User** - User profiles (supports multi-user via localStorage)
+- **User** - Single user profile (hardcoded to 'user-ayansh')
 - **Question** - Math questions with metadata
   - Relations: options, solution, attempts, errorReports, userDiagrams
   - Unique constraint: `(examName, examYear, questionNumber)`
@@ -207,20 +207,15 @@ where: {
 
 ## User Management
 
-The app uses a **hardcoded user system** (intentional for personal use):
+The app uses a **single constant user ID** (intentional for single-user use):
 
 ```typescript
-// Server-side
-import { getCurrentUserId } from '@/lib/userContext';
-const userId = getCurrentUserId(); // Returns hardcoded ID
-
-// Client-side (localStorage-based)
-import { getClientUserId, setClientUserId } from '@/lib/userContext';
-const userId = getClientUserId(); // Checks localStorage
-setClientUserId('new-user-id'); // Switch users
+// Both server-side and client-side
+import { USER_ID } from '@/lib/constants';
+const userId = USER_ID; // Always returns 'user-ayansh'
 ```
 
-**DO NOT implement proper authentication** unless explicitly requested. This is a local/family application.
+**DO NOT implement authentication or user switching** unless explicitly requested. This is a single-user local application.
 
 ## Practice Mode Logic
 
@@ -318,7 +313,6 @@ Required in `.env`:
 
 ```bash
 DATABASE_URL="postgresql://postgres:password@localhost:5432/ayansh_math_prep"
-NEXT_PUBLIC_DEFAULT_USER_ID="ayansh"  # Default user
 NODE_ENV="development"
 ```
 

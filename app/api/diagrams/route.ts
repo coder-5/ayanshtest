@@ -3,7 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 import { withErrorHandler, successResponse, errorResponse } from '@/lib/error-handler';
 
 // Magic number validation for image files
@@ -34,7 +34,7 @@ function sanitizeFilename(filename: string): string {
 }
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const formData = await request.formData();
   const file = formData.get('file') as File;
   const questionId = formData.get('questionId') as string;

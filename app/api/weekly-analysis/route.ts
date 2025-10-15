@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withErrorHandler, successResponse } from '@/lib/error-handler';
-import { getCurrentUserId } from '@/lib/userContext';
+import { USER_ID } from '@/lib/constants';
 
 function getWeekStartDate(date: Date): Date {
   const d = new Date(date);
@@ -17,7 +17,7 @@ function getWeekEndDate(weekStart: Date): Date {
 }
 
 export const GET = withErrorHandler(async (request: Request) => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const { searchParams } = new URL(request.url);
   const weeks = parseInt(searchParams.get('weeks') || '12');
 
@@ -40,7 +40,7 @@ export const GET = withErrorHandler(async (request: Request) => {
 });
 
 export const POST = withErrorHandler(async () => {
-  const userId = getCurrentUserId();
+  const userId = USER_ID;
   const today = new Date();
   const weekStart = getWeekStartDate(today);
   weekStart.setHours(0, 0, 0, 0);
